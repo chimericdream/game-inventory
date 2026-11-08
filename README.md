@@ -1,0 +1,54 @@
+# Game Library
+
+A self-hosted web app for a household's game collection: board games, card games, RPG books and
+console video games. Built with Next.js, Mantine, PostgreSQL and Drizzle.
+
+## Features
+
+- Catalog with type-specific details (players, play time, complexity; RPG system and book kind),
+  tags, cover images, and multiple copies per title (owner, location, condition, platform, price)
+- Search and filters: type, player count, max play time, tag, location
+- Household profiles. A **restricted** profile (for kids) is read-only and never sees games marked
+  hidden, or their cover images when marked "hide images". This is enforced on the server.
+- CSV import, BoardGameGeek lookup, and barcode scanning (on browsers with `BarcodeDetector`)
+
+## Local development
+
+```sh
+mise install                 # node + pnpm versions from mise.toml
+pnpm install
+docker compose up -d db      # Postgres on localhost:5432
+cp .env.example .env
+pnpm dev                     # migrations run automatically on start
+```
+
+Open http://localhost:3000. The first visit asks you to create the household and admin account.
+
+Checks: `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
+Tests run the real migrations against an in-process Postgres (PGlite), so no database is needed.
+
+## Deploying (Proxmox VM or LXC with Docker, reachable over Tailscale)
+
+```sh
+cp .env.example .env         # set POSTGRES_PASSWORD (and BGG_API_TOKEN if you want lookups)
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+- The app listens on port 3000 (`APP_PORT` to change it). Migrations run on startup.
+- Install Tailscale on the VM/LXC to give it its own tailnet address. To serve it over HTTPS on the
+  tailnet, run `tailscale serve --bg 3000` and set `COOKIE_SECURE=true`.
+- Uploaded images live in the `app-data` volume and the database in `db-data`.
+- Back up with `scripts/backup.sh` (run it from cron); it keeps the newest 14 backups of each.
+  To restore: `gunzip -c db-<stamp>.sql.gz | docker compose -f docker-compose.prod.yml exec -T db psql -U games -d games`.
+
+## Configuration
+
+| Variable        | Purpose                                             |
+| --------------- | --------------------------------------------------- |
+| `DATABASE_URL`  | Postgres connection string (required)               |
+| `DATA_DIR`      | Where uploaded images are stored (default `./data`) |
+| `BGG_API_TOKEN` | BoardGameGeek API token, enables title lookup       |
+| `COOKIE_SECURE` | `true` when served over HTTPS                       |
+| `AUTO_MIGRATE`  | `false` to skip migrations on start                 |
+
+See `AGENTS.md` for architecture rules and conventions.
