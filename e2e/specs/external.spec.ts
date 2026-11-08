@@ -1,0 +1,133 @@
+// Barcode/UPC lookup, and a wiring check that the app talks to the mock server rather than the
+// internet. The BoardGameGeek screens themselves are deliberately not exercised here yet; see
+// docs/E2E_TEST_PLAN.md (BGG-xx).
+import { expect, test } from '../fixtures';
+import { BGG_TOKEN, MOCK_URL } from '../support/env';
+
+interface Logged {
+  service: string;
+  path: string;
+  query: Record<string, string>;
+  authorization: string | null;
+}
+
+const requests = async (service: 'bgg' | 'upc'): Promise<Logged[]> =>
+  (await fetch(`${MOCK_URL}/__requests?service=${service}`)).json();
+
+test.beforeEach(async () => {
+  await fetch(`${MOCK_URL}/__reset`);
+});
+
+test('UPC-01 a known barcode returns its product title @external', async ({ request }) => {
+  const res = await request.get('/api/lookup/upc?code=012345678905');
+  expect(res.status()).toBe(200);
+  expect(await res.json()).toEqual({ title: 'Catan Board Game' });
+  const log = await requests('upc');
+  expect(log).toHaveLength(1);
+  expect(log[0]!.query.upc).toBe('012345678905');
+});
+
+test('UPC-02 unknown codes and upstream failures give an empty answer, not an error @external', async ({
+  request,
+}) => {
+  for (const code of [
+    '999999999999', // unknown
+    '429429429429', // rate limited
+    '500500500500', // upstream error
+    '777777777777', // malformed JSON
+  ]) {
+    const res = await request.get(`/api/lookup/upc?code=${code}`);
+    expect(res.status(), code).toBe(200);
+    expect(await res.json(), code).toEqual({ title: null });
+  }
+});
+
+test('UPC-03 codes of the wrong length never reach the upstream service @external', async ({
+  request,
+}) => {
+  for (const code of ['', '123', '1234567', '123456789012345', 'abcdefgh']) {
+    const res = await request.get(`/api/lookup/upc?code=${encodeURIComponent(code)}`);
+    expect(await res.json(), code).toEqual({ title: null });
+  }
+  expect(await requests('upc')).toHaveLength(0);
+});
+
+test('UPC-04 non-digits in a code are stripped before the lookup @external', async ({
+  request,
+}) => {
+  const res = await request.get('/api/lookup/upc?code=0-12345-67890-5');
+  expect(await res.json()).toEqual({ title: 'Catan Board Game' });
+});
+
+test('UPC-05 scanning a barcode fills the search with the product title @external', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    class FakeDetector {
+      async detect() {
+        return [{ rawValue: '012345678905' }];
+      }
+    }
+    (window as unknown as { BarcodeDetector: unknown }).BarcodeDetector = FakeDetector;
+  });
+  await page.goto('/games/new');
+  await page.getByRole('button', { name: 'Scan barcode' }).click();
+  await expect(page.getByPlaceholder('Search a title to fill in the details')).toHaveValue(
+    'Catan Board Game',
+  );
+  expect((await requests('upc')).map((r) => r.query.upc)).toEqual(['012345678905']);
+});
+
+test('UPC-06 without BarcodeDetector support the scan button is not offered', async ({ page }) => {
+  await page.addInitScript(() => {
+    delete (window as unknown as { BarcodeDetector?: unknown }).BarcodeDetector;
+  });
+  await page.goto('/games/new');
+  await expect(page.getByPlaceholder('Search a title to fill in the details')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Scan barcode' })).toHaveCount(0);
+});
+
+test('MOCK-01 the app reaches the mock BGG with its token, not the real service @external', async ({
+  request,
+}) => {
+  const res = await request.get('/api/lookup/bgg?q=catan');
+  expect(res.status()).toBe(200);
+  const { hits } = await res.json();
+  expect(hits).toEqual([{ id: 13, name: 'Catan', year: 1995 }]);
+
+  const log = await requests('bgg');
+  expect(log).toHaveLength(1);
+  expect(log[0]!.path).toBe('/bgg/search');
+  expect(log[0]!.authorization).toBe(`Bearer ${BGG_TOKEN}`);
+});
+
+test('MOCK-02 a lookup is one request per search and one per pick, with nothing in the background @external', async ({
+  request,
+  page,
+}) => {
+  await request.get('/api/lookup/bgg?q=pandemic');
+  await request.get('/api/lookup/bgg?id=30549');
+  await page.goto('/games');
+  await page.goto('/games/new');
+  await page.waitForTimeout(500); // nothing should be polling the upstream service
+  const log = await requests('bgg');
+  expect(log.map((l) => l.path)).toEqual(['/bgg/search', '/bgg/thing']);
+});
+
+test('MOCK-03 upstream failures reach the caller as a 502 with a message @external', async ({
+  request,
+}) => {
+  for (const q of ['__500', '__garbage']) {
+    const res = await request.get(`/api/lookup/bgg?q=${q}`);
+    expect(res.status(), q).toBe(502);
+    expect((await res.json()).error).toBeTruthy();
+  }
+  const preparing = await request.get('/api/lookup/bgg?q=__202');
+  expect(preparing.status()).toBe(502);
+  expect((await preparing.json()).error).toMatch(/try again/i);
+});
+
+test('MOCK-04 at most ten search results come back @external', async ({ request }) => {
+  const { hits } = await (await request.get('/api/lookup/bgg?q=__many')).json();
+  expect(hits).toHaveLength(10);
+});

@@ -23,6 +23,7 @@ self-hosters later. Not a SaaS.
 ## Commands
 
 - `pnpm dev` / `pnpm build` / `pnpm start`
+- `pnpm e2e` (Playwright, needs local Postgres; see `docs/E2E_TEST_PLAN.md`), `pnpm e2e:smoke`, `pnpm e2e:ui`
 - `pnpm lint` (oxlint), `pnpm format` / `pnpm format:check` (oxfmt), `pnpm typecheck`, `pnpm test`
 - `pnpm db:generate`, `pnpm db:migrate`
 - `docker compose up -d db` starts local Postgres

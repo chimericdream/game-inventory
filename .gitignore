@@ -7,3 +7,6 @@ next-env.d.ts
 .idea/
 /.dev-db/
 /data/
+/e2e/.tmp/
+/playwright-report/
+/test-results/

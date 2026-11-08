@@ -17,3 +17,39 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test --passWithNoTests
       - run: pnpm build
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: games
+          POSTGRES_PASSWORD: games
+          POSTGRES_DB: games
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U games"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            e2e/.tmp/report
+            e2e/.tmp/test-results
+          retention-days: 7

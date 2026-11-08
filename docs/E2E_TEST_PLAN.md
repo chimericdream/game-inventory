@@ -1,7 +1,45 @@
 # End-to-end test plan (Playwright)
 
-Status: **draft, nothing implemented yet.** Items marked _(confirm)_ describe behavior I expect but
-have not verified against the running app; the first pass of writing each spec should settle them.
+## Implementation status
+
+Implemented in `e2e/` and run with `pnpm e2e` (needs the local Postgres from
+`docker compose up -d db`). Phases P0 to P4 are done and run in CI as the `e2e` job. What is left is
+listed at the end of this section.
+
+| Area                                | Specs                                     | Notes                                                                        |
+| ----------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------- |
+| Setup and auth                      | `00-first-run.setup.ts`, `auth.spec.ts`   | AUTH-01 to 12; AUTH-13 became "a deleted session stops working"              |
+| Catalog, copies, browsing, settings | `catalog`, `copies`, `browse`, `settings` |                                                                              |
+| Household visibility                | `visibility.spec.ts`                      | Includes replaying captured server-action requests as the restricted profile |
+| Guest links                         | `guest.spec.ts`                           | Includes replay by member and restricted profiles                            |
+| Import, loans, wishlist, play log   | `import`, `loans`, `wishlist`, `plays`    |                                                                              |
+| UPC and mock wiring                 | `external.spec.ts`                        | UPC-01 to 06; MOCK-01 to 04 check the harness, not the BGG screens           |
+| Cross-cutting                       | `cross-cutting.spec.ts`, `health.spec.ts` | X-01 to X-11 (X-12 is now the cover path-traversal check)                    |
+
+Deviations from the plan below:
+
+- Canned BGG responses are inline in `e2e/mocks/external-server.ts` instead of separate XML files.
+- The mock is reached through `BGG_BASE_URL` and `UPC_BASE_URL` (both implemented).
+- The app is started by `e2e/start-app.mjs`, which drops and recreates the `games_e2e` database, so
+  the database exists before Playwright's global setup. Set `E2E_SKIP_BUILD=1` to reuse the last build.
+- Confirmed behavior replaced the "(confirm)" items: duplicate imports are skipped (same title and
+  type, any case); a copy on loan is not offered for lending again; restricted profiles are
+  redirected away from plays, loans, wishlist, import and add game.
+
+Known gaps, kept as `test.fixme`: CAT-07c (cover bytes are not verified, only the declared type) and
+X-05b (color contrast below WCAG AA in the default Mantine theme).
+
+Not done yet: the Firefox and WebKit `@smoke` pass (`E2E_BROWSERS=all` is configured, but those
+browsers are not installed locally), the Docker smoke run, the BGG screens (P6), per-worker databases
+for parallel runs, and ratings checks (ratings do not exist yet).
+
+### Bugs the tests found and that were fixed
+
+- Cover uploads over 1 MB failed silently (the server action body limit); now 10 MB.
+- Malformed ids in URLs (`/games/not-a-uuid`, `?location=bad`, guest cover ids) caused a 500; now a 404 or empty list.
+- Tags used only on games hidden from restricted profiles still appeared in their tag filter.
+- The restricted profile's navigation linked to pages that only bounced it back.
+- The Play log rendered a paragraph directly inside a list (invalid markup).
 
 ## 1. Goals and non-goals
 
