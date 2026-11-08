@@ -2,7 +2,15 @@
 
 import { AppShell, Burger, Button, Group, NavLink, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDice5, IconLogout, IconSettings, IconUpload } from '@tabler/icons-react';
+import {
+  IconDice5,
+  IconGift,
+  IconHistory,
+  IconLogout,
+  IconSettings,
+  IconSwitchHorizontal,
+  IconUpload,
+} from '@tabler/icons-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -15,6 +23,9 @@ interface Props {
 
 const NAV = [
   { href: '/games', label: 'Games', icon: IconDice5 },
+  { href: '/plays', label: 'Play log', icon: IconHistory },
+  { href: '/loans', label: 'Loans', icon: IconSwitchHorizontal },
+  { href: '/wishlist', label: 'Wishlist', icon: IconGift },
   { href: '/import', label: 'Import', icon: IconUpload },
   { href: '/settings', label: 'Settings', icon: IconSettings },
 ];

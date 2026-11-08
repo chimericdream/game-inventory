@@ -246,3 +246,71 @@ export const shareLinks = pgTable(
   },
   (t) => [index('share_links_household_idx').on(t.householdId)],
 );
+
+// ---------------------------------------------------------------------------
+// Loans, wishlist, play log
+// ---------------------------------------------------------------------------
+
+export const loans = pgTable(
+  'loans',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    copyId: uuid('copy_id')
+      .notNull()
+      .references(() => copies.id, { onDelete: 'cascade' }),
+    borrower: text('borrower').notNull(),
+    lentOn: date('lent_on').notNull(),
+    dueOn: date('due_on'),
+    returnedOn: date('returned_on'),
+    notes: text('notes'),
+  },
+  (t) => [index('loans_household_idx').on(t.householdId), index('loans_copy_idx').on(t.copyId)],
+);
+
+export const wishlistItems = pgTable(
+  'wishlist_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    type: gameType('type').notNull().default('board'),
+    url: text('url'),
+    priceCents: integer('price_cents'),
+    notes: text('notes'),
+    requestedByUserId: uuid('requested_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('wishlist_household_idx').on(t.householdId)],
+);
+
+export const playSessions = pgTable(
+  'play_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    gameId: uuid('game_id')
+      .notNull()
+      .references(() => games.id, { onDelete: 'cascade' }),
+    playedOn: date('played_on').notNull(),
+    durationMinutes: integer('duration_minutes'),
+    playerNames: text('player_names')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    winner: text('winner'),
+    notes: text('notes'),
+  },
+  (t) => [
+    index('plays_household_played_idx').on(t.householdId, t.playedOn),
+    index('plays_game_idx').on(t.gameId),
+  ],
+);
