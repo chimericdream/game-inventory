@@ -56,4 +56,22 @@ docker compose -f docker-compose.prod.yml up -d --build
 | `COOKIE_SECURE` | `true` when served over HTTPS                       |
 | `AUTO_MIGRATE`  | `false` to skip migrations on start                 |
 
-See `AGENTS.md` for architecture rules and conventions.
+## BoardGameGeek integration
+
+Optional. When `BGG_API_TOKEN` is set, the "Look up" button on the add-game form queries the
+[BoardGameGeek XML API](https://boardgamegeek.com/wiki/page/BGG_XML_API2) to prefill a game's
+title, description (truncated), player counts, play time, minimum age, complexity and up to six
+categories. Images are not fetched.
+
+- Lookups happen only on demand when a signed-in, non-restricted household member searches (one
+  search request returning up to 10 results) and picks a result (one detail request). There is no
+  bulk crawling, background syncing or scheduled polling.
+- Requests are authenticated with your own token; nothing is proxied through a third party.
+- Fetched data is saved only to your own self-hosted instance for personal catalog use. It is never
+  republished, and guest links expose only the games you explicitly allow.
+- This is a non-commercial, self-hosted project. Data and images belong to BoardGameGeek and its
+  contributors; "Powered by BoardGameGeek".
+
+## License
+
+[MIT](LICENSE). See `AGENTS.md` for architecture rules and conventions.
