@@ -1,7 +1,7 @@
-import { Button, Group, Text, Title } from '@mantine/core';
+import { Group, Text, Title } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
-import Link from 'next/link';
 
+import { LinkButton } from '@/components/Links';
 import { requireContext } from '@/server/auth/current';
 import { GAME_TYPES, listCatalog, type CatalogFilters, type GameType } from '@/server/data/games';
 import { listLocations, listTags } from '@/server/data/lookups';
@@ -45,9 +45,9 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
       <Group justify="space-between" mb="md">
         <Title order={2}>Games</Title>
         {canEdit && (
-          <Button component={Link} href="/games/new" leftSection={<IconPlus size={16} />}>
+          <LinkButton href="/games/new" leftSection={<IconPlus size={16} />}>
             Add game
-          </Button>
+          </LinkButton>
         )}
       </Group>
       <FilterBar

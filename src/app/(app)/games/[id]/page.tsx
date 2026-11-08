@@ -1,8 +1,8 @@
 import { Badge, Button, Group, Image, Stack, Text, Title } from '@mantine/core';
 import { IconPencil } from '@tabler/icons-react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { LinkButton } from '@/components/Links';
 import { requireContext } from '@/server/auth/current';
 import { getGameDetail } from '@/server/data/games';
 import { listLocations, listMembers } from '@/server/data/lookups';
@@ -49,14 +49,13 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
         </div>
         {canEdit && (
           <Group>
-            <Button
-              component={Link}
+            <LinkButton
               href={`/games/${id}/edit`}
               variant="default"
               leftSection={<IconPencil size={16} />}
             >
               Edit
-            </Button>
+            </LinkButton>
             <form action={deleteGameAction.bind(null, id)}>
               <Button type="submit" color="red" variant="light">
                 Delete

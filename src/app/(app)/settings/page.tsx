@@ -1,4 +1,4 @@
-import { Badge, Group, List, Stack, Text, Title } from '@mantine/core';
+import { Badge, Group, Stack, Text, Title } from '@mantine/core';
 
 import { requireContext } from '@/server/auth/current';
 import { listShareLinks } from '@/server/data/guest';
@@ -23,18 +23,16 @@ export default async function SettingsPage() {
 
       <Stack gap="xs">
         <Title order={4}>People</Title>
-        <List spacing={4} listStyleType="none">
+        <Stack gap={4}>
           {members.map((m) => (
-            <List.Item key={m.id}>
-              <Group gap="xs">
-                <Text>{m.name}</Text>
-                <Badge variant="light" color={m.role === 'restricted' ? 'orange' : 'blue'}>
-                  {m.role}
-                </Badge>
-              </Group>
-            </List.Item>
+            <Group key={m.id} gap="xs">
+              <Text>{m.name}</Text>
+              <Badge variant="light" color={m.role === 'restricted' ? 'orange' : 'blue'}>
+                {m.role}
+              </Badge>
+            </Group>
           ))}
-        </List>
+        </Stack>
         {isAdmin && <AddMemberForm />}
         <Text size="xs" c="dimmed">
           Restricted profiles are read-only and never see games marked hidden for them.
@@ -44,13 +42,13 @@ export default async function SettingsPage() {
       <Stack gap="xs">
         <Title order={4}>Locations</Title>
         {locations.length === 0 && <Text c="dimmed">None yet.</Text>}
-        <List spacing={4}>
+        <Stack gap={4}>
           {locations.map((l) => (
-            <List.Item key={l.id}>
+            <Text key={l.id}>
               {l.parentId ? `${locationName.get(l.parentId)} › ${l.name}` : l.name}
-            </List.Item>
+            </Text>
           ))}
-        </List>
+        </Stack>
         {canEdit && (
           <AddLocationForm parents={locations.map((l) => ({ value: l.id, label: l.name }))} />
         )}

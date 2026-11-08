@@ -1,7 +1,7 @@
-import { Anchor, Badge, Container, Group, Image, Stack, Text, Title } from '@mantine/core';
-import Link from 'next/link';
+import { Badge, Container, Group, Image, Stack, Text, Title } from '@mantine/core';
 import { notFound } from 'next/navigation';
 
+import { LinkAnchor } from '@/components/Links';
 import { guestGame, resolveShareLink } from '@/server/data/guest';
 import { getDb } from '@/server/db/client';
 
@@ -32,9 +32,9 @@ export default async function GuestGamePage({
 
   return (
     <Container size="md" py="lg">
-      <Anchor component={Link} href={`/g/${token}`} size="sm">
+      <LinkAnchor href={`/g/${token}`} size="sm">
         ← All games
-      </Anchor>
+      </LinkAnchor>
       <Stack gap="md" mt="sm">
         <div>
           <Title order={2}>{game.title}</Title>
