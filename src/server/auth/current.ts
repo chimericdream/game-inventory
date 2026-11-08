@@ -41,3 +41,14 @@ export async function setSessionCookie(token: string, expiresAt: Date) {
 export async function clearSessionCookie() {
   (await cookies()).delete(SESSION_COOKIE);
 }
+
+/** For route handlers: returns null instead of redirecting when there is no session. */
+export async function getApiContext(): Promise<DataContext | null> {
+  const user = await getSessionUser();
+  if (!user) return null;
+  return createContext(getDb(), user.householdId, {
+    kind: 'user',
+    userId: user.userId,
+    role: user.role,
+  });
+}

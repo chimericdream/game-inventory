@@ -1,0 +1,180 @@
+'use client';
+
+import { useActionState, useState } from 'react';
+import {
+  Alert,
+  Button,
+  FileInput,
+  Group,
+  NumberInput,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
+import Link from 'next/link';
+
+import type { ActionState } from './actions';
+import { TYPE_OPTIONS, VISIBILITY_OPTIONS } from './labels';
+
+export interface GameFormValues {
+  title: string;
+  type: string;
+  description: string;
+  notes: string;
+  visibility: string;
+  shareable: boolean;
+  tags: string;
+  minPlayers?: number | null;
+  maxPlayers?: number | null;
+  playTimeMinutes?: number | null;
+  complexity?: number | null;
+  minAge?: number | null;
+  system: string;
+  bookKind: string;
+}
+
+export const EMPTY_GAME: GameFormValues = {
+  title: '',
+  type: 'board',
+  description: '',
+  notes: '',
+  visibility: 'normal',
+  shareable: false,
+  tags: '',
+  system: '',
+  bookKind: '',
+};
+
+interface Props {
+  action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
+  initial?: GameFormValues;
+  cancelHref: string;
+}
+
+export function GameForm({ action, initial = EMPTY_GAME, cancelHref }: Props) {
+  const [state, formAction, pending] = useActionState(action, {});
+  const [type, setType] = useState(initial.type);
+  const isBoard = type === 'board' || type === 'card';
+
+  return (
+    <form action={formAction}>
+      <Stack maw={640}>
+        {state.error && (
+          <Alert color="red" variant="light">
+            {state.error}
+          </Alert>
+        )}
+        <TextInput name="title" label="Title" defaultValue={initial.title} required />
+        <Select
+          name="type"
+          label="Type"
+          data={TYPE_OPTIONS}
+          value={type}
+          onChange={(v) => setType(v ?? 'board')}
+          allowDeselect={false}
+        />
+
+        {isBoard && (
+          <>
+            <Group grow align="flex-start">
+              <NumberInput
+                name="minPlayers"
+                label="Min players"
+                min={1}
+                defaultValue={initial.minPlayers ?? ''}
+              />
+              <NumberInput
+                name="maxPlayers"
+                label="Max players"
+                min={1}
+                defaultValue={initial.maxPlayers ?? ''}
+              />
+            </Group>
+            <Group grow align="flex-start">
+              <NumberInput
+                name="playTimeMinutes"
+                label="Play time (min)"
+                min={1}
+                defaultValue={initial.playTimeMinutes ?? ''}
+              />
+              <NumberInput
+                name="complexity"
+                label="Complexity (1–5)"
+                min={1}
+                max={5}
+                defaultValue={initial.complexity ?? ''}
+              />
+              <NumberInput
+                name="minAge"
+                label="Min age"
+                min={1}
+                defaultValue={initial.minAge ?? ''}
+              />
+            </Group>
+          </>
+        )}
+        {type === 'rpg' && (
+          <Group grow align="flex-start">
+            <TextInput
+              name="system"
+              label="System"
+              placeholder="D&D 5e"
+              defaultValue={initial.system}
+            />
+            <TextInput
+              name="bookKind"
+              label="Book kind"
+              placeholder="Core rulebook"
+              defaultValue={initial.bookKind}
+            />
+          </Group>
+        )}
+
+        <TextInput
+          name="tags"
+          label="Tags"
+          description="Comma separated"
+          defaultValue={initial.tags}
+        />
+        <Textarea
+          name="description"
+          label="Description"
+          autosize
+          minRows={2}
+          defaultValue={initial.description}
+        />
+        <Textarea name="notes" label="Notes" autosize minRows={2} defaultValue={initial.notes} />
+        <FileInput
+          name="cover"
+          label="Cover image"
+          accept="image/jpeg,image/png,image/webp"
+          clearable
+        />
+
+        <Select
+          name="visibility"
+          label="Visibility in this household"
+          data={VISIBILITY_OPTIONS}
+          defaultValue={initial.visibility}
+          allowDeselect={false}
+        />
+        <Switch name="shareable" label="Allow on guest links" defaultChecked={initial.shareable} />
+        <Text size="xs" c="dimmed">
+          Guest links only ever show games marked as allowed.
+        </Text>
+
+        <Group>
+          <Button type="submit" loading={pending}>
+            Save
+          </Button>
+          <Button component={Link} href={cancelHref} variant="default">
+            Cancel
+          </Button>
+        </Group>
+      </Stack>
+    </form>
+  );
+}
