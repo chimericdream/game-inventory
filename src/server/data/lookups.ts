@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { locations, tags, users } from '../db/schema';
@@ -24,10 +24,16 @@ export async function createLocation(ctx: DataContext, name: string, parentId?: 
 }
 
 export async function listTags(ctx: DataContext) {
+  // A tag used only on games hidden from restricted profiles must not reveal that those exist.
+  const onVisibleGame =
+    ctx.viewer.role === 'restricted'
+      ? sql`exists (select 1 from game_tags gt join games g on g.id = gt.game_id
+          where gt.tag_id = ${tags.id} and g.visibility <> 'hidden_restricted')`
+      : undefined;
   return ctx.db
     .select()
     .from(tags)
-    .where(eq(tags.householdId, ctx.householdId))
+    .where(and(eq(tags.householdId, ctx.householdId), onVisibleGame))
     .orderBy(asc(tags.name));
 }
 

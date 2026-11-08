@@ -21,6 +21,9 @@ interface Props {
   children: React.ReactNode;
 }
 
+/** Areas a restricted profile can use; the rest redirect it back to the games list. */
+const RESTRICTED_NAV = new Set(['/games', '/settings']);
+
 const NAV = [
   { href: '/games', label: 'Games', icon: IconDice5 },
   { href: '/plays', label: 'Play log', icon: IconHistory },
@@ -64,17 +67,19 @@ export function Shell({ user, children }: Props) {
         </Group>
       </AppShell.Header>
       <AppShell.Navbar p="xs">
-        {NAV.map(({ href, label, icon: Icon }) => (
-          <NavLink
-            key={href}
-            component={Link}
-            href={href}
-            label={label}
-            leftSection={<Icon size={18} />}
-            active={pathname.startsWith(href)}
-            onClick={close}
-          />
-        ))}
+        {NAV.filter(({ href }) => user.role !== 'restricted' || RESTRICTED_NAV.has(href)).map(
+          ({ href, label, icon: Icon }) => (
+            <NavLink
+              key={href}
+              component={Link}
+              href={href}
+              label={label}
+              leftSection={<Icon size={18} />}
+              active={pathname.startsWith(href)}
+              onClick={close}
+            />
+          ),
+        )}
       </AppShell.Navbar>
       <AppShell.Main>{children}</AppShell.Main>
     </AppShell>

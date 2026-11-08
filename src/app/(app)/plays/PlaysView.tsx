@@ -101,14 +101,19 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
           <Title order={4} mb="xs">
             Most played
           </Title>
-          <List mb="lg">
-            {mostPlayed.length === 0 && <Text c="dimmed">Nothing yet.</Text>}
-            {mostPlayed.map((g) => (
-              <List.Item key={g.gameId}>
-                {g.title} ({g.plays})
-              </List.Item>
-            ))}
-          </List>
+          {mostPlayed.length === 0 ? (
+            <Text c="dimmed" mb="lg">
+              Nothing yet.
+            </Text>
+          ) : (
+            <List mb="lg">
+              {mostPlayed.map((g) => (
+                <List.Item key={g.gameId}>
+                  {g.title} ({g.plays})
+                </List.Item>
+              ))}
+            </List>
+          )}
           <Title order={4} mb="xs">
             Not played in a year
           </Title>

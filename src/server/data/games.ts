@@ -11,6 +11,7 @@ import {
   tags,
 } from '../db/schema';
 import type { DataContext } from './context';
+import { isUuid } from './ids';
 import { gameVisibilityCondition, redactGame } from './visibility';
 
 const optionalInt = z.number().int().positive().nullable().optional();
@@ -66,6 +67,8 @@ function assertCanEdit(ctx: DataContext) {
 const escapeLike = (s: string) => s.replace(/[%_\\]/g, '\\$&');
 
 export async function listCatalog(ctx: DataContext, filters: CatalogFilters = {}) {
+  if (filters.locationId && !isUuid(filters.locationId)) return [];
+  if (filters.ownerUserId && !isUuid(filters.ownerUserId)) return [];
   const conditions: (SQL | undefined)[] = [gameVisibilityCondition(ctx)];
   const search = filters.search?.trim();
   if (search) conditions.push(ilike(games.title, `%${escapeLike(search)}%`));
@@ -146,6 +149,7 @@ export async function listCatalog(ctx: DataContext, filters: CatalogFilters = {}
 export type CatalogRow = Awaited<ReturnType<typeof listCatalog>>[number];
 
 export async function getGameDetail(ctx: DataContext, id: string) {
+  if (!isUuid(id)) return null;
   const [row] = await ctx.db
     .select({ game: games, board: boardGameDetails, rpg: rpgDetails })
     .from(games)

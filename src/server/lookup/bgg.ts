@@ -1,6 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
 
-const BASE = 'https://boardgamegeek.com/xmlapi2';
+// BGG_BASE_URL exists so end-to-end tests can point at a mock server.
+const BASE = process.env.BGG_BASE_URL ?? 'https://boardgamegeek.com/xmlapi2';
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
 
 export interface BggSearchHit {

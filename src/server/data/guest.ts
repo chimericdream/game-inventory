@@ -15,6 +15,7 @@ import {
 } from '../db/schema';
 import type { DataContext } from './context';
 import { GAME_TYPES } from './games';
+import { isUuid } from './ids';
 
 /*
  * Guest access is deliberately separate from the household data layer. Everything a guest can
@@ -170,6 +171,7 @@ export async function guestCatalog(
   filters: { search?: string; type?: string } = {},
   onlyId?: string,
 ): Promise<GuestGame[]> {
+  if (onlyId !== undefined && !isUuid(onlyId)) return [];
   const conds = guestConditions(link);
   const search = filters.search?.trim();
   if (search) conds.push(ilike(games.title, `%${search.replace(/[%_\\]/g, '\\$&')}%`));
