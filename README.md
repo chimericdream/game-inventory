@@ -61,7 +61,9 @@ docker compose -f docker-compose.prod.yml up -d --build
 Optional. When `BGG_API_TOKEN` is set, the "Look up" button on the add-game form queries the
 [BoardGameGeek XML API](https://boardgamegeek.com/wiki/page/BGG_XML_API2) to prefill a game's
 title, description (truncated), player counts, play time, minimum age, complexity and up to six
-categories. Images are not fetched.
+categories. Fetching cover images from BGG is planned but not implemented yet; today covers are
+uploaded manually. When added, it will follow the same rules below (on demand, one game at a
+time, stored only on your own instance).
 
 - Lookups happen only on demand when a signed-in, non-restricted household member searches (one
   search request returning up to 10 results) and picks a result (one detail request). There is no
