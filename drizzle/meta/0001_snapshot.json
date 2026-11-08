@@ -57,12 +57,8 @@
           "name": "board_game_details_game_id_games_id_fk",
           "tableFrom": "board_game_details",
           "tableTo": "games",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -70,12 +66,8 @@
           "name": "board_game_details_household_id_households_id_fk",
           "tableFrom": "board_game_details",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -199,12 +191,8 @@
           "name": "copies_household_id_households_id_fk",
           "tableFrom": "copies",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -212,12 +200,8 @@
           "name": "copies_game_id_games_id_fk",
           "tableFrom": "copies",
           "tableTo": "games",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -225,12 +209,8 @@
           "name": "copies_owner_user_id_users_id_fk",
           "tableFrom": "copies",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -238,12 +218,8 @@
           "name": "copies_location_id_locations_id_fk",
           "tableFrom": "copies",
           "tableTo": "locations",
-          "columnsFrom": [
-            "location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["location_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -283,12 +259,8 @@
           "name": "game_tags_household_id_households_id_fk",
           "tableFrom": "game_tags",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -296,12 +268,8 @@
           "name": "game_tags_game_id_games_id_fk",
           "tableFrom": "game_tags",
           "tableTo": "games",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -309,12 +277,8 @@
           "name": "game_tags_tag_id_tags_id_fk",
           "tableFrom": "game_tags",
           "tableTo": "tags",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -322,10 +286,7 @@
       "compositePrimaryKeys": {
         "game_tags_game_id_tag_id_pk": {
           "name": "game_tags_game_id_tag_id_pk",
-          "columns": [
-            "game_id",
-            "tag_id"
-          ]
+          "columns": ["game_id", "tag_id"]
         }
       },
       "uniqueConstraints": {},
@@ -445,12 +406,8 @@
           "name": "games_household_id_households_id_fk",
           "tableFrom": "games",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -546,12 +503,8 @@
           "name": "locations_household_id_households_id_fk",
           "tableFrom": "locations",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -559,12 +512,8 @@
           "name": "locations_parent_id_locations_id_fk",
           "tableFrom": "locations",
           "tableTo": "locations",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -610,12 +559,8 @@
           "name": "rpg_details_game_id_games_id_fk",
           "tableFrom": "rpg_details",
           "tableTo": "games",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -623,12 +568,8 @@
           "name": "rpg_details_household_id_households_id_fk",
           "tableFrom": "rpg_details",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -697,12 +638,8 @@
           "name": "sessions_household_id_households_id_fk",
           "tableFrom": "sessions",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -710,12 +647,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -772,12 +705,8 @@
           "name": "tags_household_id_households_id_fk",
           "tableFrom": "tags",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -861,12 +790,8 @@
           "name": "users_household_id_households_id_fk",
           "tableFrom": "users",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -876,9 +801,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -890,51 +813,27 @@
     "public.copy_condition": {
       "name": "copy_condition",
       "schema": "public",
-      "values": [
-        "new",
-        "good",
-        "worn",
-        "damaged",
-        "incomplete"
-      ]
+      "values": ["new", "good", "worn", "damaged", "incomplete"]
     },
     "public.copy_format": {
       "name": "copy_format",
       "schema": "public",
-      "values": [
-        "physical",
-        "digital"
-      ]
+      "values": ["physical", "digital"]
     },
     "public.game_type": {
       "name": "game_type",
       "schema": "public",
-      "values": [
-        "board",
-        "card",
-        "rpg",
-        "video",
-        "puzzle",
-        "other"
-      ]
+      "values": ["board", "card", "rpg", "video", "puzzle", "other"]
     },
     "public.game_visibility": {
       "name": "game_visibility",
       "schema": "public",
-      "values": [
-        "normal",
-        "hide_images",
-        "hidden_restricted"
-      ]
+      "values": ["normal", "hide_images", "hidden_restricted"]
     },
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "admin",
-        "member",
-        "restricted"
-      ]
+      "values": ["admin", "member", "restricted"]
     }
   },
   "schemas": {},

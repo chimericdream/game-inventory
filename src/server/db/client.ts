@@ -1,18 +1,19 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
+import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import postgres from 'postgres';
 
 import * as schema from './schema';
 
-const globalForDb = globalThis as unknown as { pg?: ReturnType<typeof postgres> };
+/** Driver-agnostic database type so production (postgres-js) and tests (PGlite) share it. */
+export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-function connectionString(): string {
+const globalForDb = globalThis as unknown as { giPg?: ReturnType<typeof postgres>; giDb?: Db };
+
+/** Lazily connects, so importing this module never requires DATABASE_URL (e.g. during build). */
+export function getDb(): Db {
+  if (globalForDb.giDb) return globalForDb.giDb;
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set');
-  return url;
+  const client = (globalForDb.giPg ??= postgres(url));
+  return (globalForDb.giDb = drizzle(client, { schema }));
 }
-
-// Reuse one connection pool across dev hot reloads.
-const client = (globalForDb.pg ??= postgres(connectionString()));
-
-export const db = drizzle(client, { schema });
-export type Db = typeof db;
