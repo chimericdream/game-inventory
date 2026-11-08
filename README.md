@@ -11,6 +11,11 @@ console video games. Built with Next.js, Mantine, PostgreSQL and Drizzle.
 - Household profiles. A **restricted** profile (for kids) is read-only and never sees games marked
   hidden, or their cover images when marked "hide images". This is enforced on the server.
 - CSV import, BoardGameGeek lookup, and barcode scanning (on browsers with `BarcodeDetector`)
+- Guest links (`/g/<token>`): read-only, expirable, revocable. Guests see only games marked
+  "Allow on guest links"; ratings, prices, owners and condition are never exposed, and each link can
+  hide whole types or tags and opt in to notes and locations
+- Loans (with overdue flags), a wishlist that converts into catalog entries, and a play log with
+  most-played and neglected-game stats
 
 ## Local development
 
