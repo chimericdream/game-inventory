@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-games}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-games}
+      POSTGRES_DB: ${POSTGRES_DB:-games}
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
