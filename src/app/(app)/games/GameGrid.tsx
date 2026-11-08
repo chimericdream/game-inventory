@@ -4,11 +4,36 @@ import { Badge, Card, Group, Image, SimpleGrid, Stack, Text } from '@mantine/cor
 import { IconDice5 } from '@tabler/icons-react';
 import Link from 'next/link';
 
-import type { CatalogRow } from '@/server/data/games';
-
 import { TYPE_LABELS, playersLabel } from './labels';
 
-export function GameGrid({ games }: { games: CatalogRow[] }) {
+export interface GridGame {
+  id: string;
+  title: string;
+  type: string;
+  coverImage: string | null;
+  platforms: string[];
+  board: {
+    minPlayers: number | null;
+    maxPlayers: number | null;
+    playTimeMinutes: number | null;
+  } | null;
+}
+
+interface Props {
+  games: GridGame[];
+  /** Detail pages live at `${linkBase}/${id}`. */
+  linkBase?: string;
+  /** Cover images load from `${coverPrefix}${id}${coverSuffix}`. */
+  coverPrefix?: string;
+  coverSuffix?: string;
+}
+
+export function GameGrid({
+  games,
+  linkBase = '/games',
+  coverPrefix = '/api/games/',
+  coverSuffix = '/cover',
+}: Props) {
   return (
     <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing="md">
       {games.map((g) => {
@@ -20,14 +45,14 @@ export function GameGrid({ games }: { games: CatalogRow[] }) {
           <Card
             key={g.id}
             component={Link}
-            href={`/games/${g.id}`}
+            href={`${linkBase}/${g.id}`}
             withBorder
             padding="sm"
             radius="md"
           >
             <Card.Section>
               {g.coverImage ? (
-                <Image src={`/api/games/${g.id}/cover`} alt="" h={150} fit="cover" />
+                <Image src={`${coverPrefix}${g.id}${coverSuffix}`} alt="" h={150} fit="cover" />
               ) : (
                 <Group h={150} justify="center" bg="var(--mantine-color-default-hover)">
                   <IconDice5 size={40} opacity={0.4} />

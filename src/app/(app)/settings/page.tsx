@@ -1,9 +1,11 @@
 import { Badge, Group, List, Stack, Text, Title } from '@mantine/core';
 
 import { requireContext } from '@/server/auth/current';
+import { listShareLinks } from '@/server/data/guest';
 import { listLocations, listMembers } from '@/server/data/lookups';
 
 import { AddLocationForm, AddMemberForm } from './SettingsForms';
+import { ShareLinks } from './ShareLinks';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +14,7 @@ export default async function SettingsPage() {
   const [members, locations] = await Promise.all([listMembers(ctx), listLocations(ctx)]);
   const isAdmin = ctx.viewer.role === 'admin';
   const canEdit = ctx.viewer.role !== 'restricted';
+  const links = isAdmin ? await listShareLinks(ctx) : [];
   const locationName = new Map(locations.map((l) => [l.id, l.name]));
 
   return (
@@ -52,6 +55,29 @@ export default async function SettingsPage() {
           <AddLocationForm parents={locations.map((l) => ({ value: l.id, label: l.name }))} />
         )}
       </Stack>
+
+      {isAdmin && (
+        <Stack gap="xs">
+          <Title order={4}>Guest links</Title>
+          <ShareLinks
+            links={links.map((l) => ({
+              id: l.id,
+              label: l.label,
+              expiresAt: l.expiresAt?.toISOString() ?? null,
+              revokedAt: l.revokedAt?.toISOString() ?? null,
+              status: l.revokedAt
+                ? ('revoked' as const)
+                : l.expiresAt && l.expiresAt < new Date()
+                  ? ('expired' as const)
+                  : ('active' as const),
+              hideTypes: l.hideTypes,
+              hideTags: l.hideTags,
+              showNotes: l.showNotes,
+              showLocations: l.showLocations,
+            }))}
+          />
+        </Stack>
+      )}
     </Stack>
   );
 }

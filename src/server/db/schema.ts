@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
   boolean,
@@ -205,4 +206,43 @@ export const gameTags = pgTable(
       .references(() => tags.id, { onDelete: 'cascade' }),
   },
   (t) => [primaryKey({ columns: [t.gameId, t.tagId] })],
+);
+
+// ---------------------------------------------------------------------------
+// Guest share links
+// ---------------------------------------------------------------------------
+
+/**
+ * A read-only link for people outside the household. Guests only ever see games with
+ * `shareable = true`, minus whatever the rules below exclude. Private fields (ratings, price,
+ * owners, condition) are never exposed; `showNotes` and `showLocations` opt in to the rest.
+ */
+export const shareLinks = pgTable(
+  'share_links',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    label: text('label').notNull(),
+    /** SHA-256 of the URL token; the raw token is shown once at creation. */
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    hideTypes: text('hide_types')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    hideTags: text('hide_tags')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    showNotes: boolean('show_notes').notNull().default(false),
+    showLocations: boolean('show_locations').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('share_links_household_idx').on(t.householdId)],
 );
