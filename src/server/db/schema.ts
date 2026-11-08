@@ -1,4 +1,16 @@
-import { index, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  type AnyPgColumn,
+  boolean,
+  date,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 /**
  * Every domain table carries `householdId`. See AGENTS.md: all reads and writes go through
@@ -45,4 +57,152 @@ export const sessions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('sessions_user_idx').on(t.userId)],
+);
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+export const gameType = pgEnum('game_type', ['board', 'card', 'rpg', 'video', 'puzzle', 'other']);
+
+/**
+ * Per-game visibility for household members. `shareable` (separate column) controls guest links.
+ * - normal: shown to everyone in the household.
+ * - hide_images: listed, but cover/photos are withheld from `restricted` profiles.
+ * - hidden_restricted: not shown at all to `restricted` profiles.
+ */
+export const gameVisibility = pgEnum('game_visibility', [
+  'normal',
+  'hide_images',
+  'hidden_restricted',
+]);
+
+export const copyCondition = pgEnum('copy_condition', [
+  'new',
+  'good',
+  'worn',
+  'damaged',
+  'incomplete',
+]);
+
+export const copyFormat = pgEnum('copy_format', ['physical', 'digital']);
+
+/** A title. What we physically/digitally own lives in `copies`. */
+export const games = pgTable(
+  'games',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    type: gameType('type').notNull(),
+    description: text('description'),
+    coverImage: text('cover_image'),
+    visibility: gameVisibility('visibility').notNull().default('normal'),
+    /** Guest links only ever see games with `shareable = true` (allowlist by default). */
+    shareable: boolean('shareable').notNull().default(false),
+    notes: text('notes'),
+    /** External IDs for metadata lookup (phase 4). */
+    bggId: integer('bgg_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('games_household_title_idx').on(t.householdId, t.title)],
+);
+
+/** Details shared by board and card games. */
+export const boardGameDetails = pgTable('board_game_details', {
+  gameId: uuid('game_id')
+    .primaryKey()
+    .references(() => games.id, { onDelete: 'cascade' }),
+  householdId: uuid('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  minPlayers: integer('min_players'),
+  maxPlayers: integer('max_players'),
+  playTimeMinutes: integer('play_time_minutes'),
+  /** 1 (light) to 5 (heavy). */
+  complexity: integer('complexity'),
+  minAge: integer('min_age'),
+});
+
+export const rpgDetails = pgTable('rpg_details', {
+  gameId: uuid('game_id')
+    .primaryKey()
+    .references(() => games.id, { onDelete: 'cascade' }),
+  householdId: uuid('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  /** e.g. "D&D 5e", "Pathfinder 2e". */
+  system: text('system'),
+  /** e.g. "Core rulebook", "Adventure", "Supplement". */
+  bookKind: text('book_kind'),
+});
+
+export const locations = pgTable(
+  'locations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    parentId: uuid('parent_id').references((): AnyPgColumn => locations.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (t) => [index('locations_household_idx').on(t.householdId)],
+);
+
+/** What we actually own: a physical box or a digital license. */
+export const copies = pgTable(
+  'copies',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    gameId: uuid('game_id')
+      .notNull()
+      .references(() => games.id, { onDelete: 'cascade' }),
+    ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'set null' }),
+    locationId: uuid('location_id').references(() => locations.id, { onDelete: 'set null' }),
+    format: copyFormat('format').notNull().default('physical'),
+    /** Console/platform for video games, e.g. "Switch". */
+    platform: text('platform'),
+    condition: copyCondition('condition').notNull().default('good'),
+    acquiredOn: date('acquired_on'),
+    priceCents: integer('price_cents'),
+    notes: text('notes'),
+  },
+  (t) => [index('copies_game_idx').on(t.gameId), index('copies_household_idx').on(t.householdId)],
+);
+
+export const tags = pgTable(
+  'tags',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+  },
+  (t) => [index('tags_household_idx').on(t.householdId)],
+);
+
+export const gameTags = pgTable(
+  'game_tags',
+  {
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    gameId: uuid('game_id')
+      .notNull()
+      .references(() => games.id, { onDelete: 'cascade' }),
+    tagId: uuid('tag_id')
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.gameId, t.tagId] })],
 );
