@@ -47,6 +47,7 @@ self-hosters later. Not a SaaS.
 
 - Strict TypeScript. Validate external input with zod.
 - Keep commits small and conventional (`feat:`, `fix:`, `chore:`).
+- **Work directly on `main` until there is a usable v1.** No feature branches or PRs for now.
 - Do not commit secrets or `.env` files; update `.env.example` when adding variables.
 
 ## Out of scope (for now)
