@@ -2,7 +2,7 @@
 
 import { AppShell, Burger, Button, Group, NavLink, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDice5, IconLogout } from '@tabler/icons-react';
+import { IconDice5, IconLogout, IconSettings } from '@tabler/icons-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -13,7 +13,10 @@ interface Props {
   children: React.ReactNode;
 }
 
-const NAV = [{ href: '/games', label: 'Games', icon: IconDice5 }];
+const NAV = [
+  { href: '/games', label: 'Games', icon: IconDice5 },
+  { href: '/settings', label: 'Settings', icon: IconSettings },
+];
 
 export function Shell({ user, children }: Props) {
   const [opened, { toggle, close }] = useDisclosure();
