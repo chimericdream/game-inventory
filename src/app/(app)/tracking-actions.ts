@@ -8,7 +8,7 @@ import { requireContext } from '@/server/auth/current';
 import { GAME_TYPES, type GameType } from '@/server/data/games';
 import { lendCopy, returnLoan } from '@/server/data/loans';
 import { deletePlay, logPlay } from '@/server/data/plays';
-import { resolvePlayerNames } from '@/server/data/players';
+import { DuplicatePlayerError } from '@/server/data/players';
 import { addWishlistItem, markAcquired, removeWishlistItem } from '@/server/data/wishlist';
 
 export interface TrackState {
@@ -93,16 +93,21 @@ export async function logPlayAction(_prev: TrackState, fd: FormData): Promise<Tr
       gameId: text(fd, 'gameId') ?? '',
       playedOn: text(fd, 'playedOn') ?? undefined,
       durationMinutes: Number.isInteger(minutes) && minutes > 0 ? minutes : null,
-      playerIds: await resolvePlayerNames(
-        ctx,
-        (text(fd, 'players') ?? '').split(',').map((n) => n.trim()),
-      ),
+      playerIds: fd.getAll('playerId').filter((v): v is string => typeof v === 'string'),
+      newPlayers: (text(fd, 'newPlayers') ?? '')
+        .split(',')
+        .map((n) => n.trim())
+        .filter(Boolean),
       notes: text(fd, 'notes'),
     });
   } catch (e) {
+    if (e instanceof DuplicatePlayerError) {
+      return { error: `Someone called ${e.name} has played before. Tap their name above instead.` };
+    }
     return fail(e, 'Could not log that play.');
   }
   revalidatePath('/plays');
+  revalidatePath('/games', 'layout');
   return { ok: true };
 }
 

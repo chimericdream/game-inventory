@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Db } from '../db/client';
-import { playParticipants, players, users } from '../db/schema';
+import { playParticipants, playSessions, players, users } from '../db/schema';
 import { createdFields, deletedFields, recordAudit, stampUpdate } from './audit';
 import type { DataContext } from './context';
 
@@ -119,6 +119,41 @@ export async function listPlayers(ctx: DataContext): Promise<PlayerSummary[]> {
     .where(eq(players.householdId, ctx.householdId))
     .orderBy(asc(players.displayName));
   return rows;
+}
+
+export interface PickerPlayer extends PlayerRef {
+  lastPlayedOn: string | null;
+}
+
+/**
+ * Players for the "who played" picker: household members first (by name), then everyone else, most
+ * recently played with first, so the friends from last game night are at the front.
+ */
+export async function listPlayersForPicker(ctx: DataContext): Promise<PickerPlayer[]> {
+  assertCanUsePlayers(ctx);
+  const rows = await ctx.db
+    .select({
+      id: players.id,
+      displayName: players.displayName,
+      userId: players.userId,
+      lastPlayedOn: sql<string | null>`(
+        select max(s.played_on)::text from ${playParticipants} pp
+        join ${playSessions} s on s.id = pp.play_id
+        where pp.player_id = ${players.id})`,
+    })
+    .from(players)
+    .where(eq(players.householdId, ctx.householdId));
+  const members = rows
+    .filter((p) => p.userId !== null)
+    .toSorted((x, y) => x.displayName.localeCompare(y.displayName));
+  const guests = rows
+    .filter((p) => p.userId === null)
+    .toSorted(
+      (x, y) =>
+        (y.lastPlayedOn ?? '').localeCompare(x.lastPlayedOn ?? '') ||
+        x.displayName.localeCompare(y.displayName),
+    );
+  return [...members, ...guests];
 }
 
 /** Name to id for a list of typed names, creating any that do not exist yet. */

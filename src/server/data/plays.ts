@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { games, playParticipants, playSessions, players } from '../db/schema';
 import { createdFields, deletedFields, recordAudit, stampCreate } from './audit';
+import { isUuid } from './ids';
 import type { DataContext } from './context';
 import { createPlayerIn, loadParticipants } from './players';
 import { gameVisibilityCondition } from './visibility';
@@ -107,13 +108,29 @@ export async function deletePlay(ctx: DataContext, id: string): Promise<boolean>
   });
 }
 
-export async function recentPlays(ctx: DataContext, limit = 25) {
+export async function recentPlays(ctx: DataContext, limit = 25, opts: { playerId?: string } = {}) {
   assertCanEdit(ctx);
+  if (opts.playerId !== undefined && !isUuid(opts.playerId)) return [];
   const rows = await ctx.db
-    .select({ play: playSessions, title: games.title, coverImage: games.coverImage })
+    .select({
+      play: playSessions,
+      gameId: games.id,
+      title: games.title,
+      type: games.type,
+      coverImage: games.coverImage,
+    })
     .from(playSessions)
     .innerJoin(games, eq(games.id, playSessions.gameId))
-    .where(and(eq(playSessions.householdId, ctx.householdId), gameVisibilityCondition(ctx)))
+    .where(
+      and(
+        eq(playSessions.householdId, ctx.householdId),
+        gameVisibilityCondition(ctx),
+        opts.playerId
+          ? sql`exists (select 1 from ${playParticipants} pp
+              where pp.play_id = ${playSessions.id} and pp.player_id = ${opts.playerId})`
+          : undefined,
+      ),
+    )
     .orderBy(desc(playSessions.playedOn), desc(playSessions.id))
     .limit(limit);
   const participants = await loadParticipants(
@@ -146,10 +163,19 @@ export async function playsForGame(ctx: DataContext, gameId: string) {
   return rows.map(({ play }) => ({ ...play, participants: participants.get(play.id) ?? [] }));
 }
 
+export interface PlayedGame {
+  gameId: string;
+  title: string;
+  type: string;
+  hasCover: boolean;
+}
+
 export interface PlayStats {
-  mostPlayed: { gameId: string; title: string; plays: number }[];
+  /** Plays logged in the last year. */
+  playsThisYear: number;
+  mostPlayed: (PlayedGame & { plays: number })[];
   /** Owned games with no play in the last `staleDays` days (or never played). */
-  neglected: { gameId: string; title: string; lastPlayed: string | null }[];
+  neglected: (PlayedGame & { lastPlayed: string | null })[];
 }
 
 export async function playStats(ctx: DataContext, staleDays = 365): Promise<PlayStats> {
@@ -158,25 +184,51 @@ export async function playStats(ctx: DataContext, staleDays = 365): Promise<Play
     .select({
       gameId: games.id,
       title: games.title,
+      type: games.type,
+      hasCover: sql<boolean>`${games.coverImage} is not null`,
       plays: count(playSessions.id),
       lastPlayed: max(playSessions.playedOn),
     })
     .from(games)
     .leftJoin(playSessions, eq(playSessions.gameId, games.id))
     .where(gameVisibilityCondition(ctx))
-    .groupBy(games.id, games.title)
+    .groupBy(games.id, games.title, games.type, games.coverImage)
     .orderBy(asc(games.title));
 
   const cutoff = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const [year] = await ctx.db
+    .select({ n: count() })
+    .from(playSessions)
+    .innerJoin(games, eq(games.id, playSessions.gameId))
+    .where(
+      and(
+        eq(playSessions.householdId, ctx.householdId),
+        gameVisibilityCondition(ctx),
+        sql`${playSessions.playedOn} >= ${cutoff}`,
+      ),
+    );
   return {
+    playsThisYear: year?.n ?? 0,
     mostPlayed: rows
       .filter((r) => r.plays > 0)
       .toSorted((a, b) => b.plays - a.plays || a.title.localeCompare(b.title))
       .slice(0, 10)
-      .map(({ gameId, title, plays }) => ({ gameId, title, plays })),
+      .map(({ gameId, title, type, hasCover, plays }) => ({
+        gameId,
+        title,
+        type,
+        hasCover,
+        plays,
+      })),
     neglected: rows
       .filter((r) => !r.lastPlayed || r.lastPlayed < cutoff)
-      .map(({ gameId, title, lastPlayed }) => ({ gameId, title, lastPlayed })),
+      .map(({ gameId, title, type, hasCover, lastPlayed }) => ({
+        gameId,
+        title,
+        type,
+        hasCover,
+        lastPlayed,
+      })),
   };
 }
 
@@ -203,4 +255,19 @@ export async function playerStats(ctx: DataContext, opts: { gameId?: string } = 
     )
     .groupBy(players.id, players.displayName, players.userId)
     .orderBy(desc(sql`count(distinct ${playParticipants.playId})`), asc(players.displayName));
+}
+
+/** Who took part in the most recent play, for the "same group as last time" shortcut. */
+export async function lastPlayGroup(ctx: DataContext): Promise<string[]> {
+  assertCanEdit(ctx);
+  const [latest] = await ctx.db
+    .select({ id: playSessions.id })
+    .from(playSessions)
+    .innerJoin(games, eq(games.id, playSessions.gameId))
+    .where(and(eq(playSessions.householdId, ctx.householdId), gameVisibilityCondition(ctx)))
+    .orderBy(desc(playSessions.playedOn), desc(playSessions.createdAt), desc(playSessions.id))
+    .limit(1);
+  if (!latest) return [];
+  const map = await loadParticipants(ctx.db, ctx.householdId, [latest.id]);
+  return (map.get(latest.id) ?? []).map((p) => p.id);
 }
