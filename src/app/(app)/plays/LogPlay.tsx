@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Alert, Button, Drawer, NumberInput, Select, Stack, TextInput } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { IconDice5, IconRefresh } from '@tabler/icons-react';
 
 import { logPlayAction } from '../tracking-actions';
@@ -186,7 +186,16 @@ export function LogAside(props: Props) {
 
 /** On a phone a button opens the log form as a bottom sheet. */
 export function LogSheetButton(props: Props) {
-  const [opened, { open, close }] = useDisclosure(Boolean(props.defaultGameId));
+  const [manual, { open, close }] = useDisclosure(false);
+  // Arriving with a game chosen opens the sheet, but only on a phone: on a wide screen the panel
+  // beside the list is already showing.
+  const isPhone = useMediaQuery('(max-width: 62em)');
+  const [dismissed, setDismissed] = useState(false);
+  const opened = manual || (Boolean(props.defaultGameId) && isPhone === true && !dismissed);
+  const closeSheet = () => {
+    close();
+    setDismissed(true);
+  };
   return (
     <div className={classes.phoneLog}>
       <Button
@@ -198,13 +207,13 @@ export function LogSheetButton(props: Props) {
       </Button>
       <Drawer
         opened={opened}
-        onClose={close}
+        onClose={closeSheet}
         position="bottom"
         size="92%"
         title="Log a play"
         radius="lg"
       >
-        <LogForm {...props} onDone={close} />
+        <LogForm {...props} onDone={closeSheet} />
       </Drawer>
     </div>
   );
