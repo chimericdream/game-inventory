@@ -34,7 +34,7 @@ export default async function EditGamePage({ params }: { params: Promise<{ id: s
   };
   return (
     <>
-      <Title order={2} mb="md">
+      <Title order={1} mb="md">
         Edit {game.title}
       </Title>
       <GameForm

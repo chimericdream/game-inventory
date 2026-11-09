@@ -43,7 +43,9 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
       <form action={action}>
         <Paper withBorder p="md" radius="md" maw={640}>
           <Stack gap="xs">
-            <Title order={5}>Log a play</Title>
+            <Title order={2} size="h5">
+              Log a play
+            </Title>
             {state.error && (
               <Alert color="red" variant="light">
                 {state.error}
@@ -70,7 +72,7 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
 
       <Grid>
         <Grid.Col span={{ base: 12, md: 6 }}>
-          <Title order={4} mb="xs">
+          <Title order={2} size="h4" mb="xs">
             Recent plays
           </Title>
           {plays.length === 0 && <Text c="dimmed">No plays logged yet.</Text>}
@@ -98,7 +100,7 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 6 }}>
-          <Title order={4} mb="xs">
+          <Title order={2} size="h4" mb="xs">
             Most played
           </Title>
           {mostPlayed.length === 0 ? (
@@ -114,7 +116,7 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
               ))}
             </List>
           )}
-          <Title order={4} mb="xs">
+          <Title order={2} size="h4" mb="xs">
             Not played in a year
           </Title>
           <List>

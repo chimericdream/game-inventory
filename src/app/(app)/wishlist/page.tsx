@@ -14,7 +14,7 @@ export default async function WishlistPage() {
   const items = await listWishlist(ctx);
   return (
     <>
-      <Title order={2} mb="md">
+      <Title order={1} mb="md">
         Wishlist
       </Title>
       <WishlistView

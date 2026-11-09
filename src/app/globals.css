@@ -1,0 +1,12 @@
+/* Page ground sits one step off white; cards and inputs stay white (light) / raised (dark). */
+body {
+  background: var(--app-ground);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Flat surfaces: a 1px edge, never a shadow. */
+.mantine-Paper-root,
+.mantine-Card-root {
+  border-color: var(--app-border);
+}

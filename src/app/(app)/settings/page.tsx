@@ -19,10 +19,12 @@ export default async function SettingsPage() {
 
   return (
     <Stack gap="xl">
-      <Title order={2}>Settings</Title>
+      <Title order={1}>Settings</Title>
 
       <Stack gap="xs">
-        <Title order={4}>People</Title>
+        <Title order={2} size="h4">
+          People
+        </Title>
         <Stack gap={4}>
           {members.map((m) => (
             <Group key={m.id} gap="xs">
@@ -40,7 +42,9 @@ export default async function SettingsPage() {
       </Stack>
 
       <Stack gap="xs">
-        <Title order={4}>Locations</Title>
+        <Title order={2} size="h4">
+          Locations
+        </Title>
         {locations.length === 0 && <Text c="dimmed">None yet.</Text>}
         <Stack gap={4}>
           {locations.map((l) => (
@@ -56,7 +60,9 @@ export default async function SettingsPage() {
 
       {isAdmin && (
         <Stack gap="xs">
-          <Title order={4}>Guest links</Title>
+          <Title order={2} size="h4">
+            Guest links
+          </Title>
           <ShareLinks
             links={links.map((l) => ({
               id: l.id,

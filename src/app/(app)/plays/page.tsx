@@ -19,7 +19,7 @@ export default async function PlaysPage() {
   ]);
   return (
     <>
-      <Title order={2} mb="md">
+      <Title order={1} mb="md">
         Play log
       </Title>
       <PlaysView

@@ -45,7 +45,7 @@ test('X-01 every route behaves correctly for every role @smoke', async ({
       const res = await p.goto(route);
       expect(res?.status(), `${who} ${route}`).toBe(200);
       expect(new URL(p.url()).pathname, `${who} ${route}`).toBe(route);
-      await expect(p.locator('h2').first(), `${who} ${route}`).toBeVisible();
+      await expect(p.locator('h1').first(), `${who} ${route}`).toBeVisible();
     }
   }
 
@@ -73,7 +73,7 @@ test('X-01 every route behaves correctly for every role @smoke', async ({
   for (const route of [`/g/${token}`, `/g/${token}/${id}`]) {
     expect((await anonPage.goto(route))?.status(), `guest ${route}`).toBe(200);
     expect(new URL(anonPage.url()).pathname).toBe(route);
-    await expect(anonPage.locator('h2').first()).toBeVisible();
+    await expect(anonPage.locator('h1').first()).toBeVisible();
   }
   expect((await anonPage.goto('/login'))?.status()).toBe(200);
 });

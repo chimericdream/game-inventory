@@ -12,7 +12,7 @@ export default async function NewGamePage() {
   if (ctx.viewer.role === 'restricted') redirect('/games');
   return (
     <>
-      <Title order={2} mb="md">
+      <Title order={1} mb="md">
         Add game
       </Title>
       <NewGameClient />

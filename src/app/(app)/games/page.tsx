@@ -43,7 +43,7 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <Group justify="space-between" mb="md">
-        <Title order={2}>Games</Title>
+        <Title order={1}>Games</Title>
         {canEdit && (
           <LinkButton href="/games/new" leftSection={<IconPlus size={16} />}>
             Add game

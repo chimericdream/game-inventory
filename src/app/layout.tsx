@@ -1,9 +1,13 @@
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
+import './globals.css';
 
 import type { Metadata } from 'next';
-import { MantineProvider, mantineHtmlProps } from '@mantine/core';
-import { Notifications } from '@mantine/notifications';
+import { GeistMono } from 'geist/font/mono';
+import { GeistSans } from 'geist/font/sans';
+import { mantineHtmlProps } from '@mantine/core';
+
+import { Providers } from './Providers';
 
 /**
  * Same logic as Mantine's <ColorSchemeScript />, rendered from this server component. The Mantine
@@ -23,15 +27,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" {...mantineHtmlProps}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} {...mantineHtmlProps}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_SCRIPT }} />
       </head>
       <body>
-        <MantineProvider defaultColorScheme="auto">
-          <Notifications />
-          {children}
-        </MantineProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

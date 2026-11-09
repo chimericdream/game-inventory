@@ -26,7 +26,7 @@ export default async function GuestHome({
   const games = await guestCatalog(db, link, { search: q });
   return (
     <Container size="lg" py="lg">
-      <Title order={2}>Game Library</Title>
+      <Title order={1}>Game Library</Title>
       <Text c="dimmed" mb="md">
         Shared with you · {link.label}
       </Text>

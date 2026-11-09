@@ -14,7 +14,7 @@ export default async function LoansPage() {
   const [loans, copies] = await Promise.all([listLoans(ctx), listLendableCopies(ctx)]);
   return (
     <>
-      <Title order={2} mb="md">
+      <Title order={1} mb="md">
         Loans
       </Title>
       <LoansView

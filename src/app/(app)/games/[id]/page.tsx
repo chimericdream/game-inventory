@@ -37,7 +37,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     <Stack gap="lg">
       <Group justify="space-between" align="flex-start">
         <div>
-          <Title order={2}>{game.title}</Title>
+          <Title order={1}>{game.title}</Title>
           <Group gap="xs" mt={4}>
             <Badge variant="light">{TYPE_LABELS[game.type]}</Badge>
             {detail.tags.map((t) => (
@@ -75,7 +75,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
       </Group>
 
       <div>
-        <Title order={4} mb="xs">
+        <Title order={2} size="h4" mb="xs">
           Copies
         </Title>
         <CopiesPanel

@@ -12,7 +12,7 @@ export default async function ImportPage() {
   if (ctx.viewer.role === 'restricted') redirect('/games');
   return (
     <>
-      <Title order={2} mb="xs">
+      <Title order={1} mb="xs">
         Import games
       </Title>
       <Text c="dimmed" mb="md" maw={560}>

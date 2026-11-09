@@ -77,7 +77,9 @@ export function WishlistView({ items }: { items: WishRow[] }) {
       <form action={action}>
         <Paper withBorder p="md" radius="md" maw={640}>
           <Stack gap="xs">
-            <Title order={5}>Add to the wishlist</Title>
+            <Title order={2} size="h5">
+              Add to the wishlist
+            </Title>
             {state.error && (
               <Alert color="red" variant="light">
                 {state.error}

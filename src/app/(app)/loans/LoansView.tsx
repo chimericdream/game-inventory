@@ -64,7 +64,9 @@ export function LoansView({ loans, copies }: Props) {
       <form action={action}>
         <Paper withBorder p="md" radius="md" maw={640}>
           <Stack gap="xs">
-            <Title order={5}>Lend a game</Title>
+            <Title order={2} size="h5">
+              Lend a game
+            </Title>
             {state.error && (
               <Alert color="red" variant="light">
                 {state.error}
