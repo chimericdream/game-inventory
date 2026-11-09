@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, max } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, max, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { games, playParticipants, playSessions, players } from '../db/schema';
@@ -178,4 +178,29 @@ export async function playStats(ctx: DataContext, staleDays = 365): Promise<Play
       .filter((r) => !r.lastPlayed || r.lastPlayed < cutoff)
       .map(({ gameId, title, lastPlayed }) => ({ gameId, title, lastPlayed })),
   };
+}
+
+/** How often each player has played, for filters and "who plays this" (most plays first). */
+export async function playerStats(ctx: DataContext, opts: { gameId?: string } = {}) {
+  assertCanEdit(ctx);
+  return ctx.db
+    .select({
+      playerId: players.id,
+      displayName: players.displayName,
+      userId: players.userId,
+      plays: sql<number>`count(distinct ${playParticipants.playId})::int`,
+    })
+    .from(playParticipants)
+    .innerJoin(players, eq(players.id, playParticipants.playerId))
+    .innerJoin(playSessions, eq(playSessions.id, playParticipants.playId))
+    .innerJoin(games, eq(games.id, playSessions.gameId))
+    .where(
+      and(
+        eq(playParticipants.householdId, ctx.householdId),
+        gameVisibilityCondition(ctx),
+        opts.gameId ? eq(playSessions.gameId, opts.gameId) : undefined,
+      ),
+    )
+    .groupBy(players.id, players.displayName, players.userId)
+    .orderBy(desc(sql`count(distinct ${playParticipants.playId})`), asc(players.displayName));
 }
