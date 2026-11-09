@@ -66,13 +66,26 @@ export async function shot(
   mkdirSync(path.dirname(abs), { recursive: true });
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(350); // let Mantine transitions and image loads settle
-  const target = opts.of ?? page;
-  await (target as Page).screenshot({
-    path: abs,
-    animations: 'disabled',
-    caret: 'hide',
-    ...(opts.of ? {} : { fullPage: opts.fullPage ?? true }),
-  });
+  if (opts.of) {
+    await opts.of.screenshot({ path: abs, animations: 'disabled', caret: 'hide' });
+  } else if (opts.fullPage === false) {
+    await page.screenshot({ path: abs, animations: 'disabled', caret: 'hide' });
+  } else {
+    // The header and sidebar are position: fixed, so Playwright's fullPage mode would draw them
+    // wherever the page happens to be scrolled and cut the sidebar at one screen height. Instead
+    // grow the viewport to the whole document and capture that, from the top.
+    const original = page.viewportSize();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const height = await page.evaluate(() => document.documentElement.scrollHeight);
+    if (original)
+      await page.setViewportSize({
+        width: original.width,
+        height: Math.min(Math.max(height, original.height), 12000),
+      });
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: abs, animations: 'disabled', caret: 'hide' });
+    if (original) await page.setViewportSize(original);
+  }
   const vp = page.viewportSize();
   record({
     file,
