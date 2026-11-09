@@ -16,7 +16,7 @@ export default async function LoginPage() {
       <Title ta="center" mb="lg">
         Game Library
       </Title>
-      <Paper withBorder shadow="sm" p="xl" radius="md">
+      <Paper withBorder p="xl">
         <AuthForm action={loginAction} mode="login" />
       </Paper>
     </Container>

@@ -4,6 +4,7 @@ import { requireContext } from '@/server/auth/current';
 import { listShareLinks } from '@/server/data/guest';
 import { listLocations, listMembers } from '@/server/data/lookups';
 
+import { Section } from './Section';
 import { AddLocationForm, AddMemberForm } from './SettingsForms';
 import { ShareLinks } from './ShareLinks';
 
@@ -21,11 +22,11 @@ export default async function SettingsPage() {
     <Stack gap="xl">
       <Title order={1}>Settings</Title>
 
-      <Stack gap="xs">
-        <Title order={2} size="h4">
-          People
-        </Title>
-        <Stack gap={4}>
+      <Section
+        title="People"
+        description="Everyone who can sign in. Restricted profiles are read-only and never see games marked hidden for them."
+      >
+        <Stack gap={6}>
           {members.map((m) => (
             <Group key={m.id} gap="xs">
               <Text>{m.name}</Text>
@@ -36,17 +37,14 @@ export default async function SettingsPage() {
           ))}
         </Stack>
         {isAdmin && <AddMemberForm />}
-        <Text size="xs" c="dimmed">
-          Restricted profiles are read-only and never see games marked hidden for them.
-        </Text>
-      </Stack>
+      </Section>
 
-      <Stack gap="xs">
-        <Title order={2} size="h4">
-          Locations
-        </Title>
+      <Section
+        title="Locations"
+        description="Where copies are kept. Put one inside another to make a path such as Hall closet › Shelf 2."
+      >
         {locations.length === 0 && <Text c="dimmed">None yet.</Text>}
-        <Stack gap={4}>
+        <Stack gap={6}>
           {locations.map((l) => (
             <Text key={l.id}>
               {l.parentId ? `${locationName.get(l.parentId)} › ${l.name}` : l.name}
@@ -56,13 +54,14 @@ export default async function SettingsPage() {
         {canEdit && (
           <AddLocationForm parents={locations.map((l) => ({ value: l.id, label: l.name }))} />
         )}
-      </Stack>
+      </Section>
 
       {isAdmin && (
-        <Stack gap="xs">
-          <Title order={2} size="h4">
-            Guest links
-          </Title>
+        <Section
+          title="Guest links"
+          description="Read-only links for visitors. Guests only see games marked “Allow on guest links”."
+          panel={false}
+        >
           <ShareLinks
             links={links.map((l) => ({
               id: l.id,
@@ -80,7 +79,7 @@ export default async function SettingsPage() {
               showLocations: l.showLocations,
             }))}
           />
-        </Stack>
+        </Section>
       )}
     </Stack>
   );

@@ -17,7 +17,7 @@ export default async function SetupPage() {
       <Text c="dimmed" ta="center" mb="lg">
         Create your household and the first admin account.
       </Text>
-      <Paper withBorder shadow="sm" p="xl" radius="md">
+      <Paper withBorder p="xl">
         <AuthForm action={setupAction} mode="setup" />
       </Paper>
     </Container>
