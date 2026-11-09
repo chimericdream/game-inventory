@@ -155,7 +155,7 @@ function CopyCard({
   canEdit: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const title = c.ownerName ? `${c.ownerName}’s copy` : 'A copy';
+  const title = c.ownerName ? `${c.ownerName}’s copy` : 'Our copy';
   return (
     <article className={classes.card} data-copy data-lent={c.loan ? '' : undefined}>
       <header className={classes.cardHead}>
