@@ -1,0 +1,78 @@
+.wall {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 30px;
+  height: 100%;
+  min-height: 100%;
+  padding: 56px 0;
+  overflow: hidden;
+  background: #16201c;
+}
+
+.shelf {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  width: calc(100% + 120px);
+  margin: 0 -40px;
+  padding-bottom: 12px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 12px;
+    background: #9b6f43;
+  }
+
+  &[data-row='0'] {
+    padding-left: 24px;
+  }
+
+  &[data-row='1'] {
+    padding-left: 112px;
+  }
+
+  &[data-row='2'] {
+    padding-left: 60px;
+  }
+}
+
+.cover {
+  flex: none;
+  width: 132px;
+}
+
+.gap {
+  flex: none;
+  width: 60px;
+}
+
+/* On a phone the wall shrinks to a single strip above the form. */
+@media (max-width: 860px) {
+  .wall {
+    height: 190px;
+    min-height: 0;
+    justify-content: flex-end;
+    padding: 0;
+    gap: 0;
+  }
+
+  .shelf:not([data-row='0']) {
+    display: none;
+  }
+
+  .shelf[data-row='0'] {
+    width: calc(100% + 100px);
+    margin: 0;
+    padding-left: 16px;
+    gap: 12px;
+  }
+
+  .cover {
+    width: 104px;
+  }
+}

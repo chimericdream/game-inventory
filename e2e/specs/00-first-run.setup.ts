@@ -25,7 +25,7 @@ test('AUTH-01 empty database sends every entry point to /setup @smoke', async ({
     await page.goto(entry);
     await expect(page).toHaveURL(/\/setup$/);
   }
-  await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Let’s set up your shelf.' })).toBeVisible();
   if (SHOTS) {
     await shot(
       page,

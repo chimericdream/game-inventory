@@ -1,0 +1,71 @@
+.door {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
+  min-height: 100vh;
+  background: var(--app-ground);
+
+  @media (max-width: 860px) {
+    display: block;
+  }
+}
+
+.wall {
+  position: relative;
+  min-height: 100%;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px clamp(32px, 6vw, 96px);
+
+  & h1 {
+    margin: 0;
+  }
+
+  @media (max-width: 860px) {
+    max-width: none;
+    justify-content: flex-start;
+    padding: 28px 20px 60px;
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 40px;
+  color: var(--app-ink);
+  font-family: var(--app-serif);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+
+  & svg {
+    color: var(--app-accent);
+  }
+
+  @media (max-width: 860px) {
+    margin-bottom: 22px;
+  }
+}
+
+.lead {
+  margin: 12px 0 0;
+  color: var(--app-muted);
+  font-size: 18px;
+}
+
+.body {
+  margin-top: 26px;
+}
+
+.foot {
+  margin: 28px 0 0;
+  color: var(--app-muted);
+  font-size: 14px;
+}

@@ -110,3 +110,35 @@ test('AUTH-13 a deleted session stops working immediately', async ({ anonPage, d
   await anonPage.reload();
   await expect(anonPage).toHaveURL(/\/login$/);
 });
+
+test('AUTH-14 the sign-in page shows nothing about this library to a stranger @security', async ({
+  anonPage,
+  db,
+}) => {
+  await db.seedGame({ title: 'Quietly Private Title', cover: true, tags: ['hushhush'] });
+  const [household] = await db.sql`select name from households limit 1`;
+  const res = await anonPage.request.get('/login');
+  const html = await res.text();
+  expect(html).not.toContain('Quietly Private Title');
+  expect(html).not.toContain('hushhush');
+  expect(html).not.toContain(household!.name);
+  expect(html).not.toContain('/api/games/');
+
+  await anonPage.goto('/login');
+  await expect(anonPage.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
+  // The shelf is artwork only: no images from the library, and nothing a screen reader reads.
+  await expect(anonPage.locator('img')).toHaveCount(0);
+  await expect(anonPage.locator('svg[aria-hidden]').first()).toBeAttached();
+});
+
+test('AUTH-15 the sign-in page works on a phone without sideways scrolling', async ({
+  anonPage,
+}) => {
+  await anonPage.setViewportSize({ width: 390, height: 844 });
+  await anonPage.goto('/login');
+  await expect(anonPage.getByRole('button', { name: 'Sign in' })).toBeInViewport();
+  const overflow = await anonPage.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});
