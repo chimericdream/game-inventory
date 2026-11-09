@@ -1,0 +1,313 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 40px;
+  align-items: start;
+
+  @media (max-width: $mantine-breakpoint-md) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+.head {
+  margin-bottom: 28px;
+}
+
+.title {
+  margin: 0;
+}
+
+.summary {
+  margin: 10px 0 0;
+  font-size: 17px;
+  color: var(--app-muted);
+
+  & b {
+    color: var(--app-ink);
+    font-weight: 700;
+  }
+}
+
+.late {
+  color: var(--app-loan);
+  font-weight: 700;
+}
+
+.phoneLend {
+  display: none;
+  margin-top: 16px;
+
+  @media (max-width: $mantine-breakpoint-md) {
+    display: block;
+  }
+}
+
+.desktopLend {
+  position: sticky;
+  top: 84px;
+
+  @media (max-width: $mantine-breakpoint-md) {
+    display: none;
+  }
+}
+
+.section {
+  margin-bottom: 36px;
+
+  & h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px;
+    font-size: 26px;
+  }
+}
+
+.sectionLate h2 {
+  color: var(--app-loan);
+}
+
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 13px;
+  background: var(--app-sunk);
+  color: var(--app-ink);
+  font-family: var(--mantine-font-family);
+  font-size: 14px;
+  font-weight: 700;
+
+  .sectionLate & {
+    background: var(--app-loan);
+    color: var(--app-ground);
+  }
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 18px;
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+
+  &[data-late] {
+    border-left: 4px solid var(--app-loan);
+  }
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 12px 14px;
+    padding: 12px 14px;
+  }
+}
+
+.cover {
+  width: 56px;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    width: 48px;
+  }
+}
+
+.name {
+  margin: 0;
+  font-family: var(--app-serif);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+
+  & a {
+    color: inherit;
+    text-decoration: none;
+
+    @mixin hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--app-muted);
+}
+
+.who {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--app-ink);
+  font-weight: 600;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--app-tint);
+  color: var(--app-accent);
+  font-family: var(--app-serif);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.due {
+  text-align: right;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--app-muted);
+
+  & b {
+    display: block;
+    font-family: var(--app-serif);
+    font-size: 18px;
+    color: var(--app-ink);
+  }
+
+  &[data-late] b,
+  &[data-late] {
+    color: var(--app-loan);
+  }
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    grid-column: 2;
+    text-align: left;
+
+    & b {
+      display: inline;
+      margin-right: 6px;
+      font-size: 16px;
+    }
+  }
+}
+
+.action {
+  @media (max-width: $mantine-breakpoint-sm) {
+    grid-column: 2;
+  }
+}
+
+.back {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.backRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--app-rule);
+
+  &:first-child {
+    border-top: 0;
+  }
+
+  & .cover {
+    width: 40px;
+  }
+}
+
+.backText {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+
+  & small {
+    display: block;
+    font-weight: 400;
+    color: var(--app-muted);
+    font-size: 14px;
+  }
+}
+
+.empty {
+  padding: 28px 0;
+  color: var(--app-muted);
+
+  & p {
+    margin: 0;
+  }
+}
+
+/* The lend form. */
+.panel {
+  padding: 22px;
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+
+  & h2 {
+    margin: 0 0 4px;
+    font-size: 24px;
+  }
+}
+
+.hint {
+  margin: 0 0 14px;
+  color: var(--app-muted);
+  font-size: 14px;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--app-sunk);
+  color: var(--app-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+
+  @mixin hover {
+    background: var(--app-tint);
+  }
+
+  &[aria-pressed='true'] {
+    background: var(--app-accent);
+    color: var(--app-on-accent);
+    font-weight: 600;
+  }
+}
+
+.history {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--app-muted);
+}

@@ -144,16 +144,34 @@ export function loanStatus(
 export async function previousBorrowers(ctx: DataContext, limit = 30) {
   assertCanEdit(ctx);
   const rows = await ctx.db
-    .select({ borrower: loans.borrower, lentOn: loans.lentOn })
+    .select({
+      borrower: loans.borrower,
+      lentOn: loans.lentOn,
+      dueOn: loans.dueOn,
+      returnedOn: loans.returnedOn,
+    })
     .from(loans)
     .where(eq(loans.householdId, ctx.householdId))
     .orderBy(desc(loans.lentOn), desc(loans.id));
-  const seen = new Map<string, { name: string; loans: number; lastLentOn: string }>();
+  const seen = new Map<
+    string,
+    { name: string; loans: number; returned: number; returnedLate: number; lastLentOn: string }
+  >();
   for (const r of rows) {
     const key = r.borrower.trim().toLowerCase();
-    const found = seen.get(key);
-    if (found) found.loans++;
-    else seen.set(key, { name: r.borrower, loans: 1, lastLentOn: r.lentOn });
+    const found = seen.get(key) ?? {
+      name: r.borrower,
+      loans: 0,
+      returned: 0,
+      returnedLate: 0,
+      lastLentOn: r.lentOn,
+    };
+    found.loans++;
+    if (r.returnedOn) {
+      found.returned++;
+      if (r.dueOn && r.returnedOn > r.dueOn) found.returnedLate++;
+    }
+    seen.set(key, found);
   }
   return [...seen.values()].slice(0, limit);
 }
