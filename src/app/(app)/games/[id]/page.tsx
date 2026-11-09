@@ -52,6 +52,16 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     member ? lastEdit(ctx, 'game', id) : Promise.resolve(null),
   ]);
   const memberName = new Map(members.map((m) => [m.id, m.name]));
+  const locationById = new Map(locations.map((l) => [l.id, l]));
+  /** "Basement › Shelf 3" for a nested location. */
+  const pathLabel = (locationId: string): string => {
+    const names: string[] = [];
+    for (let l = locationById.get(locationId), n = 0; l && n < 10; n++) {
+      names.unshift(l.name);
+      l = l.parentId ? locationById.get(l.parentId) : undefined;
+    }
+    return names.join(' › ');
+  };
 
   const facts: Fact[] = [];
   const players =
@@ -197,7 +207,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               gameId={id}
               canEdit={member}
               members={members.map((m) => ({ value: m.id, label: m.name }))}
-              locations={locations.map((l) => ({ value: l.id, label: l.name }))}
+              locations={locations.map((l) => ({ value: l.id, label: pathLabel(l.id) }))}
               copies={detail.copies.map((c) => ({
                 id: c.id,
                 format: c.format,
@@ -207,6 +217,8 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 ownerName: c.ownerUserId ? (memberName.get(c.ownerUserId) ?? null) : null,
                 locationName: c.locationName,
                 priceCents: c.priceCents,
+                acquiredOn: c.acquiredOn,
+                loan: c.loan,
               }))}
             />
           </section>

@@ -1,23 +1,125 @@
-.table {
-  --table-border-color: var(--app-rule);
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
 }
 
-.head th {
-  color: var(--mantine-color-dimmed);
-  font-size: 12px;
-  font-weight: 500;
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+
+  &[data-lent] {
+    border-left: 4px solid var(--app-loan);
+  }
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  & h3 {
+    margin: 0;
+    font-size: 20px;
+  }
+}
+
+.shelf,
+.lent {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
-.cell {
-  font-size: 14px;
-  white-space: nowrap;
+.shelf {
+  background: var(--app-tint);
+  color: var(--app-ink);
 }
 
-.condition {
-  text-transform: capitalize;
+.lent {
+  background: var(--app-loan-tint);
+  color: var(--app-loan);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 15px;
+
+  & dt {
+    color: var(--app-muted);
+  }
+
+  & dd {
+    margin: 0;
+    font-weight: 500;
+  }
 }
 
 .none {
-  color: var(--mantine-color-dimmed);
+  color: var(--app-muted);
+  font-weight: 400;
+}
+
+.loan {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--app-loan-tint);
+}
+
+.who {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--app-loan);
+  color: var(--app-ground);
+  font-family: var(--app-serif);
+  font-weight: 700;
+}
+
+.loanText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+
+  & small {
+    font-size: 13px;
+    color: var(--app-muted);
+  }
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.remove {
+  margin-left: auto;
+}
+
+.lendForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
 }

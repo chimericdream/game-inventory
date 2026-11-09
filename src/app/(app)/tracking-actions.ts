@@ -41,6 +41,7 @@ export async function lendAction(_prev: TrackState, fd: FormData): Promise<Track
     return fail(e, 'Could not record the loan.');
   }
   revalidatePath('/loans');
+  revalidatePath('/games', 'layout');
   return { ok: true };
 }
 
@@ -48,6 +49,7 @@ export async function returnLoanAction(loanId: string) {
   const { ctx } = await requireContext();
   await returnLoan(ctx, loanId);
   revalidatePath('/loans');
+  revalidatePath('/games', 'layout');
 }
 
 export async function addWishlistAction(_prev: TrackState, fd: FormData): Promise<TrackState> {

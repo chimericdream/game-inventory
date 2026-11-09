@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
@@ -6,6 +6,7 @@ import {
   copies,
   gameTags,
   games,
+  loans,
   locations,
   puzzleDetails,
   rpgDetails,
@@ -78,7 +79,7 @@ export async function getGameDetail(ctx: DataContext, id: string) {
   const game = redactGame(row.game, ctx.viewer);
   if (!game) return null;
 
-  const [copyRows, tagRows] = await Promise.all([
+  const [copyRows, tagRows, openLoans] = await Promise.all([
     ctx.db
       .select({ copy: copies, locationName: locations.name })
       .from(copies)
@@ -89,13 +90,38 @@ export async function getGameDetail(ctx: DataContext, id: string) {
       .from(gameTags)
       .innerJoin(tags, eq(tags.id, gameTags.tagId))
       .where(and(eq(gameTags.gameId, id), eq(gameTags.householdId, ctx.householdId))),
+    // Who has a copy is household business: restricted profiles are never told.
+    ctx.viewer.role === 'restricted'
+      ? Promise.resolve([] as (typeof loans.$inferSelect)[])
+      : ctx.db
+          .select({ loan: loans })
+          .from(loans)
+          .innerJoin(copies, eq(copies.id, loans.copyId))
+          .where(
+            and(
+              eq(copies.gameId, id),
+              eq(loans.householdId, ctx.householdId),
+              isNull(loans.returnedOn),
+            ),
+          )
+          .then((rows) => rows.map((r) => r.loan)),
   ]);
+  const loanByCopy = new Map(
+    openLoans.map((l) => [
+      l.copyId,
+      { id: l.id, borrower: l.borrower, lentOn: l.lentOn, dueOn: l.dueOn },
+    ]),
+  );
   return {
     game,
     board: row.board,
     rpg: row.rpg,
     puzzle: row.puzzle,
-    copies: copyRows.map((c) => ({ ...c.copy, locationName: c.locationName })),
+    copies: copyRows.map((c) => ({
+      ...c.copy,
+      locationName: c.locationName,
+      loan: loanByCopy.get(c.copy.id) ?? null,
+    })),
     tags: tagRows.map((t) => t.name),
   };
 }

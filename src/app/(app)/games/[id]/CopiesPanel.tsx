@@ -1,10 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import {
   ActionIcon,
   Alert,
-  Badge,
   Button,
   Group,
   NumberInput,
@@ -12,13 +11,15 @@ import {
   Select,
   SimpleGrid,
   Stack,
-  Table,
   Text,
   TextInput,
   Title,
 } from '@mantine/core';
-import { IconTrash } from '@tabler/icons-react';
+import { IconArrowsExchange, IconTrash } from '@tabler/icons-react';
 
+import { longDate, shortDate } from '@/lib/dates';
+
+import { lendAction, returnLoanAction, type TrackState } from '../../tracking-actions';
 import { addCopyAction, deleteCopyAction, type ActionState } from '../actions';
 import { CONDITION_LABELS, CONDITION_OPTIONS } from '../labels';
 import classes from './CopiesPanel.module.css';
@@ -32,6 +33,8 @@ interface CopyRow {
   ownerName: string | null;
   locationName: string | null;
   priceCents: number | null;
+  acquiredOn: string | null;
+  loan: { id: string; borrower: string; lentOn: string; dueOn: string | null } | null;
 }
 
 interface Props {
@@ -42,7 +45,49 @@ interface Props {
   canEdit: boolean;
 }
 
-const Dash = () => <span className={classes.none}>&mdash;</span>;
+function LendForm({ copyId }: { copyId: string }) {
+  const [open, setOpen] = useState(false);
+  const [state, action, pending] = useActionState<TrackState, FormData>(lendAction, {});
+  if (!open) {
+    return (
+      <Button
+        variant="light"
+        leftSection={<IconArrowsExchange size={16} aria-hidden />}
+        onClick={() => setOpen(true)}
+      >
+        Lend out
+      </Button>
+    );
+  }
+  return (
+    <form action={action} className={classes.lendForm}>
+      <input type="hidden" name="copyId" value={copyId} />
+      {state.error && (
+        <Alert color="red" variant="light">
+          {state.error}
+        </Alert>
+      )}
+      <Group align="flex-end" gap="sm">
+        <TextInput
+          name="borrower"
+          label="Who has it?"
+          required
+          data-autofocus
+          style={{ flex: 1 }}
+        />
+        <TextInput name="dueOn" type="date" label="Due (optional)" />
+      </Group>
+      <Group gap="sm">
+        <Button type="submit" loading={pending}>
+          Lend it
+        </Button>
+        <Button variant="default" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </Group>
+    </form>
+  );
+}
 
 export function CopiesPanel({ gameId, copies, members, locations, canEdit }: Props) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
@@ -52,61 +97,99 @@ export function CopiesPanel({ gameId, copies, members, locations, canEdit }: Pro
   return (
     <Stack gap="md">
       {copies.length === 0 ? (
-        <Text c="dimmed">No copies recorded yet.</Text>
+        <Text c="dimmed">No copies yet. {canEdit ? 'Add the first one below.' : ''}</Text>
       ) : (
-        <Table.ScrollContainer minWidth={520}>
-          <Table className={classes.table} verticalSpacing="sm" horizontalSpacing="sm">
-            <Table.Thead className={classes.head}>
-              <Table.Tr>
-                <Table.Th>Format</Table.Th>
-                <Table.Th>Condition</Table.Th>
-                <Table.Th>Owner</Table.Th>
-                <Table.Th>Location</Table.Th>
-                <Table.Th ta="right">Price</Table.Th>
-                {canEdit && <Table.Th w={44} aria-label="Actions" />}
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {copies.map((c) => (
-                <Table.Tr key={c.id}>
-                  <Table.Td className={classes.cell}>
-                    <Group gap={6} wrap="nowrap">
-                      <Badge>{c.format}</Badge>
-                      {c.platform && <Badge variant="default">{c.platform}</Badge>}
-                    </Group>
-                  </Table.Td>
-                  <Table.Td className={`${classes.cell} ${classes.condition}`}>
-                    {CONDITION_LABELS[c.condition] ?? c.condition}
-                    {c.conditionNotes && (
-                      <Text size="xs" c="dimmed">
-                        {c.conditionNotes}
-                      </Text>
-                    )}
-                  </Table.Td>
-                  <Table.Td className={classes.cell}>{c.ownerName ?? <Dash />}</Table.Td>
-                  <Table.Td className={classes.cell}>{c.locationName ?? <Dash />}</Table.Td>
-                  <Table.Td className={classes.cell} ta="right">
-                    {c.priceCents !== null ? `$${(c.priceCents / 100).toFixed(2)}` : <Dash />}
-                  </Table.Td>
-                  {canEdit && (
-                    <Table.Td ta="right">
-                      <form action={deleteCopyAction.bind(null, gameId, c.id)}>
-                        <ActionIcon
-                          type="submit"
-                          variant="subtle"
-                          color="gray"
-                          aria-label="Delete copy"
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </form>
-                    </Table.Td>
+        <div className={classes.cards}>
+          {copies.map((c) => {
+            const title = c.ownerName ? `${c.ownerName}’s copy` : 'A copy';
+            return (
+              <article
+                key={c.id}
+                className={classes.card}
+                data-copy
+                data-lent={c.loan ? '' : undefined}
+              >
+                <header className={classes.cardHead}>
+                  <h3>{title}</h3>
+                  <span className={c.loan ? classes.lent : classes.shelf}>
+                    {c.loan ? 'Lent out' : 'On the shelf'}
+                  </span>
+                </header>
+                <dl className={classes.facts}>
+                  {c.platform && (
+                    <>
+                      <dt>Platform</dt>
+                      <dd>{c.platform}</dd>
+                    </>
                   )}
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+                  <dt>Format</dt>
+                  <dd>{c.format === 'digital' ? 'Digital' : 'Physical'}</dd>
+                  <dt>Location</dt>
+                  <dd>{c.locationName ?? <span className={classes.none}>Not set</span>}</dd>
+                  <dt>Condition</dt>
+                  <dd>
+                    {CONDITION_LABELS[c.condition] ?? c.condition}
+                    {c.conditionNotes && <span className={classes.none}>, {c.conditionNotes}</span>}
+                  </dd>
+                  {c.acquiredOn && (
+                    <>
+                      <dt>Acquired</dt>
+                      <dd>{longDate(c.acquiredOn)}</dd>
+                    </>
+                  )}
+                  {c.priceCents !== null && (
+                    <>
+                      <dt>Price</dt>
+                      <dd>${(c.priceCents / 100).toFixed(2)}</dd>
+                    </>
+                  )}
+                </dl>
+
+                {c.loan && (
+                  <div className={classes.loan}>
+                    <span className={classes.who} aria-hidden>
+                      {c.loan.borrower.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className={classes.loanText}>
+                      <b>{c.loan.borrower}</b>
+                      <small>
+                        since {shortDate(c.loan.lentOn)}
+                        {c.loan.dueOn ? ` · due ${shortDate(c.loan.dueOn)}` : ''}
+                      </small>
+                    </span>
+                  </div>
+                )}
+
+                {canEdit && (
+                  <footer className={classes.cardActions}>
+                    {c.loan ? (
+                      <form action={returnLoanAction.bind(null, c.loan.id)}>
+                        <Button type="submit" variant="light" color="red">
+                          Mark returned
+                        </Button>
+                      </form>
+                    ) : (
+                      <LendForm copyId={c.id} />
+                    )}
+                    <form
+                      action={deleteCopyAction.bind(null, gameId, c.id)}
+                      className={classes.remove}
+                    >
+                      <ActionIcon
+                        type="submit"
+                        variant="subtle"
+                        color="gray"
+                        aria-label="Delete copy"
+                      >
+                        <IconTrash size={18} />
+                      </ActionIcon>
+                    </form>
+                  </footer>
+                )}
+              </article>
+            );
+          })}
+        </div>
       )}
 
       {canEdit && (

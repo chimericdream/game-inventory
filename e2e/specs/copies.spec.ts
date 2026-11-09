@@ -2,13 +2,15 @@ import { expect, test, MEMBER } from '../fixtures';
 import { choose, formWith } from '../support/mantine';
 import { gameCards } from '../support/actions';
 
+const copyCards = (page: import('@playwright/test').Page) => page.locator('[data-copy]');
+
 const ADD = 'Add copy';
 
 test('COPY-01 add a copy with every detail and see it on the game @smoke', async ({ page, db }) => {
   const id = await db.seedGame({ title: 'Catan' });
   await db.seedLocation('Hall closet');
   await page.goto(`/games/${id}`);
-  await expect(page.getByText('No copies recorded yet.')).toBeVisible();
+  await expect(page.getByText('No copies yet.')).toBeVisible();
 
   const form = formWith(page, ADD);
   await choose(page, form, 'Format', 'physical');
@@ -19,14 +21,15 @@ test('COPY-01 add a copy with every detail and see it on the game @smoke', async
   await form.getByLabel('Price ($)').fill('29.99');
   await form.getByRole('button', { name: ADD }).click();
 
-  const row = page.getByRole('row').filter({ hasText: 'Hall closet' });
-  await expect(row).toContainText('physical');
-  await expect(row).toContainText('Tabletop');
-  await expect(row).toContainText('Worn');
-  await expect(row).toContainText(MEMBER.name);
-  await expect(row).toContainText('Hall closet');
-  await expect(row).toContainText('$29.99');
-  await expect(page.getByText('No copies recorded yet.')).toHaveCount(0);
+  const card = copyCards(page).filter({ hasText: 'Hall closet' });
+  await expect(card).toContainText(`${MEMBER.name}’s copy`);
+  await expect(card).toContainText('Physical');
+  await expect(card).toContainText('Tabletop');
+  await expect(card).toContainText('Worn');
+  await expect(card).toContainText('Hall closet');
+  await expect(card).toContainText('$29.99');
+  await expect(card).toContainText('On the shelf');
+  await expect(page.getByText('No copies yet.')).toHaveCount(0);
 });
 
 test('COPY-02 two copies with different owners and locations both list', async ({ page, db }) => {
@@ -40,8 +43,9 @@ test('COPY-02 two copies with different owners and locations both list', async (
     ],
   });
   await page.goto(`/games/${id}`);
-  await expect(page.getByRole('cell', { name: 'Hall', exact: true })).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'Attic', exact: true })).toBeVisible();
+  await expect(copyCards(page)).toHaveCount(2);
+  await expect(copyCards(page).filter({ hasText: 'Hall' })).toContainText('Mo Member');
+  await expect(copyCards(page).filter({ hasText: 'Attic' })).toContainText('Unopened');
   await expect(page.getByText('$10.00')).toBeVisible();
   await expect(page.getByText('$20.00')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Delete copy' })).toHaveCount(2);
@@ -53,8 +57,7 @@ test('COPY-03 deleting a copy leaves the other copy and the game', async ({ page
     copies: [{ priceCents: 1111 }, { priceCents: 2222 }],
   });
   await page.goto(`/games/${id}`);
-  await page
-    .getByRole('row')
+  await copyCards(page)
     .filter({ hasText: '$11.11' })
     .getByRole('button', { name: 'Delete copy' })
     .click();
@@ -110,9 +113,45 @@ test('COPY-06 a video game copy shows its platform in the grid and on the game',
   await form.getByLabel('Platform').fill('Switch');
   await choose(page, form, 'Format', 'digital');
   await form.getByRole('button', { name: ADD }).click();
-  await expect(page.locator('.mantine-Badge-root', { hasText: 'Switch' })).toBeVisible();
-  await expect(page.locator('.mantine-Badge-root', { hasText: 'digital' })).toBeVisible();
+  await expect(copyCards(page)).toContainText('Switch');
+  await expect(copyCards(page)).toContainText('Digital');
 
   await page.goto('/games');
   await expect(gameCards(page).filter({ hasText: 'Switch' })).toHaveCount(1);
+});
+
+test('COPY-07 lend a copy from its card, see who has it, and mark it returned', async ({
+  page,
+  db,
+}) => {
+  const id = await db.seedGame({ title: 'Lendable', copies: [{}, {}] });
+  await page.goto(`/games/${id}`);
+  const first = copyCards(page).first();
+  await first.getByRole('button', { name: 'Lend out' }).click();
+  await first.getByLabel('Who has it?').fill('Aunt Dana');
+  await first.getByRole('button', { name: 'Lend it' }).click();
+
+  await expect(first).toContainText('Lent out');
+  await expect(first).toContainText('Aunt Dana');
+  await expect(first).toContainText('since');
+  await expect(copyCards(page).filter({ hasText: 'On the shelf' })).toHaveCount(1);
+  expect(await db.count('loans', 'returned_on is null')).toBe(1);
+
+  await first.getByRole('button', { name: 'Mark returned' }).click();
+  await expect(copyCards(page).filter({ hasText: 'On the shelf' })).toHaveCount(2);
+  expect(await db.count('loans', 'returned_on is null')).toBe(0);
+});
+
+test('COPY-08 a restricted profile is not told who has a copy @security', async ({
+  kidPage,
+  db,
+}) => {
+  const id = await db.seedGame({ title: 'Out Of House', copies: [{}] });
+  const [copy] = await db.sql`select id from copies where game_id = ${id}`;
+  await db.seedLoan(copy!.id as string, { borrower: 'Secret Borrower' });
+  await kidPage.goto(`/games/${id}`);
+  await expect(kidPage.getByText('Secret Borrower')).toHaveCount(0);
+  await expect(kidPage.getByRole('button', { name: 'Lend out' })).toHaveCount(0);
+  const html = await (await kidPage.request.get(`/games/${id}`)).text();
+  expect(html).not.toContain('Secret Borrower');
 });
