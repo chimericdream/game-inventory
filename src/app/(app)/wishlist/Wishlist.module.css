@@ -1,0 +1,172 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 40px;
+  align-items: start;
+
+  @media (max-width: $mantine-breakpoint-md) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+.head {
+  margin-bottom: 28px;
+}
+
+.title {
+  margin: 0;
+}
+
+.summary {
+  margin: 10px 0 0;
+  font-size: 17px;
+  color: var(--app-muted);
+
+  & b {
+    color: var(--app-ink);
+    font-weight: 700;
+  }
+}
+
+.phoneForm {
+  display: none;
+  margin-top: 16px;
+
+  @media (max-width: $mantine-breakpoint-md) {
+    display: block;
+  }
+}
+
+.desktopForm {
+  position: sticky;
+  top: 84px;
+
+  @media (max-width: $mantine-breakpoint-md) {
+    display: none;
+  }
+}
+
+.group {
+  margin-bottom: 40px;
+
+  & h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0 0 14px;
+    font-size: 26px;
+  }
+}
+
+.count {
+  font-family: var(--mantine-font-family);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--app-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 20px;
+  padding: 16px 20px;
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.name {
+  margin: 0;
+  font-family: var(--app-serif);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+
+  & a {
+    color: inherit;
+    text-underline-offset: 3px;
+  }
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--app-muted);
+}
+
+.kind {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--app-sunk);
+  color: var(--app-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.price {
+  font-weight: 700;
+  color: var(--app-ink);
+}
+
+.note {
+  margin: 8px 0 0;
+  font-family: var(--app-serif);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.empty {
+  padding: 28px 0;
+  color: var(--app-muted);
+
+  & p {
+    margin: 0;
+  }
+}
+
+/* The add form. */
+.panel {
+  padding: 22px;
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+
+  & h2 {
+    margin: 0 0 4px;
+    font-size: 24px;
+  }
+}
+
+.hint {
+  margin: 0 0 14px;
+  color: var(--app-muted);
+  font-size: 14px;
+}

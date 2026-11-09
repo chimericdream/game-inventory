@@ -13,16 +13,16 @@ test('WISH-01 add an item with a link, price and notes @smoke', async ({ page, d
   await choose(page, form, 'Type', 'Board game');
   await form.getByLabel('Link').fill('https://example.com/gloomhaven');
   await form.getByLabel('Price ($)').fill('139.99');
-  await form.getByLabel('Notes').fill('For the holidays');
+  await form.getByLabel('Note for gift-givers').fill('For the holidays');
   await form.getByRole('button', { name: ADD, exact: true }).click();
 
   const link = page.getByRole('link', { name: 'Gloomhaven' });
   await expect(link).toHaveAttribute('href', 'https://example.com/gloomhaven');
   await expect(link).toHaveAttribute('rel', /noopener/);
-  const row = page.locator('.mantine-Paper-root', { hasText: 'Gloomhaven' });
+  const row = page.locator('[data-wish]', { hasText: 'Gloomhaven' });
   await expect(row).toContainText('$139.99');
   await expect(row).toContainText('For the holidays');
-  await expect(row).toContainText('board');
+  await expect(row).toContainText('Board game');
   expect(await db.count('wishlist_items')).toBe(1);
 });
 
@@ -70,7 +70,7 @@ test('WISH-04 remove an item', async ({ page, db }) => {
   await db.seedWish('Drop');
   await page.goto('/wishlist');
   await page
-    .locator('.mantine-Paper-root', { hasText: 'Drop' })
+    .locator('[data-wish]', { hasText: 'Drop' })
     .getByRole('button', { name: 'Remove' })
     .click();
   await expect(page.getByText('Drop', { exact: true })).toHaveCount(0);
@@ -107,4 +107,28 @@ test('WISH-06 each wishlist type is kept', async ({ page, db }) => {
     await expect(page.getByText(`Wish ${label}`)).toBeVisible();
     expect(await db.count('wishlist_items', `type = '${value}'`)).toBe(1);
   }
+});
+
+test('WISH-07 each person has their own list, with yours first', async ({ page, db }) => {
+  await db.seedWish('Mine B', 'board', 'admin@e2e.test');
+  await db.seedWish('Mine A', 'board', 'admin@e2e.test');
+  await db.seedWish('Mo Wants', 'card', 'member@e2e.test');
+  await page.goto('/wishlist');
+  await expect(page.getByText('3 things wished for by 2 people.')).toBeVisible();
+  const headings = await page.locator('section[aria-labelledby] h2').allTextContents();
+  expect(headings.map((h) => h.replace(/\d+$/, '').trim())).toEqual([
+    'Your wishlist',
+    'Mo Member’s wishlist',
+  ]);
+  await expect(page.getByRole('region', { name: /^Your wishlist/ })).toContainText('Mine A');
+  await expect(page.getByRole('region', { name: /^Your wishlist/ })).not.toContainText('Mo Wants');
+  await expect(page.getByRole('region', { name: /^Mo Member/ })).toContainText('Mo Wants');
+});
+
+test('WISH-08 an item added now goes on the list of whoever added it', async ({ memberPage }) => {
+  await memberPage.goto('/wishlist');
+  const form = addForm(memberPage);
+  await form.getByLabel('Title').fill('Azul');
+  await form.getByRole('button', { name: ADD, exact: true }).click();
+  await expect(memberPage.getByRole('region', { name: /^Your wishlist/ })).toContainText('Azul');
 });

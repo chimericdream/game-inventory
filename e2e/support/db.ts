@@ -210,10 +210,15 @@ export async function seedPlay(
   }
 }
 
-export async function seedWish(title: string, type: GameType = 'board'): Promise<string> {
+export async function seedWish(
+  title: string,
+  type: GameType = 'board',
+  requestedByEmail?: string,
+): Promise<string> {
   const hh = await householdId();
+  const by = requestedByEmail ? await userId(requestedByEmail) : null;
   const [row] =
-    await sql`insert into wishlist_items (household_id, title, type) values (${hh}, ${title}, ${type}) returning id`;
+    await sql`insert into wishlist_items (household_id, title, type, requested_by_user_id) values (${hh}, ${title}, ${type}, ${by}) returning id`;
   return row!.id as string;
 }
 
