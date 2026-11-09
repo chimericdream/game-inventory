@@ -6,6 +6,7 @@ import {
   Anchor,
   Badge,
   Button,
+  Flex,
   Group,
   NumberInput,
   Paper,
@@ -31,11 +32,11 @@ export interface WishRow {
 export function WishlistView({ items }: { items: WishRow[] }) {
   const [state, action, pending] = useActionState(addWishlistAction, {});
   return (
-    <Stack gap="lg">
-      <Stack gap="xs">
+    <Flex gap="lg" direction={{ base: 'column', md: 'row' }} align="flex-start">
+      <Stack gap="xs" style={{ flex: 1, minWidth: 0, width: '100%' }}>
         {items.length === 0 && <Text c="dimmed">The wishlist is empty.</Text>}
         {items.map((i) => (
-          <Paper key={i.id} withBorder p="sm" radius="md">
+          <Paper key={i.id} withBorder p="sm">
             <Group justify="space-between">
               <div>
                 <Group gap="xs">
@@ -46,7 +47,7 @@ export function WishlistView({ items }: { items: WishRow[] }) {
                   ) : (
                     <Text fw={600}>{i.title}</Text>
                   )}
-                  <Badge variant="light">{i.type}</Badge>
+                  <Badge variant="default">{i.type}</Badge>
                   {i.priceCents !== null && (
                     <Text size="sm">${(i.priceCents / 100).toFixed(2)}</Text>
                   )}
@@ -74,8 +75,8 @@ export function WishlistView({ items }: { items: WishRow[] }) {
         ))}
       </Stack>
 
-      <form action={action}>
-        <Paper withBorder p="md" radius="md" maw={640}>
+      <form action={action} style={{ width: '100%', maxWidth: 380, flex: 'none' }}>
+        <Paper withBorder p="md">
           <Stack gap="xs">
             <Title order={2} size="h5">
               Add to the wishlist
@@ -85,8 +86,8 @@ export function WishlistView({ items }: { items: WishRow[] }) {
                 {state.error}
               </Alert>
             )}
+            <TextInput name="title" label="Title" required />
             <Group grow align="flex-start">
-              <TextInput name="title" label="Title" required />
               <Select
                 name="type"
                 label="Type"
@@ -94,11 +95,9 @@ export function WishlistView({ items }: { items: WishRow[] }) {
                 defaultValue="board"
                 allowDeselect={false}
               />
+              <NumberInput name="price" label="Price ($)" min={0} decimalScale={2} hideControls />
             </Group>
-            <Group grow align="flex-start">
-              <TextInput name="url" label="Link" placeholder="https://" />
-              <NumberInput name="price" label="Price ($)" min={0} decimalScale={2} />
-            </Group>
+            <TextInput name="url" label="Link" placeholder="https://" />
             <TextInput name="notes" label="Notes" />
             <Group>
               <Button type="submit" loading={pending}>
@@ -108,6 +107,6 @@ export function WishlistView({ items }: { items: WishRow[] }) {
           </Stack>
         </Paper>
       </form>
-    </Stack>
+    </Flex>
   );
 }

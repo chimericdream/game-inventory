@@ -9,7 +9,7 @@ export function ImportForm() {
   const [state, action, pending] = useActionState(importAction, {});
   return (
     <form action={action}>
-      <Stack maw={560}>
+      <Stack>
         <FileInput name="file" label="CSV file" accept=".csv,text/csv" required />
         <Button type="submit" loading={pending} w="fit-content">
           Import
