@@ -234,7 +234,7 @@ test('VIS-12 the navigation only offers a restricted profile what it can use', a
   page,
 }) => {
   await kidPage.goto('/games');
-  const nav = kidPage.locator('nav, .mantine-AppShell-navbar');
+  const nav = kidPage.getByRole('navigation', { name: 'Main' });
   await expect(nav.getByRole('link', { name: 'Games' })).toBeVisible();
   for (const name of ['Play log', 'Loans', 'Wishlist', 'Import']) {
     await expect(nav.getByRole('link', { name })).toHaveCount(0);
@@ -242,7 +242,7 @@ test('VIS-12 the navigation only offers a restricted profile what it can use', a
   await page.goto('/games');
   for (const name of ['Games', 'Play log', 'Loans', 'Wishlist', 'Import', 'Settings']) {
     await expect(
-      page.locator('.mantine-AppShell-navbar').getByRole('link', { name }),
+      page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name }),
     ).toBeVisible();
   }
 });
