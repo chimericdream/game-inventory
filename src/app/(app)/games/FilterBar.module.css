@@ -1,0 +1,60 @@
+/* Phone: the search stays in view; the other filters open from a single Filters button. */
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.primary {
+  display: flex;
+  gap: 8px;
+}
+
+.search {
+  flex: 1;
+}
+
+.toggle {
+  flex: none;
+}
+
+.extras {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+
+  &[data-open] {
+    display: flex;
+  }
+}
+
+@media (max-width: 47.99em) {
+  .extras > * {
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 48em) {
+  .bar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  .search {
+    flex: none;
+    width: 220px;
+  }
+
+  .toggle {
+    display: none;
+  }
+
+  .extras {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+}

@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Group, NumberInput, Select, TextInput } from '@mantine/core';
+import { Button, NumberInput, Select, TextInput } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconSearch } from '@tabler/icons-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+import classes from './FilterBar.module.css';
 import { TYPE_OPTIONS } from './labels';
 
 interface Props {
@@ -19,6 +20,7 @@ export function FilterBar({ tags, locations }: Props) {
   const params = useSearchParams();
   const [search, setSearch] = useState(params.get('q') ?? '');
   const [debounced] = useDebouncedValue(search, 300);
+  const [open, setOpen] = useState(false);
 
   function update(key: string, value: string | number | null | undefined) {
     const next = new URLSearchParams(params.toString());
@@ -34,73 +36,88 @@ export function FilterBar({ tags, locations }: Props) {
   }, [debounced]);
 
   const hasFilters = [...params.keys()].length > 0;
+  const activeCount = [...params.keys()].filter((k) => k !== 'q').length;
 
   return (
-    <Group mb="md" align="flex-end" gap="sm">
-      <TextInput
-        placeholder="Search titles"
-        leftSection={<IconSearch size={16} />}
-        value={search}
-        onChange={(e) => setSearch(e.currentTarget.value)}
-        w={220}
-      />
-      <Select
-        placeholder="Any type"
-        data={TYPE_OPTIONS}
-        value={params.get('type')}
-        onChange={(v) => update('type', v)}
-        clearable
-        w={150}
-      />
-      <NumberInput
-        placeholder="Players"
-        min={1}
-        hideControls
-        value={params.get('players') ?? ''}
-        onChange={(v) => update('players', v)}
-        w={100}
-      />
-      <NumberInput
-        placeholder="Max minutes"
-        min={1}
-        hideControls
-        step={15}
-        value={params.get('maxMinutes') ?? ''}
-        onChange={(v) => update('maxMinutes', v)}
-        w={130}
-      />
-      {tags.length > 0 && (
+    <div className={classes.bar}>
+      <div className={classes.primary}>
+        <TextInput
+          className={classes.search}
+          placeholder="Search titles"
+          aria-label="Search titles"
+          leftSection={<IconSearch size={16} />}
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+        />
+        <Button
+          className={classes.toggle}
+          variant="default"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          aria-controls="catalog-filters"
+        >
+          Filters{activeCount > 0 ? ` (${activeCount})` : ''}
+        </Button>
+      </div>
+      <div id="catalog-filters" className={classes.extras} data-open={open || undefined}>
         <Select
-          placeholder="Any tag"
-          data={tags}
-          value={params.get('tag')}
-          onChange={(v) => update('tag', v)}
+          placeholder="Any type"
+          data={TYPE_OPTIONS}
+          value={params.get('type')}
+          onChange={(v) => update('type', v)}
           clearable
-          searchable
           w={150}
         />
-      )}
-      {locations.length > 0 && (
-        <Select
-          placeholder="Any location"
-          data={locations}
-          value={params.get('location')}
-          onChange={(v) => update('location', v)}
-          clearable
-          w={160}
+        <NumberInput
+          placeholder="Players"
+          min={1}
+          hideControls
+          value={params.get('players') ?? ''}
+          onChange={(v) => update('players', v)}
+          w={100}
         />
-      )}
-      {hasFilters && (
-        <Button
-          variant="subtle"
-          onClick={() => {
-            setSearch('');
-            router.replace(pathname);
-          }}
-        >
-          Clear
-        </Button>
-      )}
-    </Group>
+        <NumberInput
+          placeholder="Max minutes"
+          min={1}
+          hideControls
+          step={15}
+          value={params.get('maxMinutes') ?? ''}
+          onChange={(v) => update('maxMinutes', v)}
+          w={130}
+        />
+        {tags.length > 0 && (
+          <Select
+            placeholder="Any tag"
+            data={tags}
+            value={params.get('tag')}
+            onChange={(v) => update('tag', v)}
+            clearable
+            searchable
+            w={150}
+          />
+        )}
+        {locations.length > 0 && (
+          <Select
+            placeholder="Any location"
+            data={locations}
+            value={params.get('location')}
+            onChange={(v) => update('location', v)}
+            clearable
+            w={160}
+          />
+        )}
+        {hasFilters && (
+          <Button
+            variant="subtle"
+            onClick={() => {
+              setSearch('');
+              router.replace(pathname);
+            }}
+          >
+            Clear
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
