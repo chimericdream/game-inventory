@@ -87,6 +87,21 @@ test('CAT-03 a blank title is rejected and nothing is created', async ({ page, d
   expect(await db.count('games')).toBe(0);
 });
 
+test('CAT-03c a new game is allowed on guest links unless that is switched off', async ({
+  page,
+  db,
+}) => {
+  await page.goto('/games/new');
+  await expect(page.getByRole('switch', { name: 'Allow on guest links' })).toBeChecked();
+  await addGameViaUi(page, { title: 'Shared By Default' });
+  await addGameViaUi(page, { title: 'Kept Private', shareable: false });
+  const rows = await db.sql`select title, shareable from games order by title`;
+  expect(rows.map((r) => [r.title, r.shareable])).toEqual([
+    ['Kept Private', false],
+    ['Shared By Default', true],
+  ]);
+});
+
 test('CAT-03b a title over 200 characters is rejected, exactly 200 is accepted', async ({
   page,
   db,

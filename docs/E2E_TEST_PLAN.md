@@ -161,21 +161,22 @@ Roles: **A** admin, **M** member, **R** restricted, **G** guest, **Anon** no ses
 
 ### 4.2 Catalog CRUD (CAT)
 
-| ID     | Scenario                                                                                                                          |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| CAT-01 | Add a board game with every field (players, time, complexity, min age, tags, description, notes); detail page shows each `@smoke` |
-| CAT-02 | Add a card game, RPG (system, book kind), video game, puzzle, other; type-specific fields appear only for the right type          |
-| CAT-03 | Title required; invalid numbers (min > max players, complexity 0 or 6, negative time) are rejected with a message                 |
-| CAT-04 | Edit a game; changes persist; tags added and removed; tag casing deduplicated (first spelling wins)                               |
-| CAT-05 | Delete a game; confirm it disappears from list, direct URL gives 404, its copies are gone                                         |
-| CAT-06 | Cover upload: valid png and jpg display on detail page and grid                                                                   |
-| CAT-07 | Cover upload rejects a non-image renamed to `.png`, and an oversize file, with a clear message                                    |
-| CAT-08 | Replace a cover; the old file is no longer served                                                                                 |
-| CAT-09 | Game with no cover shows a placeholder, not a broken image                                                                        |
-| CAT-10 | Titles with quotes, ampersands, emoji, RTL text and 300 characters render escaped and unclipped; `<script>` title is inert        |
-| CAT-11 | Double-clicking Save creates exactly one game                                                                                     |
-| CAT-12 | Unsaved-form navigation: Cancel returns without saving                                                                            |
-| CAT-13 | Unknown game id and malformed id return 404, not a 500                                                                            |
+| ID      | Scenario                                                                                                                          |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| CAT-01  | Add a board game with every field (players, time, complexity, min age, tags, description, notes); detail page shows each `@smoke` |
+| CAT-02  | Add a card game, RPG (system, book kind), video game, puzzle, other; type-specific fields appear only for the right type          |
+| CAT-03  | Title required; invalid numbers (min > max players, complexity 0 or 6, negative time) are rejected with a message                 |
+| CAT-03c | A new game has "Allow on guest links" on by default; switching it off is saved                                                    |
+| CAT-04  | Edit a game; changes persist; tags added and removed; tag casing deduplicated (first spelling wins)                               |
+| CAT-05  | Delete a game; confirm it disappears from list, direct URL gives 404, its copies are gone                                         |
+| CAT-06  | Cover upload: valid png and jpg display on detail page and grid                                                                   |
+| CAT-07  | Cover upload rejects a non-image renamed to `.png`, and an oversize file, with a clear message                                    |
+| CAT-08  | Replace a cover; the old file is no longer served                                                                                 |
+| CAT-09  | Game with no cover shows a placeholder, not a broken image                                                                        |
+| CAT-10  | Titles with quotes, ampersands, emoji, RTL text and 300 characters render escaped and unclipped; `<script>` title is inert        |
+| CAT-11  | Double-clicking Save creates exactly one game                                                                                     |
+| CAT-12  | Unsaved-form navigation: Cancel returns without saving                                                                            |
+| CAT-13  | Unknown game id and malformed id return 404, not a 500                                                                            |
 
 ### 4.3 Copies (COPY)
 

@@ -46,7 +46,8 @@ export const EMPTY_GAME: GameFormValues = {
   description: '',
   notes: '',
   visibility: 'normal',
-  shareable: false,
+  // On for new games: sharing is the common case, and a guest link still needs its own allowlist.
+  shareable: true,
   tags: '',
   system: '',
   bookKind: '',
