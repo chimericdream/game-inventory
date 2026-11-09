@@ -46,6 +46,21 @@
   color: var(--app-muted);
 }
 
+/* A thumbnail has no room for the label; the big letter and the hue carry it. */
+@container (max-width: 90px) {
+  .kind {
+    display: none;
+  }
+
+  .initial {
+    top: 50%;
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 64cqw;
+  }
+}
+
 /* Anything laid over the cover, such as the loan tag, sits along its bottom edge. */
 .overlay {
   position: absolute;

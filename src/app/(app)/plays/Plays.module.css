@@ -103,7 +103,7 @@
 
 .play {
   display: grid;
-  grid-template-columns: 96px 48px minmax(0, 1fr) auto;
+  grid-template-columns: 124px 48px minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
@@ -192,8 +192,23 @@
   padding: 0 11px;
   border-radius: 999px;
   background: var(--app-sunk);
+  color: var(--app-ink);
   font-size: 14px;
   font-weight: 500;
+  text-decoration: none;
+}
+
+a.pill {
+  min-height: 34px;
+  padding: 0 14px;
+  background: var(--app-tint);
+  font-weight: 600;
+  white-space: nowrap;
+
+  @mixin hover {
+    background: var(--app-accent);
+    color: var(--app-on-accent);
+  }
 }
 
 .pill[data-guest] {

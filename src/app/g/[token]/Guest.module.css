@@ -64,6 +64,11 @@
   }
 }
 
+/* The search box sits on the same surface as the card, so give it the page colour to stand out. */
+.picker input[type='search'] {
+  background: var(--app-ground);
+}
+
 .question {
   margin: 0 0 10px;
   font-size: 15px;

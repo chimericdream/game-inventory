@@ -73,7 +73,8 @@ function LoanRow({ loan, today }: { loan: Loan; today: string }) {
             With {loan.borrower}
           </span>
           <span>
-            since {shortDate(loan.lentOn)} · {plural(loan.daysOut, 'day')}
+            since {shortDate(loan.lentOn)}
+            {loan.daysOut > 0 && ` · ${plural(loan.daysOut, 'day')}`}
           </span>
         </div>
       </div>

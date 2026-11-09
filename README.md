@@ -7,15 +7,20 @@ console video games. Built with Next.js, Mantine, PostgreSQL and Drizzle.
 
 - Catalog with type-specific details (players, play time, complexity; RPG system and book kind),
   tags, cover images, and multiple copies per title (owner, location, condition, platform, price)
-- Search and filters: type, player count, max play time, tag, location
+- A shelf-style library: covers stand on planks, with server-side paging, sorting and filter counts
+  (availability, type, players, time, location, owner, tags)
 - Household profiles. A **restricted** profile (for kids) is read-only and never sees games marked
   hidden, or their cover images when marked "hide images". This is enforced on the server.
 - CSV import, BoardGameGeek lookup, and barcode scanning (on browsers with `BarcodeDetector`)
 - Guest links (`/g/<token>`): read-only, expirable, revocable. Guests see only games marked
   "Allow on guest links"; ratings, prices, owners and condition are never exposed, and each link can
   hide whole types or tags and opt in to notes and locations
-- Loans (with overdue flags), a wishlist that converts into catalog entries, and a play log with
-  most-played and neglected-game stats
+- Loans (most have no due date; late ones are flagged) with one-tap lending to earlier borrowers, a
+  wishlist per person that converts into catalog entries, per-person ratings, and a play log that
+  records who played (friends need no account; an admin can link them to an account later or merge
+  duplicates), with most-played and not-played-in-a-year lists
+- An activity trail of who changed what, and a game-night picker on guest links
+- Phone-first layouts with a tab bar, bottom sheets for forms, and light and dark themes
 
 ## Local development
 

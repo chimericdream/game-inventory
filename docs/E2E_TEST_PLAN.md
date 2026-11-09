@@ -12,7 +12,8 @@ listed at the end of this section.
 | Catalog, copies, browsing, settings | `catalog`, `copies`, `browse`, `settings` |                                                                              |
 | Household visibility                | `visibility.spec.ts`                      | Includes replaying captured server-action requests as the restricted profile |
 | Guest links                         | `guest.spec.ts`                           | Includes replay by member and restricted profiles                            |
-| Import, loans, wishlist, play log   | `import`, `loans`, `wishlist`, `plays`    |                                                                              |
+| Import, loans, wishlist, play log   | `import`, `loans`, `wishlist`, `plays`    | Plays and settings cover players without accounts, linking and merging       |
+| Game page, settings people, guests  | `detail`, `settings-people`, `guest-view` | Ratings, last edited, location delete guard, game-night picker, shared 404   |
 | UPC and mock wiring                 | `external.spec.ts`                        | UPC-01 to 06; MOCK-01 to 04 check the harness, not the BGG screens           |
 | Cross-cutting                       | `cross-cutting.spec.ts`, `health.spec.ts` | X-01 to X-11 (X-12 is now the cover path-traversal check)                    |
 
@@ -26,8 +27,13 @@ Deviations from the plan below:
   type, any case); a copy on loan is not offered for lending again; restricted profiles are
   redirected away from plays, loans, wishlist, import and add game.
 
-Known gaps, kept as `test.fixme`: CAT-07c (cover bytes are not verified, only the declared type) and
-X-05b (color contrast below WCAG AA in the default Mantine theme).
+Known gap, kept as `test.fixme`: CAT-07c (cover bytes are not verified, only the declared type). X-05b
+(color contrast) now passes under The Shelf theme.
+
+The UI was redesigned after this plan was written (see `docs/REDESIGN_BUILD_PLAN.md`). Where a scenario
+below names an old control (a filter dropdown, a card, a winner field), the spec describes the new one:
+filters are links in the sidebar, plays record participants instead of winners, and the lend, log and
+wishlist forms are side panels that become bottom sheets on phones.
 
 Not done yet: the Firefox and WebKit `@smoke` pass (`E2E_BROWSERS=all` is configured, but those
 browsers are not installed locally), the Docker smoke run, the BGG screens (P6), per-worker databases
@@ -292,7 +298,7 @@ All guest assertions run in a fresh browser context with no cookies.
 
 | ID      | Scenario                                                                           |
 | ------- | ---------------------------------------------------------------------------------- |
-| PLAY-01 | Log a play with date, minutes, players, winner, notes; appears in history `@smoke` |
+| PLAY-01 | Log a play with date, minutes, players, notes; appears in history `@smoke`         |
 | PLAY-02 | Defaults: date defaults to today when blank                                        |
 | PLAY-03 | Most-played ranking updates after logging; ties handled deterministically          |
 | PLAY-04 | Neglected games list shows games with no recent plays and drops a game once played |

@@ -14,7 +14,14 @@ self-hosters later. Not a SaaS.
 - Next.js (App Router) + TypeScript
 - **Mantine** for UI. **Do not add Tailwind** (or any utility-CSS framework). Use Mantine components,
   style props, and CSS modules with `postcss-preset-mantine`.
-- PostgreSQL + Drizzle ORM (migrations via drizzle-kit)
+- **Design system "The Shelf"**: tokens and palette in `src/theme.ts`, shared pieces in
+  `src/components/shelf/` (cover tile, plank shelf, game tile), the reference mockups in
+  `docs/design/the-shelf/`. Fraunces (titles) and Figtree (everything else) are **self-hosted** in
+  `src/fonts/`; never load fonts or assets from a CDN. Use `--app-*` CSS variables in CSS modules, not
+  hard-coded colours, so light and dark both work.
+- PostgreSQL + Drizzle ORM (migrations via drizzle-kit). **Until v1 is locked, nothing is deployed:
+  change `src/server/db/schema.ts` freely, delete `drizzle/`, run `pnpm db:generate` to get one fresh
+  baseline, and write no data migrations. Remove this note when v1 locks.**
 - pnpm; tool versions pinned with **mise** (`mise.toml`). Run `mise install` once, then use
   `mise exec -- pnpm <cmd>` if the shell isn't mise-activated.
 - Linting and formatting use the **oxc stack** (oxlint + oxfmt). Do not add ESLint or Prettier.
@@ -37,6 +44,12 @@ self-hosters later. Not a SaaS.
    concept stays invisible to self-hosters.
 2. **Game vs copy**: `game` is the title; `copy` is a physical or digital instance someone owns
    (owner, location, condition, platform). Per-person data (ratings) hangs off `(user, game)`.
+   Plays point at **players**, who may or may not have an account (`players.user_id` is null for a
+   visiting friend). An admin can link a player to an account or merge duplicates; history follows
+   because plays reference the player. A player holds only a display name.
+   **Every mutation writes an `audit_log` row in the same transaction** (`recordAudit` in
+   `src/server/data/audit.ts`) and stamps `created_by`/`updated_by`. Ratings are the one exception, so
+   an activity feed cannot reveal who rated what.
 3. **Visibility is enforced on the server**, never only in the UI. Two audiences need it:
    - _Household members_ (e.g. hide certain games or just their images when kids use the app).
    - _Guest share links_ (`/g/[token]`, read-only; allowlist by default; personal ratings, notes,

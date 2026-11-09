@@ -3,7 +3,15 @@
 Plan for rebuilding the app's UI and the data behind it to match the isolated redesign in
 `screenshots-redesign/` (mockups, `README.md`, `CRITIQUE.md`; see Phase 0 for where they should live).
 
-Status: draft for review. Nothing here is built yet.
+Status: built (Phases 0 to 8 and most of 9) on `main`. Differences from this plan as written:
+
+- Visibility on the add-game form stayed a select rather than a radio group.
+- The dated-loan rope timeline and the shelf-grouped catalog (Phase 9 optional items) were not built.
+- Copies became cards with lend and return on the game page, and the wishlist gained a list per person.
+- The sign-in shelf uses made-up artwork only; the mockup's generated covers live in
+  `src/components/art/`.
+- Pickers that list every game title (plays, lending) are still client-side selects; a server-driven
+  search is the follow-up if the library grows past a few hundred.
 
 ## Ground rules
 

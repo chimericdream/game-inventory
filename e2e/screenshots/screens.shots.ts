@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 
 import { expect, test, KID, MEMBER } from '../fixtures';
 import { fillGameForm, gameCards } from '../support/actions';
-import { choose, chooseByPlaceholder, formWith, PASSWORD } from '../support/mantine';
+import { choose, formWith, PASSWORD } from '../support/mantine';
 import { png } from '../support/images';
 import { seedDemo } from './demo-data';
 import { shot } from './shot';
@@ -104,7 +104,7 @@ test.describe('02-catalog-browse', () => {
 
   test('empty library', async ({ page }) => {
     await page.goto('/games');
-    await expect(page.getByText('No games match.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Your library is empty' })).toBeVisible();
     await shot(page, F, '01-empty-library', 'The catalog with no games at all.');
   });
 
@@ -116,69 +116,60 @@ test.describe('02-catalog-browse', () => {
       page,
       F,
       '02-grid-default',
-      '24 demo games as a card grid: covers, type badges, players, time.',
+      'The first page of the 24 demo games: covers on planks, loan tags, the sidebar facets and the summary line.',
     );
     await shot(page, F, '03-grid-viewport-only', 'Above-the-fold view of the grid at 1440x900.', {
       fullPage: false,
     });
 
-    await page.getByPlaceholder('Search titles').fill('ca');
+    await page.getByRole('searchbox', { name: 'Search titles' }).fill('ca');
     await expect(page).toHaveURL(/q=ca/);
     await shot(
       page,
       F,
       '04-search-results',
-      'Title search "ca" with the filter bar showing the typed query.',
+      'Title search "ca" with a removable chip for the active filter.',
     );
 
-    await page.getByPlaceholder('Search titles').fill('zzz-nothing');
-    await expect(page.getByText('No games match.')).toBeVisible();
+    await page.getByRole('searchbox', { name: 'Search titles' }).fill('zzz-nothing');
+    await expect(page.getByRole('heading', { name: 'No games match' })).toBeVisible();
     await shot(page, F, '05-search-no-results', 'Search with no matches: the empty state.');
 
     await page.goto('/games');
-    await chooseByPlaceholder(page, 'Any type', 'Video game');
+    await page
+      .getByRole('complementary', { name: 'Filters' })
+      .getByRole('link', { name: /^Video game/ })
+      .click();
     await expect(page).toHaveURL(/type=video/);
     await shot(page, F, '06-filter-type-video', 'Filtered to video games.');
 
     await page.goto('/games');
-    await page.getByPlaceholder('Any type').click();
     await shot(
       page,
       F,
-      '07-type-dropdown-open',
-      'The type filter dropdown open, showing its options.',
-      {
-        fullPage: false,
-      },
+      '07-facets-sidebar',
+      'The sidebar facets with counts: availability, type, players, time, where it is, whose, tags.',
+      { fullPage: false },
     );
-    await page.keyboard.press('Escape');
 
-    await page.goto('/games?type=board&tag=family&minutes=60');
+    await page.goto('/games?type=board&tag=family&maxMinutes=60');
     await expect(gameCards(page).first()).toBeVisible();
     await shot(
       page,
       F,
       '08-filters-combined',
-      'Several filters at once (board games, tag family, max 60 min) with a Clear button.',
+      'Several filters at once (board games, tag family, up to 60 min) as chips with a Clear all link.',
     );
 
-    await page.goto('/games');
-    await page.getByPlaceholder('Any tag').click();
-    await shot(page, F, '09-tag-dropdown-open', 'The tag filter dropdown open.', {
+    await page.goto('/games?sort=newest');
+    await expect(gameCards(page).first()).toBeVisible();
+    await shot(page, F, '09-sort-newest', 'Sorted newest first.', { fullPage: false });
+
+    await page.goto('/games?availability=out');
+    await expect(gameCards(page).first()).toBeVisible();
+    await shot(page, F, '10-availability-out', 'Only games that are out on loan.', {
       fullPage: false,
     });
-    await page.keyboard.press('Escape');
-    await page.getByPlaceholder('Any location').click();
-    await shot(
-      page,
-      F,
-      '10-location-dropdown-open',
-      'The location filter dropdown open (nested locations show as paths).',
-      {
-        fullPage: false,
-      },
-    );
-    await page.keyboard.press('Escape');
   });
 
   test('responsive and dark variants', async ({ page, db }) => {
@@ -192,12 +183,18 @@ test.describe('02-catalog-browse', () => {
         page,
         F,
         '12-grid-mobile',
-        'Catalog grid at phone width: collapsed header, single or double column.',
+        'Library at phone width: three covers across, tab bar at the bottom.',
       );
-      await page.locator('.mantine-Burger-root').click();
-      await shot(page, F, '13-nav-open-mobile', 'Phone width with the navigation drawer opened .', {
-        fullPage: false,
-      });
+      await page.getByRole('button', { name: /Filters/ }).click();
+      await shot(
+        page,
+        F,
+        '13-filters-sheet-mobile',
+        'Phone width with the filters bottom sheet open.',
+        {
+          fullPage: false,
+        },
+      );
     });
     await page.setViewportSize(DESKTOP);
     await dark(page, async () => {
@@ -399,7 +396,7 @@ test.describe('05-copies', () => {
     const { ids } = await seedDemo(db);
     const bare = await db.seedGame({ title: 'Brand New Arrival', cover: true });
     await page.goto(`/games/${bare}`);
-    await expect(page.getByText('No copies recorded yet.')).toBeVisible();
+    await expect(page.getByText('No copies yet.')).toBeVisible();
     await shot(
       page,
       F,
@@ -422,7 +419,7 @@ test.describe('05-copies', () => {
     await page.getByRole('option').first().click();
     await shot(page, F, '03-add-copy-filled', 'Add copy form completely filled in before saving.');
     await form.getByRole('button', { name: /^Add/ }).click();
-    await expect(page.getByText('No copies recorded yet.')).toHaveCount(0);
+    await expect(page.getByText('No copies yet.')).toHaveCount(0);
     await shot(page, F, '04-after-adding-copy', 'The panel after the first copy was added.');
 
     await page.goto(`/games/${ids.Catan}`);
@@ -470,7 +467,7 @@ test.describe('06-loans', () => {
       },
     );
     await page.getByRole('option').first().click();
-    await form.getByLabel('Borrower').fill('Grandma Pat');
+    await form.getByRole('textbox', { name: /^Borrower/ }).fill('Grandma Pat');
     await form.getByLabel('Due (optional)').fill('2026-12-24');
     await shot(page, F, '04-lend-form-filled', 'Lend form filled in before submitting.');
 
@@ -478,7 +475,7 @@ test.describe('06-loans', () => {
     await expect(page.getByText('With Grandma Pat')).toBeVisible();
     await shot(page, F, '05-after-lending', 'The list after a new loan was added.');
 
-    await form.getByLabel('Borrower').fill('   ');
+    await form.getByRole('textbox', { name: /^Borrower/ }).fill('   ');
     await form.getByRole('combobox', { name: /^Game/ }).click();
     await page.getByRole('option').first().click();
     await form.getByRole('button', { name: 'Lend' }).click();
@@ -511,7 +508,7 @@ test.describe('07-wishlist', () => {
       page,
       F,
       '02-populated',
-      'Three wishlist items: with link, price and notes; price only; and bare.',
+      'One list per person: items with link, price and notes; price only; and bare.',
     );
 
     const form = formWith(page, /^Add$/);
@@ -519,7 +516,7 @@ test.describe('07-wishlist', () => {
     await choose(page, form, 'Type', 'Board game');
     await form.getByLabel('Link').fill('https://example.com/spirit-island');
     await form.getByLabel('Price ($)').fill('79.99');
-    await form.getByLabel('Notes').fill('Birthday idea');
+    await form.getByLabel('Note for gift-givers').fill('Birthday idea');
     await shot(page, F, '03-add-form-filled', 'Add form completely filled in.');
 
     await form.getByLabel('Title').fill('Bad link');
@@ -556,14 +553,16 @@ test.describe('08-plays', () => {
 
     const form = formWith(page, 'Log play');
     await choose(page, form, 'Game', 'Azul');
-    await form.getByLabel('Date').fill('2026-03-14');
     await form.getByLabel('Minutes').fill('45');
-    await form.getByLabel('Players').fill('Ann, Bob, Cy');
+    for (const name of ['Ann', 'Bob']) {
+      await form.getByRole('button', { name, exact: true }).click();
+    }
+    await form.getByLabel('Add someone').fill('Grandma Pat');
     await form.getByLabel('Notes').fill('Close finish');
     await shot(page, F, '03-log-form-filled', 'Log-a-play form completely filled in.');
 
     await form.getByRole('button', { name: 'Log play' }).click();
-    await expect(page.locator('.mantine-Paper-root', { hasText: 'Azul' })).toBeVisible();
+    await expect(page.locator('[data-play]', { hasText: 'Azul' }).first()).toBeVisible();
     await shot(page, F, '04-after-logging', 'The list after logging a play.');
 
     await mobile(page, async () => {
@@ -641,7 +640,7 @@ test.describe('10-settings', () => {
       page,
       F,
       '01-admin-overview',
-      'Settings as an admin: people, locations and guest links sections.',
+      'Settings as an admin: the People tab with the add-person form and people without accounts.',
     );
 
     const people = formWith(page, 'Add person');
@@ -678,6 +677,7 @@ test.describe('10-settings', () => {
       'Adding a person with an email already in use: error alert.',
     );
 
+    await page.goto('/settings?tab=locations');
     const loc = formWith(page, 'Add location');
     await loc.getByLabel('New location').fill('Garage');
     await choose(page, loc, 'Inside (optional)', 'Attic');
@@ -725,7 +725,7 @@ test.describe('11-guest-links', () => {
 
   test('creating and managing links', async ({ page, db }) => {
     await seedDemo(db);
-    await page.goto('/settings');
+    await page.goto('/settings?tab=links');
     const form = formWith(page, 'Create link');
     await form.scrollIntoViewIfNeeded();
     await shot(
@@ -783,8 +783,7 @@ test.describe('11-guest-links', () => {
       },
     );
 
-    await page.getByPlaceholder('Search titles').fill('ca');
-    await page.keyboard.press('Enter');
+    await page.getByRole('searchbox', { name: 'Search titles' }).fill('ca');
     await page.waitForTimeout(800);
     await shot(page, F, '06-guest-catalog-search', 'Guest catalog with a search typed .', {
       viewer: 'guest',
