@@ -1,43 +1,167 @@
-.header {
+.root {
+  min-height: 100vh;
   background: var(--app-ground);
-  border-bottom: 1px solid var(--app-border);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 68px;
+  background: var(--app-ground);
+}
+
+.headerLeft {
+  min-width: 0;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: var(--mantine-color-text);
-  font-weight: 600;
-  font-size: 16px;
+  gap: 10px;
+  color: var(--app-ink);
+  font-family: var(--app-serif);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  line-height: 1;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.brandMark {
+  color: var(--app-accent);
+}
+
+.mainNav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    display: none;
+  }
 }
 
 .link {
   display: inline-flex;
   align-items: center;
-  padding: 6px 10px;
-  border-radius: var(--mantine-radius-sm);
-  color: var(--mantine-color-dimmed);
-  font-size: 14px;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: var(--app-muted);
+  font-size: 15px;
   font-weight: 500;
-  line-height: 20px;
   text-decoration: none;
   white-space: nowrap;
+  transition:
+    background 0.12s,
+    color 0.12s;
 
   @mixin hover {
-    color: var(--mantine-color-text);
-    background: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.06));
+    color: var(--app-ink);
+    background: var(--app-sunk);
   }
 
   &[data-active] {
-    color: var(--mantine-color-text);
-    background: light-dark(#e9e7e3, var(--mantine-color-dark-5));
+    background: var(--app-ink);
+    color: var(--app-ground);
+    font-weight: 600;
   }
 }
 
-.navbar {
-  background: var(--app-ground);
-  border-color: var(--app-border);
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--app-loan);
+  color: var(--app-ground);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.who {
+  @media (max-width: $mantine-breakpoint-sm) {
+    margin-left: auto;
+  }
+}
+
+.signOut {
+  @media (max-width: $mantine-breakpoint-sm) {
+    display: none;
+  }
+}
+
+.main {
+  /* Room for the tab bar so the last row of content is never hidden behind it. */
+  @media (max-width: $mantine-breakpoint-sm) {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom));
+  }
+}
+
+.tabs {
+  display: none;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 30;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--app-surface);
+    border-top: 1px solid var(--app-border);
+  }
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 60px;
+  padding: 6px 4px;
+  color: var(--app-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+
+  &[data-active] {
+    color: var(--app-accent);
+  }
+}
+
+.tabIcon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+
+  .tab[data-active] & {
+    background: var(--app-tint);
+  }
+}
+
+.tabCount {
+  position: absolute;
+  top: -2px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--app-loan);
+  color: var(--app-ground);
+  font-size: 11px;
+  font-weight: 700;
 }

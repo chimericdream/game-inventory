@@ -235,12 +235,12 @@ test('VIS-12 the navigation only offers a restricted profile what it can use', a
 }) => {
   await kidPage.goto('/games');
   const nav = kidPage.getByRole('navigation', { name: 'Main' });
-  await expect(nav.getByRole('link', { name: 'Games' })).toBeVisible();
-  for (const name of ['Play log', 'Loans', 'Wishlist', 'Import']) {
+  await expect(nav.getByRole('link', { name: 'Library' })).toBeVisible();
+  for (const name of ['Plays', 'Loans', 'Wishlist', 'Import']) {
     await expect(nav.getByRole('link', { name })).toHaveCount(0);
   }
   await page.goto('/games');
-  for (const name of ['Games', 'Play log', 'Loans', 'Wishlist', 'Import', 'Settings']) {
+  for (const name of ['Library', 'Loans', 'Plays', 'Wishlist', 'Import', 'Settings']) {
     await expect(
       page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name }),
     ).toBeVisible();

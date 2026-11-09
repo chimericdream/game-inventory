@@ -1,7 +1,6 @@
 import { Group, Text, Title } from '@mantine/core';
-import { IconPlus } from '@tabler/icons-react';
 
-import { LinkAnchor, LinkButton } from '@/components/Links';
+import { LinkAnchor } from '@/components/Links';
 import { requireContext } from '@/server/auth/current';
 import { listCatalogPage, parseCatalogFilters } from '@/server/data/catalog';
 import { listLocations, listTags } from '@/server/data/lookups';
@@ -33,16 +32,10 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
     listTags(ctx),
     listLocations(ctx),
   ]);
-  const canEdit = ctx.viewer.role !== 'restricted';
   return (
     <>
       <Group justify="space-between" mb="md">
         <Title order={1}>Games</Title>
-        {canEdit && (
-          <LinkButton href="/games/new" leftSection={<IconPlus size={16} />}>
-            Add game
-          </LinkButton>
-        )}
       </Group>
       <FilterBar
         tags={tags.map((t) => t.name)}

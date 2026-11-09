@@ -1,6 +1,13 @@
 'use client';
 
-import { Anchor, Button, type AnchorProps, type ButtonProps } from '@mantine/core';
+import {
+  ActionIcon,
+  Anchor,
+  Button,
+  type ActionIconProps,
+  type AnchorProps,
+  type ButtonProps,
+} from '@mantine/core';
 import Link from 'next/link';
 
 /*
@@ -10,6 +17,13 @@ import Link from 'next/link';
 
 export function LinkButton({ href, ...props }: ButtonProps & { href: string }) {
   return <Button component={Link} href={href} {...props} />;
+}
+
+export function LinkIconButton({
+  href,
+  ...props
+}: ActionIconProps & { href: string; 'aria-label': string; children?: React.ReactNode }) {
+  return <ActionIcon component={Link} href={href} {...props} />;
 }
 
 export function LinkAnchor({

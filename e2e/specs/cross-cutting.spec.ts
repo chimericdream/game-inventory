@@ -151,17 +151,24 @@ test('X-03 the color scheme follows the system, honours a stored choice, and log
 // X-04 small screens
 // ---------------------------------------------------------------------------------------------
 
-test('X-04 on a phone the menu collapses and no page scrolls sideways', async ({ newPage, db }) => {
+test('X-04 on a phone the menu becomes a tab bar and no page scrolls sideways', async ({
+  newPage,
+  db,
+}) => {
   const p = await newPage(ADMIN.storageState);
   await p.setViewportSize({ width: 390, height: 844 });
   const id = await db.seedGame({ title: 'Phone Game', copies: [{}] });
 
   await p.goto('/games');
-  const navLink = p.locator('.mantine-AppShell-navbar').getByRole('link', { name: 'Settings' });
-  await expect(navLink).not.toBeInViewport();
-  await p.locator('.mantine-Burger-root').click();
-  await expect(navLink).toBeInViewport();
-  await navLink.click();
+  // The top navigation gives way to a bottom tab bar; the rest lives under More.
+  await expect(p.getByRole('navigation', { name: 'Main' })).toBeHidden();
+  const tabs = p.getByRole('navigation', { name: 'Tabs' });
+  for (const name of ['Library', 'Loans', 'Plays', 'Wishlist', 'More']) {
+    await expect(tabs.getByRole('link', { name })).toBeInViewport();
+  }
+  await tabs.getByRole('link', { name: 'More' }).click();
+  await expect(p).toHaveURL(/\/more$/);
+  await p.getByRole('link', { name: 'Settings' }).click();
   await expect(p).toHaveURL(/\/settings$/);
 
   for (const route of [

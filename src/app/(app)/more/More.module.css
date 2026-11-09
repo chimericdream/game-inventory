@@ -1,0 +1,37 @@
+.who {
+  margin: 0 0 var(--mantine-spacing-md);
+  color: var(--app-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+  color: var(--app-ink);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.chevron {
+  margin-left: auto;
+  color: var(--app-muted);
+}

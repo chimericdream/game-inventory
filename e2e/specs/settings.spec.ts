@@ -88,7 +88,7 @@ test('SET-05 a member manages locations but not people or guest links', async ({
 test('SET-06 a restricted profile sees settings read-only', async ({ kidPage }) => {
   await kidPage.goto('/settings');
   await expect(kidPage.getByRole('heading', { name: 'Settings' })).toBeVisible();
-  await expect(kidPage.getByText(KID.name, { exact: true })).toBeVisible();
+  await expect(kidPage.getByRole('main').getByText(KID.name, { exact: true })).toBeVisible();
   await expect(kidPage.getByRole('button', { name: 'Add person' })).toHaveCount(0);
   await expect(kidPage.getByRole('button', { name: 'Add location' })).toHaveCount(0);
   await expect(kidPage.getByRole('heading', { name: 'Guest links' })).toHaveCount(0);
