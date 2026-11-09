@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core';
-import { IconPencil, IconStar, IconStarFilled } from '@tabler/icons-react';
+import { IconDice5, IconPencil, IconStar, IconStarFilled } from '@tabler/icons-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -150,6 +150,12 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             <p className={classes.subtitle}>{subtitle.join(' · ')}</p>
             {member && (
               <div className={classes.actions}>
+                <LinkButton
+                  href={`/plays?game=${id}`}
+                  leftSection={<IconDice5 size={16} aria-hidden />}
+                >
+                  Log a play
+                </LinkButton>
                 <LinkButton
                   href={`/games/${id}/edit`}
                   variant="default"

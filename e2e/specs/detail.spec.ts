@@ -93,3 +93,11 @@ test('DET-05 a game with no picture shows a stand-in tile instead of a hole', as
   await expect(page.locator('img')).toHaveCount(0);
   await expect(page.getByRole('main').getByText('RPG').first()).toBeVisible();
 });
+
+test('DET-06 "Log a play" opens the plays page with this game chosen', async ({ page, db }) => {
+  const id = await db.seedGame({ title: 'Quick Log' });
+  await page.goto(`/games/${id}`);
+  await page.getByRole('link', { name: 'Log a play' }).click();
+  await expect(page).toHaveURL(`/plays?game=${id}`);
+  await expect(page.getByRole('combobox', { name: /^Game/ })).toHaveValue('Quick Log');
+});
