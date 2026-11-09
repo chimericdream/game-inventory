@@ -81,6 +81,17 @@ describe('catalog', () => {
     expect(await listCatalog(admin, { search: '%' })).toHaveLength(0);
   });
 
+  it('stores a puzzle piece count and clears it when the type changes', async () => {
+    const game = await createGame(admin, {
+      title: 'Alpine Lake',
+      type: 'puzzle',
+      puzzle: { pieceCount: 1000 },
+    });
+    expect((await getGameDetail(admin, game.id))?.puzzle?.pieceCount).toBe(1000);
+    await updateGame(admin, game.id, { title: 'Alpine Lake', type: 'other' });
+    expect((await getGameDetail(admin, game.id))?.puzzle).toBeNull();
+  });
+
   it('updates and deletes games', async () => {
     const game = await createGame(admin, { title: 'Old', type: 'board', board: { minPlayers: 2 } });
     await updateGame(admin, game.id, { title: 'New', type: 'rpg', rpg: { system: 'D&D 5e' } });

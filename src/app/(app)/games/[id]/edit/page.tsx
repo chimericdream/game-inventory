@@ -15,7 +15,7 @@ export default async function EditGamePage({ params }: { params: Promise<{ id: s
   if (ctx.viewer.role === 'restricted') redirect(`/games/${id}`);
   const detail = await getGameDetail(ctx, id);
   if (!detail) notFound();
-  const { game, board, rpg } = detail;
+  const { game, board, rpg, puzzle } = detail;
   const initial: GameFormValues = {
     title: game.title,
     type: game.type,
@@ -31,6 +31,7 @@ export default async function EditGamePage({ params }: { params: Promise<{ id: s
     minAge: board?.minAge,
     system: rpg?.system ?? '',
     bookKind: rpg?.bookKind ?? '',
+    pieceCount: puzzle?.pieceCount,
   };
   return (
     <>

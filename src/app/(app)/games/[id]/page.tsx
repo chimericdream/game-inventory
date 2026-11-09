@@ -18,7 +18,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const { ctx } = await requireContext();
   const detail = await getGameDetail(ctx, id);
   if (!detail) notFound();
-  const { game, board, rpg } = detail;
+  const { game, board, rpg, puzzle } = detail;
   const canEdit = ctx.viewer.role !== 'restricted';
 
   const [members, locations] = await Promise.all([listMembers(ctx), listLocations(ctx)]);
@@ -31,6 +31,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     board?.minAge ? `Ages ${board.minAge}+` : null,
     rpg?.system,
     rpg?.bookKind,
+    puzzle?.pieceCount ? `${puzzle.pieceCount.toLocaleString('en-US')} pieces` : null,
   ].filter(Boolean);
 
   return (

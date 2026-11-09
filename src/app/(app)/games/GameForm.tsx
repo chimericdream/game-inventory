@@ -36,6 +36,7 @@ export interface GameFormValues {
   minAge?: number | null;
   system: string;
   bookKind: string;
+  pieceCount?: number | null;
 }
 
 export const EMPTY_GAME: GameFormValues = {
@@ -135,6 +136,16 @@ export function GameForm({ action, initial = EMPTY_GAME, cancelHref }: Props) {
                   defaultValue={initial.bookKind}
                 />
               </Group>
+            )}
+
+            {type === 'puzzle' && (
+              <NumberInput
+                name="pieceCount"
+                label="Pieces"
+                placeholder="1000"
+                min={1}
+                defaultValue={initial.pieceCount ?? ''}
+              />
             )}
 
             <TextInput

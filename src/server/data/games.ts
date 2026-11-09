@@ -8,6 +8,7 @@ import {
   games,
   locations,
   loans,
+  puzzleDetails,
   rpgDetails,
   tags,
 } from '../db/schema';
@@ -42,6 +43,9 @@ export const gameInput = z.object({
       system: z.string().trim().max(200).nullable().optional(),
       bookKind: z.string().trim().max(200).nullable().optional(),
     })
+    .optional(),
+  puzzle: z
+    .object({ pieceCount: z.number().int().min(1).max(100_000).nullable().optional() })
     .optional(),
   tags: z.array(z.string().trim().min(1).max(50)).max(30).optional(),
 });
@@ -168,10 +172,11 @@ export type CatalogRow = Awaited<ReturnType<typeof listCatalog>>[number];
 export async function getGameDetail(ctx: DataContext, id: string) {
   if (!isUuid(id)) return null;
   const [row] = await ctx.db
-    .select({ game: games, board: boardGameDetails, rpg: rpgDetails })
+    .select({ game: games, board: boardGameDetails, rpg: rpgDetails, puzzle: puzzleDetails })
     .from(games)
     .leftJoin(boardGameDetails, eq(boardGameDetails.gameId, games.id))
     .leftJoin(rpgDetails, eq(rpgDetails.gameId, games.id))
+    .leftJoin(puzzleDetails, eq(puzzleDetails.gameId, games.id))
     .where(and(eq(games.id, id), gameVisibilityCondition(ctx)))
     .limit(1);
   if (!row) return null;
@@ -194,6 +199,7 @@ export async function getGameDetail(ctx: DataContext, id: string) {
     game,
     board: row.board,
     rpg: row.rpg,
+    puzzle: row.puzzle,
     copies: copyRows.map((c) => ({ ...c.copy, locationName: c.locationName })),
     tags: tagRows.map((t) => t.name),
   };
@@ -249,6 +255,14 @@ async function writeDetails(
       .onConflictDoUpdate({ target: rpgDetails.gameId, set: input.rpg });
   } else {
     await tx.delete(rpgDetails).where(eq(rpgDetails.gameId, gameId));
+  }
+  if (input.type === 'puzzle' && input.puzzle) {
+    await tx
+      .insert(puzzleDetails)
+      .values({ gameId, householdId: ctx.householdId, ...input.puzzle })
+      .onConflictDoUpdate({ target: puzzleDetails.gameId, set: input.puzzle });
+  } else {
+    await tx.delete(puzzleDetails).where(eq(puzzleDetails.gameId, gameId));
   }
 }
 

@@ -54,6 +54,7 @@ function parseGameForm(fd: FormData): GameInput {
         : undefined,
     rpg:
       type === 'rpg' ? { system: text(fd, 'system'), bookKind: text(fd, 'bookKind') } : undefined,
+    puzzle: type === 'puzzle' ? { pieceCount: int(fd, 'pieceCount') } : undefined,
   };
 }
 
