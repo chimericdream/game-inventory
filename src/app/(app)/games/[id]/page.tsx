@@ -36,8 +36,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   return (
     <Stack gap="lg">
       <Group justify="space-between" align="flex-start">
-        <div>
-          <Title order={1}>{game.title}</Title>
+        <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+          <Title order={1} lineClamp={2} title={game.title}>
+            {game.title}
+          </Title>
           <Group gap="xs" mt={4}>
             <Badge variant="light">{TYPE_LABELS[game.type]}</Badge>
             {detail.tags.map((t) => (
@@ -57,7 +59,12 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               Edit
             </LinkButton>
             <form action={deleteGameAction.bind(null, id)}>
-              <Button type="submit" color="red" variant="default" c="red.8">
+              <Button
+                type="submit"
+                color="red"
+                variant="default"
+                c="light-dark(var(--mantine-color-red-8), var(--mantine-color-red-3))"
+              >
                 Delete
               </Button>
             </form>

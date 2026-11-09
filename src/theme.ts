@@ -31,7 +31,7 @@ const ink: MantineColorsTuple = [
 
 export const theme = createTheme({
   primaryColor: 'ink',
-  primaryShade: { light: 6, dark: 0 },
+  primaryShade: 6,
   autoContrast: true,
   colors: { ink },
   fontFamily: 'var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif',
@@ -86,6 +86,14 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
   dark: {
     '--mantine-color-dimmed': '#a8a8a8',
     '--mantine-color-placeholder': '#949494',
+    // The primary inverts in dark mode: a near-white fill with a near-black label.
+    '--mantine-primary-color-filled': '#f2f2f2',
+    '--mantine-primary-color-filled-hover': '#ffffff',
+    '--mantine-primary-color-contrast': '#0a0a0a',
+    // Neutral chips become pale tints instead of black boxes.
+    '--mantine-color-ink-light': 'rgba(255, 255, 255, 0.10)',
+    '--mantine-color-ink-light-hover': 'rgba(255, 255, 255, 0.16)',
+    '--mantine-color-ink-light-color': '#e6e6e6',
     '--app-ground': '#1a1a1a',
     '--app-border': '#333333',
     '--app-rule': '#2a2a2a',

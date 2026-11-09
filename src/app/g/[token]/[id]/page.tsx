@@ -37,7 +37,9 @@ export default async function GuestGamePage({
       </LinkAnchor>
       <Stack gap="md" mt="sm">
         <div>
-          <Title order={1}>{game.title}</Title>
+          <Title order={1} lineClamp={2} title={game.title}>
+            {game.title}
+          </Title>
           <Group gap="xs" mt={4}>
             <Badge variant="light">{TYPE_LABELS[game.type]}</Badge>
             {game.platforms.map((p) => (

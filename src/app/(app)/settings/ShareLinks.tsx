@@ -97,7 +97,13 @@ export function ShareLinks({ links }: { links: LinkRow[] }) {
               </div>
               {!inactive && (
                 <form action={revokeShareLinkAction.bind(null, l.id)}>
-                  <Button type="submit" color="red" variant="default" c="red.8" size="compact-sm">
+                  <Button
+                    type="submit"
+                    color="red"
+                    variant="default"
+                    c="light-dark(var(--mantine-color-red-8), var(--mantine-color-red-3))"
+                    size="compact-sm"
+                  >
                     Revoke
                   </Button>
                 </form>

@@ -10,3 +10,12 @@ body {
 .mantine-Card-root {
   border-color: var(--app-border);
 }
+
+/*
+ * Dark mode inverts the primary: a near-white fill needs a near-black label. Mantine sets the label
+ * colour inline (from the fill's luminance at theme-build time), so this has to win with !important.
+ */
+:root[data-mantine-color-scheme='dark']
+  .mantine-Button-root:where(:not([data-variant]), [data-variant='filled']) {
+  --button-color: #0a0a0a !important;
+}
