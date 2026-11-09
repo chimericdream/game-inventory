@@ -1,4 +1,4 @@
-# Game Library
+# The Shelf
 
 A self-hosted web app for a household's game collection: board games, card games, RPG books and
 console video games. Built with Next.js, Mantine, PostgreSQL and Drizzle.

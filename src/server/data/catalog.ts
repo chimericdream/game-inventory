@@ -150,44 +150,42 @@ async function hydrate(
       .from(gameTags)
       .innerJoin(tags, eq(tags.id, gameTags.tagId))
       .where(and(eq(gameTags.householdId, ctx.householdId), inArray(gameTags.gameId, ids))),
-    canSeeLoans(ctx)
-      ? ctx.db
-          .select({
-            gameId: copies.gameId,
-            borrower: loans.borrower,
-            dueOn: loans.dueOn,
-            lentOn: loans.lentOn,
-          })
-          .from(loans)
-          .innerJoin(copies, eq(copies.id, loans.copyId))
-          .where(
-            and(
-              eq(loans.householdId, ctx.householdId),
-              isNull(loans.returnedOn),
-              inArray(copies.gameId, ids),
-            ),
-          )
-          .orderBy(asc(loans.lentOn), asc(loans.id))
-      : Promise.resolve(
-          [] as { gameId: string; borrower: string; dueOn: string | null; lentOn: string }[],
+    // Restricted profiles learn only that a game is out: no borrower, no dates.
+    ctx.db
+      .select({
+        gameId: copies.gameId,
+        borrower: canSeeLoans(ctx) ? loans.borrower : sql<string>`''`,
+        dueOn: canSeeLoans(ctx) ? loans.dueOn : sql<string | null>`null`,
+        lentOn: canSeeLoans(ctx) ? loans.lentOn : sql<string>`current_date::text`,
+      })
+      .from(loans)
+      .innerJoin(copies, eq(copies.id, loans.copyId))
+      .where(
+        and(
+          eq(loans.householdId, ctx.householdId),
+          isNull(loans.returnedOn),
+          inArray(copies.gameId, ids),
         ),
+      )
+      .orderBy(asc(loans.lentOn), asc(loans.id)),
   ]);
 
   // Both sides are date-only strings, so the difference is a whole number of days in any time zone.
   const todayIso = new Date().toISOString().slice(0, 10);
   return visible.map(({ game, board }) => {
     const out = loanRows.filter((l) => l.gameId === game.id);
-    const loan: CatalogLoan | null = out[0]
-      ? {
-          borrower: out[0].borrower,
-          dueOn: out[0].dueOn,
-          daysOut: Math.max(
-            0,
-            Math.round((Date.parse(todayIso) - Date.parse(out[0].lentOn)) / 86_400_000),
-          ),
-          copiesOut: out.length,
-        }
-      : null;
+    const loan: CatalogLoan | null =
+      out[0] && canSeeLoans(ctx)
+        ? {
+            borrower: out[0].borrower,
+            dueOn: out[0].dueOn,
+            daysOut: Math.max(
+              0,
+              Math.round((Date.parse(todayIso) - Date.parse(out[0].lentOn)) / 86_400_000),
+            ),
+            copiesOut: out.length,
+          }
+        : null;
     return {
       ...game,
       board,

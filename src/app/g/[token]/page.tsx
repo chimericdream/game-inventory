@@ -88,7 +88,7 @@ export default async function GuestHome({
       <div className={classes.top}>
         <span className={classes.brand}>
           <IconBooks size={28} stroke={1.8} aria-hidden />
-          Game Library
+          The Shelf
         </span>
         <span className={classes.readOnly}>Read-only</span>
       </div>

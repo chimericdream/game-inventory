@@ -20,7 +20,7 @@ const COLOR_SCHEME_SCRIPT = `try {
 } catch (e) {}`;
 
 export const metadata: Metadata = {
-  title: 'Game Library',
+  title: 'The Shelf',
   description: 'Our family game library',
 };
 

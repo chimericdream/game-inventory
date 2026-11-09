@@ -19,6 +19,7 @@ export function toTile(row: CatalogRow): TileGame {
     loan: row.loan
       ? { borrower: row.loan.borrower, dueOn: row.loan.dueOn, daysOut: row.loan.daysOut }
       : null,
+    out: row.onLoan,
   };
 }
 

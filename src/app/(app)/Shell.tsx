@@ -74,7 +74,7 @@ export function Shell({ user, counts, children }: Props) {
             <Group gap="xl" wrap="nowrap" className={classes.headerLeft}>
               <Link href="/games" className={classes.brand}>
                 <IconBooks size={28} stroke={1.8} aria-hidden className={classes.brandMark} />
-                Game Library
+                The Shelf
               </Link>
               <nav aria-label="Main" className={classes.mainNav}>
                 {items.map(({ href, label, count }) => (

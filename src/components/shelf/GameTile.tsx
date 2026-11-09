@@ -18,6 +18,8 @@ export interface TileGame {
   playTimeMinutes: number | null;
   /** Present only for household members; restricted profiles and guests never get it. */
   loan: { borrower: string; dueOn: string | null; daysOut: number } | null;
+  /** Restricted profiles only learn that the game is out, nothing about who has it. */
+  out?: boolean;
 }
 
 interface Props {
@@ -57,6 +59,7 @@ export function GameTile({ game, href, coverUrl }: Props) {
                 <small>{loanLine(game.loan)}</small>
               </span>
             )}
+            {!game.loan && game.out && <span className={classes.loan}>Out</span>}
           </CoverTile>
         </div>
         <span className={classes.meta}>

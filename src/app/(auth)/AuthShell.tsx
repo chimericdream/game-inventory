@@ -26,7 +26,7 @@ export function AuthShell({ title, lead, children, footnote }: Props) {
       <main className={classes.form}>
         <div className={classes.brand}>
           <IconBooks size={34} stroke={1.8} aria-hidden />
-          Game Library
+          The Shelf
         </div>
         <h1>{title}</h1>
         <p className={classes.lead}>{lead}</p>

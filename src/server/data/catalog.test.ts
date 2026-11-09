@@ -163,7 +163,9 @@ describe('filtering in the database', () => {
     const kidPage = await listCatalogPage(kid, { availability: 'out' });
     expect(kidPage.total).toBe(2);
     expect(JSON.stringify(kidPage)).not.toContain('Dana');
-    expect(kidPage.rows.every((r) => r.loan === null && !r.onLoan)).toBe(true);
+    expect(kidPage.rows.every((r) => r.loan === null)).toBe(true);
+    // They may see that a game is out, never who has it or when it is due.
+    expect(kidPage.rows.some((r) => r.onLoan)).toBe(true);
   });
 });
 
