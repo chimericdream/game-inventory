@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Catan · The Shelf</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.isolate{isolation:isolate}
+.page{max-width:1440px;margin:0 auto;padding:6px var(--pad) 90px;display:grid;grid-template-columns:400px 1fr;column-gap:64px;align-items:start}
+.crumb{grid-column:1/-1;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:15px;margin-bottom:24px}
+.crumb a:hover{color:var(--ink)}
+.crumb .ic{width:16px;height:16px}
+.side{position:sticky;top:92px}
+.side .cv{position:relative}
+.side .cv::after{content:"";position:absolute;left:-18px;right:-18px;bottom:-12px;height:13px;background:var(--plank);z-index:-1;border-radius:2px}
+.side .cover{border-radius:4px}
+.shelfnote{margin-top:34px;display:flex;gap:10px;align-items:flex-start;font-size:15px;color:var(--muted)}
+.shelfnote .ic{width:18px;height:18px;margin-top:2px;color:var(--oak)}
+.shelfnote b{color:var(--ink);font-weight:600}
+.rate{margin-top:26px;background:var(--surface);border-radius:16px;padding:16px 18px}
+.rate h3{font:600 14px var(--sans);color:var(--muted)}
+.stars{display:flex;gap:4px;margin-top:8px;align-items:center}
+.stars .ic{width:30px;height:30px;color:var(--sunk)}
+.stars .ic svg{fill:currentColor;stroke:none}
+.stars .on{color:var(--oak)}
+.stars span{margin-left:10px;font:700 22px var(--serif)}
+.rate p{font-size:14px;color:var(--muted);margin-top:6px}
+.wins,.nbr{margin-top:22px;background:var(--surface);border-radius:16px;padding:16px 18px}.wins h3,.nbr h3{font:600 14px var(--sans);color:var(--muted);display:flex;justify-content:space-between;margin-bottom:12px}.wr{display:grid;grid-template-columns:84px 1fr 18px;gap:10px;align-items:center;font-size:15px;height:30px}.wr i{height:10px;border-radius:3px;background:var(--accent)}.wr b{text-align:right;font-variant-numeric:tabular-nums}.nb{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.nb .cover .ct{display:none}.nb a{display:block;font-size:12px;line-height:1.2;font-weight:600}.nb a span{display:block;margin-top:6px}
+.main h1{font:700 clamp(48px,6.4vw,84px)/.95 var(--serif);letter-spacing:-.035em}
+.sub{margin-top:14px;font-size:18px;color:var(--muted)}
+.sub b{color:var(--ink);font-weight:600}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px;align-items:center}
+.actions .btn{height:46px;padding:0 20px;font-size:16px}
+.actions .sp{flex:1}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);margin-top:36px;background:var(--surface);border-radius:20px;padding:22px 8px}
+.fact{padding:0 22px;border-left:2px solid var(--bg)}
+.fact:first-child{border-left:0}
+.fact .v{font:700 40px/1 var(--serif);letter-spacing:-.02em;font-variant-numeric:lining-nums}
+.fact .v small{font:500 17px var(--sans);color:var(--muted);letter-spacing:0;margin-left:4px}
+.fact .l{margin-top:8px;font-size:14px;color:var(--muted)}
+.weights{display:flex;gap:5px;margin-top:6px;height:10px}
+.weights i{flex:1;max-width:28px;height:10px;border-radius:3px;background:var(--sunk)}
+.weights i.on{background:var(--accent)}
+.about{display:grid;grid-template-columns:1fr;gap:20px;margin-top:38px;max-width:720px}
+.about p.d{font-size:19px;line-height:1.6}
+.tags{display:flex;gap:8px;flex-wrap:wrap}
+.tag{height:34px;display:inline-flex;align-items:center;padding:0 15px;background:var(--tint);border-radius:999px;font-weight:600;font-size:15px;color:var(--ink)}
+.note{margin-top:30px;background:var(--surface);border-radius:4px 20px 20px 20px;padding:22px 26px;max-width:720px;position:relative}
+.note::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--oak);border-radius:4px 0 0 4px}
+.note h3{font:600 14px var(--sans);color:var(--muted);margin-bottom:6px}
+.note p{font:500 italic 20px/1.5 var(--serif)}
+.sec{margin-top:60px}
+.sec h2{font:700 30px/1 var(--serif);letter-spacing:-.02em;margin-bottom:6px;display:flex;align-items:baseline;gap:12px}
+.sec h2 span{font:500 16px var(--sans);color:var(--muted);letter-spacing:0}
+.copies{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}
+.copy{background:var(--surface);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:16px;position:relative;overflow:hidden}
+.copy .top2{display:flex;justify-content:space-between;align-items:center}
+.copy h3{font:700 22px var(--serif)}
+.copy dl{display:grid;grid-template-columns:auto 1fr;gap:9px 18px;font-size:16px}
+.copy dt{color:var(--muted)}
+.copy dd{font-weight:600}
+.state{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 13px;border-radius:999px;font-weight:700;font-size:14px;background:var(--tint);color:var(--accent)}
+.state::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.state.out{background:var(--loan-tint);color:var(--loan);position:static;padding:0 13px;font-size:14px}
+.copy.isout{border-left:6px solid var(--loan)}
+.loanbox{background:var(--loan-tint);color:var(--ink);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px}
+.loanbox .av{background:var(--loan);color:var(--bg);width:42px;height:42px}
+.loanbox div{flex:1;line-height:1.3}
+.loanbox b{display:block;font-size:17px}
+.loanbox span{font-size:14px;color:var(--muted)}
+.loanbox em{font:700 14px var(--sans);font-style:normal;color:var(--loan);white-space:nowrap}
+.copy .btn:last-child{margin-top:auto}.copy .btn{align-self:flex-start;height:44px;padding:0 20px}
+.two{display:grid;grid-template-columns:1fr;gap:0}
+.plays{margin-top:18px;display:flex;flex-direction:column}
+.play{display:grid;grid-template-columns:76px 1fr auto;gap:16px;align-items:center;padding:16px 0;border-top:2px solid var(--surface)}
+.play:first-child{border-top:0}
+.date{font:700 18px/1.1 var(--serif)}
+.date small{display:block;font:500 13px var(--sans);color:var(--muted);margin-top:2px}
+.play .w{font-size:17px}
+.play .w b{font-weight:700}
+.play .w span{color:var(--muted);font-size:15px;display:block}
+.pip{display:flex;gap:4px}
+.pip i{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.pip i.x{background:var(--sunk)}
+.sec .head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+.danger-row{margin-top:56px;margin-left:-20px;display:flex;gap:6px;color:var(--muted)}
+.mobileonly{display:none}
+@media (max-width:860px){
+  .page{display:block;padding:0 var(--pad) 120px}
+  .crumb{margin-bottom:14px}
+  .side{position:static;display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:end;margin-bottom:22px}
+  .side .cv::after{left:-8px;right:-8px;bottom:-8px;height:9px}
+  .shelfnote{margin-top:0;font-size:14px;grid-column:2;grid-row:1}
+  .side .cv{grid-row:1}
+  .rate{grid-column:1/-1;margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px}
+  .rate .rt{flex:1}
+  .rate p{display:none}
+  .stars .ic{width:26px;height:26px}
+  .stars{margin-top:4px}
+  .stars span{display:none}
+  .main h1{font-size:46px}
+  .sub{font-size:16px;margin-top:10px}
+  .actions{margin-top:20px;gap:8px}
+  .actions .btn.lead{flex:1 1 100%;justify-content:center;height:52px}
+  .actions .btn.sec2{flex:1;justify-content:center;height:46px;padding:0 10px}
+  .actions .sp{display:none}
+  .facts{grid-template-columns:1fr 1fr;row-gap:18px;padding:18px 4px;margin-top:26px}
+  .fact{padding:0 16px}
+  .fact:nth-child(3){border-left:0}
+  .fact .v{font-size:32px}
+  .about p.d{font-size:17px}
+  .note{padding:18px 20px}
+  .note p{font-size:18px}
+  .copies{grid-template-columns:1fr}
+  .sec{margin-top:44px}
+  .sec h2{font-size:26px}
+  .danger-row{margin-top:36px}
+}
+@media (max-width:860px){.wins,.nbr{display:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="data.js"></script>
+<script>
+const g=GAMES[0];
+const stars=n=>[1,2,3,4,5].map(i=>`<i class="ic ${i<=n?'on':''}">${I.star}</i>`).join('');
+const dots=(n)=>`<div class="weights" aria-label="Complexity ${n} of 5">${[1,2,3,4,5].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</div>`;
+document.getElementById('app').innerHTML=`
+${header('Library')}
+<div class="page">
+  <nav class="crumb" aria-label="Breadcrumb"><a href="catalog.html">Library</a><i class="ic">${I.back.replace('M14 6l-6 6 6 6','M10 6l6 6-6 6')}</i><a href="catalog.html?type=Board">Board games</a></nav>
+  <aside class="side">
+    <div class="cv isolate">${cover(g)}</div>
+    <p class="shelfnote"><i class="ic">${I.pin}</i><span><b>1 of 2 copies on the shelf.</b><br>Basement › Shelf 3</span></p>
+    <div class="rate"><div class="rt"><h3>Your rating</h3><div class="stars" role="img" aria-label="4 of 5 stars">${stars(4)}<span>4</span></div><p>Family average 4.2 from 4 ratings</p></div></div>
+    <div class="wins"><h3>Who wins at Catan <span>11 plays</span></h3>${[['Sam',4],['Mia',3],['Dad',2],['Aunt Dana',1],['Uncle Ray',1]].map(([n,w])=>`<div class="wr"><span>${n}</span><i style="width:${w/4*100}%"></i><b>${w}</b></div>`).join('')}</div>
+    <div class="nbr"><h3>Nearby on the shelf</h3><div class="nb">${['pandemic','ttr','carc','azul'].map(id=>{const x=GAMES.find(q=>q.id===id);return `<a href="detail.html">${cover(x)}<span>${x.t}</span></a>`}).join('')}</div></div>
+  </aside>
+  <main class="main">
+    <h1>Catan</h1>
+    <p class="sub">Board game · <b>2 copies</b> · played 11 times · added by Sam in 2019</p>
+    <div class="actions">
+      <a class="btn primary lead" href="#"><i class="ic">${I.dice}</i>Log a play</a>
+      <a class="btn sec2" href="#"><i class="ic">${I.loan}</i>Lend</a>
+      <a class="btn sec2" href="#"><i class="ic">${I.edit}</i>Edit</a>
+      <a class="btn sec2" href="#"><i class="ic">${I.heart}</i>Wishlist</a>
+    </div>
+    <section class="facts" aria-label="Facts">
+      <div class="fact"><div class="v">3–4</div><div class="l">players</div></div>
+      <div class="fact"><div class="v">90<small>min</small></div><div class="l">play time</div></div>
+      <div class="fact"><div class="v">2<small>/ 5</small></div>${dots(2)}<div class="l" style="margin-top:6px">complexity, light</div></div>
+      <div class="fact"><div class="v">10+</div><div class="l">minimum age</div></div>
+    </section>
+    <div class="about">
+      <p class="d">Settle an island. Trade wood, brick, wheat, sheep and ore with whoever is across the table, build roads toward the best harvests, and race to ten points. The board is different every time, and so is the argument about who blocked whom.</p>
+      <div class="tags">${g.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+    </div>
+    <aside class="note"><h3>Notes from Sam</h3><p>“Four is the sweet spot. Mia always takes the ports. Missing one brick tile, we use a Scrabble tile.”</p></aside>
+
+    <section class="sec" aria-labelledby="copies"><h2 id="copies">Copies <span>1 on the shelf, 1 lent out</span></h2>
+      <div class="copies">
+        <article class="copy">
+          <div class="top2"><h3>Sam’s copy</h3><span class="state">On the shelf</span></div>
+          <dl><dt>Owner</dt><dd>Sam</dd><dt>Location</dt><dd>Basement › Shelf 3</dd><dt>Condition</dt><dd>Very good</dd><dt>Acquired</dt><dd>2019, gift from Dad</dd></dl>
+          <a class="btn primary" href="#"><i class="ic">${I.loan}</i>Lend out</a>
+        </article>
+        <article class="copy isout">
+          <div class="top2"><h3>Mia’s copy</h3><span class="state out">Lent out</span></div>
+          <dl><dt>Owner</dt><dd>Mia</dd><dt>Home shelf</dt><dd>Living room › Cabinet</dd><dt>Condition</dt><dd>Good, worn box corner</dd><dt>Acquired</dt><dd>2021, thrift store</dd></dl>
+          <div class="loanbox"><span class="av">D</span><div><b>Aunt Dana</b><span>Since Oct 30</span></div><em>Due Nov 20</em></div>
+          <a class="btn loan" href="#">Mark returned</a>
+        </article>
+      </div></section>
+
+    <section class="sec" aria-labelledby="plays"><div class="head"><h2 id="plays">Recent plays <span>11 in all</span></h2><a class="btn" href="#">All plays</a></div>
+      <div class="plays">
+        <div class="play"><div class="date">Nov 2<small>Monday</small></div><div class="w"><b>Sam won</b><span>with Mia, Dad and Aunt Dana</span></div><div class="pip" title="4 players"><i></i><i></i><i></i><i></i></div></div>
+        <div class="play"><div class="date">Oct 18<small>Sunday</small></div><div class="w"><b>Mia won</b><span>with Sam and Dad</span></div><div class="pip" title="3 players"><i></i><i></i><i></i><i class="x"></i></div></div>
+      </div></section>
+
+    <div class="danger-row"><a class="btn danger" href="#"><i class="ic">${I.trash}</i>Delete game</a></div>
+  </main>
+</div>
+<a class="btn primary fab" href="#" style="display:none"></a>
+${tabbar('Library')}`;
+if(new URLSearchParams(location.search).get('theme'))document.documentElement.dataset.theme=new URLSearchParams(location.search).get('theme');
+</script>
+</body>
+</html>

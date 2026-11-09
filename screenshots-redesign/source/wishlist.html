@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Wishlist · The Shelf</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>
+.wl{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:48px;align-items:start}
+.coming{display:flex;gap:16px;align-items:center;background:var(--tint);border-radius:18px;padding:16px 20px;margin-bottom:26px}
+.coming .ic{width:30px;height:30px;color:var(--accent);flex:none}
+.coming b{display:block;font:700 19px var(--serif)}.coming span{font-size:15px;color:var(--muted)}
+.coming .btn{margin-left:auto}
+.pf{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px}
+.pf .chip{height:42px;padding:0 16px 0 6px;gap:8px}
+.pf .chip.all{padding:0 18px}
+.pf .chip .av{width:30px;height:30px;font-size:13px}
+.pf .chip b{font-weight:700;color:var(--muted);margin-left:2px}
+.pf .chip[aria-pressed=true] b{color:inherit;opacity:.8}
+.lane{margin-bottom:34px}
+.lane h2{display:flex;align-items:center;gap:12px;font:700 24px var(--serif);letter-spacing:-.015em;margin-bottom:12px}
+.lane h2 small{font:500 15px var(--sans);color:var(--muted);letter-spacing:0}
+.it{display:grid;grid-template-columns:56px 1fr auto;gap:18px;align-items:center;background:var(--surface);border-radius:18px;padding:14px 18px 14px 14px;margin-bottom:10px}
+.tile{width:56px;height:70px;border-radius:3px;display:grid;place-items:center;font:700 28px var(--serif);color:var(--ink);background:color-mix(in srgb,hsl(var(--h) 45% 55%) 30%,var(--surface));position:relative}
+.tile::after{content:"";position:absolute;top:-2px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--bg)}
+.it h3{font:600 19px/1.15 var(--serif)}
+.it .nt{font:italic 500 16px/1.4 var(--serif);color:var(--muted);margin-top:4px}
+.it .lk{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:14px;font-weight:600;color:var(--accent)}
+.it .lk .ic{width:14px;height:14px}
+.it .nolk{font-size:14px;color:var(--muted);margin-top:6px;display:block}
+.it .rt{display:flex;align-items:center;gap:14px}
+.it .pr{font:700 20px var(--serif);font-variant-numeric:tabular-nums}
+.it .acts{display:flex;gap:6px}
+.it .btn.sm{height:38px}
+.add{position:sticky;top:84px}
+.add .hint{display:flex;gap:10px;color:var(--muted);font-size:14px;margin-top:16px}.add .hint .ic{width:18px;height:18px;flex:none}
+.curr{display:flex;align-items:center;height:50px;border-radius:14px;background:var(--bg);padding:0 16px;gap:6px;font-size:17px;font-weight:500}
+.curr span{color:var(--muted)}.curr input{border:0;background:none;flex:1;min-width:0;font:inherit;color:var(--ink);outline:0;height:100%}
+@media (max-width:980px){
+ .wl{display:flex;flex-direction:column}.wl>main{min-width:0;width:100%}.wl>aside{width:100%}
+ .wl>aside{order:2;margin:10px 0 0;position:static}
+ .pf{flex-wrap:nowrap;overflow-x:auto;margin-right:calc(var(--pad)*-1);padding-right:var(--pad)}.pf .chip{flex:none}
+ .it{grid-template-columns:48px 1fr;gap:14px;padding:14px}.tile{width:48px;height:60px;font-size:24px}
+ .it .rt{grid-column:1/-1;justify-content:space-between}
+ .coming{flex-wrap:wrap}.coming .btn{margin-left:0;width:100%;justify-content:center}
+}
+</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script>
+<script>
+const st=Q.get('state')||'';
+const items={
+ Mia:[['Sushi Go Party!','$19.99','Same game, 8 players. Friends keep asking.','funforge.example'],['Wingspan: Oceania Expansion','$39.99','','stonemaier.example'],['Cascadia: Landmarks','$24.99','For my birthday, Dec 2.','flatout.example']],
+ Sam:[['Brass: Birmingham','$59.99','The big one. Maybe Christmas.','roxley.example'],['Heat: Pedal to the Metal','$44.95','','days.example']],
+ Dad:[['Dune: Imperium','$49.95','Ask Aunt Dana, she knows the edition.','']],
+ Leo:[['Mario Party Superstars','$39.99','Switch. Not the older one.','nintendo.example']]
+};
+const it=(n,p)=>`<article class="it"><span class="tile" style="--h:${PEOPLE[n]}">${p[0][0]}</span><div><h3>${p[0]}</h3>${p[2]?`<p class="nt">“${p[2]}”</p>`:''}${p[3]?`<a class="lk" href="#"><i class="ic">${I.link}</i>${p[3]}</a>`:'<span class="nolk">No link</span>'}</div><div class="rt"><span class="pr">${p[1]}</span><span class="acts"><a class="btn sm" href="#"><i class="ic sm">${I.check}</i>Got it</a><a class="btn sm ghost" href="#" aria-label="Edit"><i class="ic sm">${I.edit}</i></a></span></div></article>`;
+const lane=n=>`<section class="lane"><h2>${person(n,36)}${n}’s list <small>${items[n].length} ${items[n].length==1?'thing':'things'}${n==='Mia'?' · $84.97':''}</small></h2>${items[n].map(p=>it(n,p)).join('')}</section>`;
+const lerr=st==='linkerror';
+const form=`<aside class="card add" aria-label="Add to wishlist"><h2>Add something</h2><p class="sub">On your list, so everyone can see.</p>
+ ${field('What is it',`<input type="text" value="${lerr?'Brass: Lancashire':''}" placeholder="Name of the game">`)}
+ ${field('Link <em>shops or reviews</em>',`<input type="url" value="${lerr?'www.roxley.example/brass':''}" placeholder="https://…">`,{err:lerr,msg:lerr?'That link needs to start with http:// or https://':'We only keep the link, nothing is fetched.'})}
+ <div class="grid2" style="grid-template-columns:.8fr 1.2fr">${field('Price',`<div class="curr"><span>$</span><input value="${lerr?'49.95':''}" placeholder="0.00"></div>`,{opt:1})}${field('For',`<select><option>Sam, my list</option></select>`)}</div>
+ ${field('Hint for gift-givers',`<textarea placeholder="Birthday in March. Any edition is fine.">${lerr?'The first one is great. Looking for the sequel.':''}</textarea>`,{opt:1})}
+ <a class="btn primary lg block" href="#" style="margin-top:22px"><i class="ic">${I.plus}</i>Add to wishlist</a>
+ <p class="hint"><i class="ic">${I.gift}</i>Wishlists are for the whole family to see. Nothing here is bought or shared outside the household.</p></aside>`;
+const main=st==='empty'?`<div class="card"><div class="empty">${shelfArt(4)}<h3>Nothing on the wishlist yet</h3><p>Add games the family is eyeing. Birthdays and holidays get a lot easier when the hints are all in one place.</p></div></div>`:`
+ <div class="coming"><i class="ic">${I.gift}</i><span><b>Mia’s birthday is Dec 2</b><span>She has 3 things on her list, one marked for the day.</span></span><a class="btn" href="#">See her list</a></div>
+ <div class="pf"><button class="chip all" aria-pressed="true">Everyone <b>7</b></button>${['Mia','Sam','Dad','Leo'].map(n=>`<button class="chip" aria-pressed="false">${person(n)}${n} <b>${items[n].length}</b></button>`).join('')}</div>${['Mia','Sam','Dad','Leo'].map(lane).join('')}`;
+boot('Wishlist',`<div class="pghead"><div><h1 class="title">Wishlist</h1><p class="lead">${st==='empty'?'Nothing yet.':'<b>7 things</b> the family is hoping for. A good place to look before a birthday.'}</p></div></div><div class="wl"><main>${main}</main>${form}</div>`);
+</script></body></html>

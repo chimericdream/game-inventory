@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>The Shelf mockups</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.ix{max-width:1100px;margin:0 auto;padding:32px var(--pad) 80px}
+.ix h1{font:700 clamp(40px,6vw,72px)/1 var(--serif);letter-spacing:-.03em}
+.ix .lead{margin-top:14px;font-size:19px;color:var(--muted);max-width:640px}
+.grp{margin-top:44px}
+.grp h2{font:700 26px var(--serif);letter-spacing:-.02em;margin-bottom:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.c{display:block;background:var(--surface);border-radius:18px;padding:16px 18px}
+.c:hover{background:var(--tint)}
+.c b{display:block;font:600 19px var(--serif)}
+.c span{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+.c .st{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.c .st a{font-size:13px;font-weight:600;background:var(--bg);padding:3px 10px;border-radius:999px;color:var(--ink)}
+.c .st a:hover{background:var(--accent);color:var(--accent-ink)}
+</style></head><body>
+<main class="ix"><h1>The Shelf</h1><p class="lead">A redesign of the family game library, as static mockups. Add <code>?theme=dark</code> to any page for dark mode, or let your system decide. Resize to 390px for the phone layouts.</p>
+<div id="g"></div></main>
+<script>
+const G=[
+['Browse',[
+ ['Catalog','catalog.html','The home screen: the shelf of covers, filters, loans at a glance.',[['search','catalog.html?q=ca'],['board games','catalog.html?type=Board'],['phone filters','catalog.html?sheet=1']]],
+ ['Game detail','detail.html','Catan: cover, facts, copies, plays, rating.',[]],
+ ['Add / edit game','edit.html','Title lookup, fields by type, cover, visibility.',[['lookup','edit.html?state=lookup'],['filled','edit.html?state=filled'],['lookup failed','edit.html?state=fail'],['errors, RPG','edit.html?type=rpg&state=error'],['video','edit.html?type=video'],['puzzle','edit.html?type=puzzle'],['edit mode','edit.html?mode=edit&state=filled']]],
+ ['Add a copy','addcopy.html','Owner, nested location, condition, price.',[['no copies yet','addcopy.html?empty=1'],['video game','addcopy.html?game=mk8']]]]],
+['Family',[
+ ['Loans','loans.html','Rope timeline of due dates, lend and return.',[['lend sheet','loans.html?sheet=1']]],
+ ['Plays','plays.html','History, most played, not played in a year, quick log.',[['log sheet','plays.html?sheet=1'],['empty','plays.html?empty=1']]],
+ ['Wishlist','wishlist.html','Lists by person, gift hints, add form.',[['link error','wishlist.html?state=linkerror'],['empty','wishlist.html?state=empty']]],
+ ['Import','import.html','CSV intake with checks.',[['file chosen','import.html?s=chosen'],['success','import.html?s=success'],['partial','import.html?s=partial'],['refused','import.html?s=refused']]]]],
+['Admin',[
+ ['Settings: people','settings.html','Add a person, profiles.',[['duplicate email','settings.html?err=dup'],['short password','settings.html?err=short'],['member view','settings.html?role=member']]],
+ ['Settings: locations','settings.html?tab=locations','The nested place tree.',[]],
+ ['Settings: guest links','settings.html?tab=links','Create, list, revoke.',[['just created','settings.html?tab=links&created=1'],['member view','settings.html?tab=links&role=member']]],
+ ['More (phone)','more.html','The tab behind "More" on phones.',[]]]],
+['Front door and outsiders',[
+ ['Sign in','signin.html','The front door.',[['failed','signin.html?m=error'],['redirected','signin.html?m=redirect'],['first-run setup','signin.html?m=setup']]],
+ ['Guest share','guest.html','Read-only, mobile-first game picker.',[['one game','guest.html?open=catan&n=4&t=60'],['2 players','guest.html?n=2&t=30']]],
+ ['Restricted profile: library','kid.html','Leo’s trimmed view; hidden games absent.',[]],
+ ['Restricted profile: game','kidgame.html','Image hidden, read-only.',[]],
+ ['Dead ends','dead.html?k=404','404 and hidden game.',[['hidden game','dead.html?k=hidden'],['expired link','dead.html?k=expired'],['revoked link','dead.html?k=revoked'],['unknown link','dead.html?k=unknown']]]]]
+];
+document.getElementById('g').innerHTML=G.map(([t,items])=>`<section class="grp"><h2>${t}</h2><div class="cards">${items.map(([n,h,d,s])=>`<div class="c"><a href="${h}"><b>${n}</b></a><span>${d}</span>${s.length?`<div class="st">${s.map(([l,u])=>`<a href="${u}">${l}</a>`).join('')}</div>`:''}</div>`).join('')}</div></section>`).join('');
+if(new URLSearchParams(location.search).get('theme'))document.documentElement.dataset.theme=new URLSearchParams(location.search).get('theme');
+</script></body></html>

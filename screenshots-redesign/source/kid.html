@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Library · The Shelf (Leo)</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>.cv{isolation:isolate}.pg{padding:0;max-width:none}.layout{padding-top:12px}
+@media (max-width:860px){.pg{padding:0}.tabbar a{min-width:84px}}</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script><script src="kidui.js"></script>
+<script>
+const typeMap={Board:'Board games',Card:'Card games','Video game':'Video games',Puzzle:'Puzzles'};
+const typeCol={Board:'#c7612b',Card:'#6a4c93','Video game':'#d7263d',Puzzle:'#5aa0c8'};
+const counts={Board:150,Card:38,'Video game':29,Puzzle:13};  // hidden games and the RPG books are left out: 150+38+29+13 = 230? see total below
+const total=230;
+const list=GAMES.filter(g=>!KID_HIDDEN.includes(g.id));
+const card=g=>{
+  const out=g.loan&&!g.partial;
+  const art=KID_NOIMG.includes(g.id)?plainTile(g):cover(g);
+  const note=g.loan?(g.partial?`<div class="out"><em>1 of 2 copies out</em>${g.loan.who} · ${g.loan.due}</div>`:`<div class="out"><em>Out · ${g.loan.who}</em>Due ${g.loan.due}</div>`):'';
+  return `<a class="game" href="kidgame.html"><div class="cv">${art.replace('class="cover"',`class="cover${out?' isout':''}${g.loan?' hasout':''}"`)}${note}</div><h2>${g.t}</h2><p>${meta(g)}</p></a>`;
+};
+const sidebar=`<div class="fgroup"><h3>Type</h3><div class="tlist"><a href="#" aria-current="true"><i style="background:var(--ink)"></i>Everything<span>${total}</span></a>${Object.keys(typeMap).map(k=>`<a href="#"><i style="background:${typeCol[k]}"></i>${typeMap[k]}<span>${counts[k]}</span></a>`).join('')}</div></div>
+<div class="fgroup"><h3>Players tonight</h3><div class="chips">${['1','2','3','4','5','6+'].map(n=>`<button class="chip" aria-pressed="false">${n}</button>`).join('')}</div></div>
+<div class="fgroup"><h3>Time we have</h3><div class="chips">${['15 min','30','60','90','2 h+'].map(n=>`<button class="chip" aria-pressed="false">${n}</button>`).join('')}</div></div>
+<div class="fgroup"><h3>Kind of game</h3><div class="chips">${['family','co-op','party','racing','drafting'].map(t=>`<button class="chip" aria-pressed="false">${t}</button>`).join('')}</div></div>`;
+const html=`<div class="layout"><aside class="filters" aria-label="Filters">${sidebar}</aside><main>
+ <div class="maintop"><div><h1 class="title">Library</h1><p class="sum"><b>${total} games</b> to play. <span class="o">3 are out on loan</span>.</p></div>
+ <label class="searchbox"><i class="ic">${I.search}</i><input type="search" placeholder="Search for a game" aria-label="Search titles"></label></div>
+ <div class="mfilters"><button class="chip fb"><i class="ic">${I.filter}</i>Filters</button><button class="chip" aria-pressed="true">All</button>${Object.values(typeMap).map(n=>`<button class="chip" aria-pressed="false">${n}</button>`).join('')}</div>
+ <div class="toolrow"><div class="active"><span>Showing 20 of ${total}</span></div><div class="sort">Sort <b>Newest first</b></div></div>
+ <div class="shelf">${list.map(card).join('')}</div></main></div>`;
+boot('Library',html,{headerHTML:headerKid('Library'),tabHTML:tabKid('Library'),cls:''});
+</script></body></html>

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Not found · The Shelf</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>
+.dead{max-width:880px;margin:0 auto;padding:40px var(--pad) 80px;display:grid;grid-template-columns:1fr;justify-items:start;gap:0}
+.slot{width:100%;max-width:420px;margin:10px 0 34px}
+.slot svg{width:100%;height:auto;display:block}
+.dead h1{font:700 clamp(38px,5vw,60px)/1 var(--serif);letter-spacing:-.03em;max-width:15ch}
+.dead p{margin-top:16px;font-size:19px;color:var(--muted);max-width:520px}
+.dead .acts{display:flex;gap:10px;margin-top:28px;flex-wrap:wrap}
+.dead .code{font:600 14px var(--sans);color:var(--muted);margin-top:36px}
+.gbar2{display:flex;align-items:center;justify-content:space-between;height:60px;padding:0 var(--pad);max-width:880px;margin:0 auto}
+.search2{display:flex;align-items:center;gap:10px;height:52px;border-radius:999px;background:var(--surface);padding:0 18px;max-width:440px;width:100%;margin-top:22px;color:var(--muted)}
+.search2 .ic{width:20px;height:20px}
+@media (max-width:860px){.dead{padding-top:16px}.dead p{font-size:17px}.dead .acts .btn{flex:1;justify-content:center}.tabbar a{min-width:84px}}
+</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script><script src="kidui.js"></script>
+<script>
+const k=Q.get('k')||'404';
+// one shelf with a single empty slot among real covers
+const slotArt=(tilt)=>`<svg viewBox="0 0 420 190" aria-hidden="true"><rect x="0" y="172" width="420" height="14" fill="var(--plank)"/>
+ ${[['azul',0],['carc',92],['_',184],['sushi',276],['kingdomino',344]].map(([id,x])=>id==='_'?`<rect x="${x+4}" y="40" width="76" height="132" rx="3" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-dasharray="7 6" opacity=".7"/>${tilt?`<g transform="rotate(14 ${x+46} 165)"><rect x="${x+8}" y="34" width="70" height="136" rx="3" fill="var(--loan)" opacity=".92"/><path d="M${x+30} 90l32 32M${x+62} 90l-32 32" stroke="var(--bg)" stroke-width="5" stroke-linecap="round"/></g>`:'<text x="'+(x+42)+'" y="118" text-anchor="middle" font-family="Fraunces,serif" font-weight="700" font-size="56" fill="var(--muted)" opacity=".5">?</text>'}`:`<rect x="${x+4}" y="${52+(x%3)*6}" width="${id==='kingdomino'?66:76}" height="${120-(x%3)*6}" rx="3" fill="${gm(id).bg}"/><circle cx="${x+42}" cy="${100+(x%3)*3}" r="16" fill="${gm(id).fg}" opacity=".85"/>`).join('')}</svg>`;
+const V={
+ hidden:{app:1,kid:1,h:'That game isn’t on your shelf.',p:'We can’t find it. It may have been moved or removed, or the link is old. Try searching the library instead.',a:[['Back to the library','kid.html',1]],search:1,code:'Error 404'},
+ '404':{app:1,h:'Nothing on this shelf.',p:'There’s no game with that address. It may have been deleted, or the link has a typo.',a:[['Back to the library','catalog.html',1],['Add a game','edit.html']],search:1,code:'Error 404'},
+ expired:{app:0,h:'This link has run out.',p:'Share links stop working after a while. Ask Sam for a fresh one, they can make it in a few seconds.',a:[],code:'The Hartwell family library · guest link'},
+ revoked:{app:0,h:'This link was switched off.',p:'Whoever shared it has turned it off, so it can’t be opened any more. Ask them for a new one if you still need to look.',a:[],code:'The Hartwell family library · guest link',tilt:1},
+ unknown:{app:0,h:'We don’t recognise this link.',p:'It may have been copied with a letter missing. Check the whole address, or ask for it to be sent again.',a:[],code:'The Hartwell family library · guest link'}
+}[k];
+const brand=`<a class="brand" href="#"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="5" width="6" height="22" rx="1" fill="var(--accent)"/><rect x="11" y="9" width="6" height="18" rx="1" fill="var(--oak)"/><rect x="19" y="4" width="6" height="23" rx="1" fill="var(--loan)" transform="rotate(8 22 27)"/><rect x="2" y="27" width="28" height="3" fill="var(--ink)"/></svg><span>The Shelf</span></a>`;
+const inner=`<div class="dead"><div class="slot">${slotArt(V.tilt)}</div><h1>${V.h}</h1><p>${V.p}</p>${V.search?`<div class="search2"><i class="ic">${I.search}</i>Search for a game</div>`:''}<div class="acts">${V.a.map(([l,h,p])=>`<a class="btn ${p?'primary':''} lg" href="${h}">${l}</a>`).join('')}</div><p class="code">${V.code}</p></div>`;
+if(V.app){
+  document.getElementById('app').innerHTML=(V.kid?headerKid('Library'):header('Library'))+inner+(V.kid?tabKid('Library'):tabbar('Library'));
+}else{
+  document.getElementById('app').innerHTML=`<header class="gbar2">${brand}</header>`+inner;
+}
+if(Q.get('theme'))document.documentElement.dataset.theme=Q.get('theme');
+</script></body></html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Library · The Shelf</title>
+<link rel="stylesheet" href="style.css">
+<style>.cv{isolation:isolate}</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="data.js"></script>
+<script>
+const qs=new URLSearchParams(location.search);
+const q=(qs.get('q')||'').toLowerCase();
+const typeSel=qs.get('type')||'';
+const typeMap={Board:'Board games',Card:'Card games','RPG book':'RPG books','Video game':'Video games',Puzzle:'Puzzles'};
+const typeCol={Board:'#c7612b','Card':'#6a4c93','RPG book':'#7a1f2b','Video game':'#d7263d',Puzzle:'#5aa0c8'};
+const counts={Board:168,Card:41,'RPG book':36,'Video game':29,Puzzle:13};
+let list=GAMES.filter(g=>(!q||(g.t+' '+(g.sub||'')+' '+g.tags.join(' ')).toLowerCase().includes(q))&&(!typeSel||g.ty===typeSel));
+const filtered=!!(q||typeSel);
+
+function card(g){
+  const out=g.loan&&!g.partial;
+  const note=g.loan?(g.partial?`<div class="out"><em>1 of 2 copies out</em>${g.loan.who} · ${g.loan.due}</div>`:`<div class="out"><em>Out · ${g.loan.who}</em>Due ${g.loan.due}</div>`):'';
+  return `<a class="game" href="detail.html"><div class="cv">${cover(g).replace('class="cover"',`class="cover${out?' isout':''}${g.loan?' hasout':''}"`)}${note}</div><h2>${g.t}</h2><p>${meta(g)}</p></a>`;
+}
+const typeRows=Object.keys(typeMap).map(k=>`<a href="?type=${encodeURIComponent(k)}" ${typeSel===k?'aria-current="true"':''}><i style="background:${typeCol[k]}"></i>${typeMap[k]}<span>${counts[k]}</span></a>`).join('');
+const sidebar=`
+<div class="fgroup"><h3>Availability</h3><div class="seg"><button aria-pressed="true">All</button><button>Here</button><button>Out <b>4</b></button></div></div>
+<div class="fgroup"><h3>Type</h3><div class="tlist"><a href="catalog.html" ${!typeSel?'aria-current="true"':''}><i style="background:var(--ink)"></i>Everything<span>287</span></a>${typeRows}</div></div>
+<div class="fgroup"><h3>Players tonight</h3><div class="chips">${['1','2','3','4','5','6+'].map((n,i)=>`<button class="chip" aria-pressed="false">${n}</button>`).join('')}</div></div>
+<div class="fgroup"><h3>Time we have</h3><div class="chips">${['15 min','30','60','90','2 h+'].map((n,i)=>`<button class="chip" aria-pressed="false">${n}</button>`).join('')}</div></div>
+<div class="fgroup"><h3>Where is it</h3><div class="loc"><a href="#">Basement<span>142</span></a><a class="l2" href="#">Shelf 1–4</a><a class="l2" href="#">Games closet</a><a href="#">Living room<span>96</span></a><a class="l2" href="#">Cabinet</a><a class="l2" href="#">Window seat</a><a href="#">Kids’ room<span>31</span></a><a href="#">Garage<span>18</span></a></div></div>
+<div class="fgroup"><h3>Whose</h3><div class="chips"><button class="chip" aria-pressed="false">Sam</button><button class="chip" aria-pressed="false">Mia</button><button class="chip" aria-pressed="false">Dad</button><button class="chip" aria-pressed="false">Shared</button></div></div>
+<div class="fgroup"><h3>Tags</h3><div class="chips">${['family','strategy','co-op','party','engine-building','tile-laying','drafting'].map(t=>`<button class="chip" aria-pressed="false">${t}</button>`).join('')}</div></div>`;
+
+const mchips=[['All',!typeSel],...Object.keys(typeMap).map(k=>[typeMap[k],typeSel===k])];
+const summary=filtered
+ ? `<b>${list.length}</b> ${list.length==1?'game matches':'games match'}${q?` “${qs.get('q')}”`:''}. <span class="o">${list.filter(g=>g.loan).length} out</span>`
+ : `<b>287 games</b> on <b>9 shelves</b>. <span class="o">4 are out on loan</span>: 1 overdue, 2 due this week.`;
+
+document.getElementById('app').innerHTML=`
+${header('Library')}
+<div class="layout">
+  <aside class="filters" aria-label="Filters">${sidebar}</aside>
+  <main>
+    <div class="maintop">
+      <div><h1 class="title">Library</h1><p class="sum">${summary}</p></div>
+      <label class="searchbox"><i class="ic">${I.search}</i><input type="search" placeholder="Do we own…?" value="${qs.get('q')||''}" aria-label="Search titles"><kbd>/</kbd></label>
+    </div>
+    <div class="mfilters"><button class="chip fb" onclick="document.body.classList.toggle('sheet-on')"><i class="ic">${I.filter}</i>Filters</button>${mchips.map(([n,on])=>`<button class="chip" aria-pressed="${on}">${n}</button>`).join('')}</div>
+    <div class="toolrow"><div class="active">${typeSel?`<span class="chip">${typeMap[typeSel]}<i class="ic">${I.close}</i></span>`:''}${q?`<span class="chip">“${qs.get('q')}”<i class="ic">${I.close}</i></span>`:''}${filtered?'<span>Clear all</span>':'<span>Showing 24 of 287</span>'}</div><div class="sort">Sort <b>Newest first</b></div></div>
+    <div class="shelf">${list.map(card).join('')}</div>
+    ${filtered?'':`<div class="more"><span>24 of 287 shown</span><button class="btn">Load more</button></div>`}
+  </main>
+</div>
+<a class="btn primary fab" href="#"><i class="ic">${I.plus}</i>Add</a>
+${tabbar('Library')}
+<div class="scrim" onclick="document.body.classList.remove('sheet-on')"></div>
+<div class="sheet" role="dialog" aria-label="Filters"><div class="grab"></div><h2>Filters <button class="btn ghost" onclick="document.body.classList.remove('sheet-on')" style="padding:0 8px"><i class="ic">${I.close}</i></button></h2>${sidebar.replace(/<div class="fgroup"><h3>(Where is it|Whose|Tags)[\s\S]*?<\/div><\/div>/g,'')}<div class="done"><button class="btn">Reset</button><button class="btn primary">Show ${list.length<24?list.length:287} games</button></div></div>`;
+if(qs.get('sheet'))document.body.classList.add('sheet-on');
+if(qs.get('theme'))document.documentElement.dataset.theme=qs.get('theme');
+</script>
+</body>
+</html>

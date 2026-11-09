@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Add a copy · The Shelf</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>
+.ac{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:48px;align-items:start}
+.gh{display:grid;grid-template-columns:96px 1fr;gap:22px;align-items:end;margin-bottom:30px}
+.gh .cover{width:96px;border-radius:3px}.gh .cover .ct{display:none}
+.gh h1{font:700 clamp(34px,4vw,48px)/1 var(--serif);letter-spacing:-.03em}
+.gh p{color:var(--muted);margin-top:8px;font-size:17px}
+.tree{background:var(--bg);border-radius:16px;padding:8px;max-height:310px;overflow:auto;margin-top:6px}
+.tn{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:11px;font-weight:500;cursor:pointer}
+.tn:hover{background:var(--sunk)}
+.tn.l1{padding-left:12px;font-weight:700}.tn.l2{padding-left:42px}
+.tn .ic{width:16px;height:16px;color:var(--muted)}
+.tn.sel{background:var(--tint);color:var(--ink);font-weight:700}.tn.sel .ic{color:var(--accent)}
+.tn .ct2{margin-left:auto;color:var(--muted);font-size:14px;font-weight:500}
+.path{display:inline-flex;gap:8px;align-items:center;height:34px;padding:0 14px;border-radius:999px;background:var(--tint);font-weight:700;font-size:14px;margin-bottom:8px}
+.cur{display:flex;align-items:center;height:50px;border-radius:14px;background:var(--bg);padding:0 16px;gap:6px;font-size:17px;font-weight:500}
+.cur span{color:var(--muted)}.cur input{border:0;background:none;flex:1;font:inherit;color:var(--ink);outline:0;min-width:0;height:100%}
+.people-c{display:flex;gap:8px;flex-wrap:wrap}
+.people-c button{height:44px;padding:0 16px 0 6px;border-radius:999px;border:0;background:var(--bg);display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;cursor:pointer}
+.people-c button[aria-pressed=true]{background:var(--tint);outline:2px solid var(--accent);outline-offset:-2px}
+.people-c .av{width:32px;height:32px;font-size:14px}
+.copyc{display:grid;grid-template-columns:1fr auto;gap:6px;padding:16px;border-radius:16px;background:var(--bg);margin-top:12px}
+.copyc b{font:700 19px var(--serif)}.copyc dl{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:15px}.copyc dt{color:var(--muted)}.copyc dd{font-weight:600}
+@media (max-width:980px){.ac{display:block}.ac>aside{margin-top:20px}.gh{grid-template-columns:72px 1fr}.gh .cover{width:72px}.tabbar{display:none}}
+</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script>
+<script>
+const g=gm(Q.get('game')||'catan');const empty=Q.get('empty');const vid=g.ty==='Video game';
+const tree=[[1,'Basement',142],[2,'Shelf 1',31],[2,'Shelf 2',28],[2,'Shelf 3',34,1],[2,'Shelf 4',26],[2,'Games closet',23],[1,'Living room',96],[2,'Cabinet',60],[2,'Window seat',36],[1,'Kids’ room',31],[1,'Garage',18]];
+const form=`<section class="card"><h2>Add a copy of ${g.t}</h2><p class="sub">A copy is the actual box on the shelf, or the disc, or the download.</p>
+ <div class="f"><span class="l">Whose is it</span><div class="people-c">${['Sam','Mia','Dad','Shared'].map((n,i)=>`<button aria-pressed="${i===0}">${PEOPLE[n]!==undefined&&n!=='Shared'?person(n):`<span class="av pp" style="--h:200">F</span>`}${n}</button>`).join('')}</div></div>
+ <div class="f"><span class="l">Where does it live</span><span class="path"><i class="ic sm">${I.pin}</i>Basement › Shelf 3</span><div class="tree" role="listbox">${tree.map(([l,n,c,s])=>`<div class="tn l${l} ${s?'sel':''}"><i class="ic">${s?I.check:(l===1?I.tree:'<svg viewBox="0 0 24 24"></svg>')}</i>${n}<span class="ct2">${c}</span></div>`).join('')}</div><span class="msg">Don’t see the shelf? Add it under Settings, Locations.</span></div>
+ <div class="f"><span class="l">Condition</span><div class="seg2">${['New','Very good','Good','Worn'].map((c,i)=>`<button aria-pressed="${i===1}">${c}</button>`).join('')}</div></div>
+ <div class="grid2">${field('Price paid',`<div class="cur"><span>$</span><input value="34.00" inputmode="decimal"></div>`,{opt:1})}${field('Acquired',`<input type="date" value="2019-12-25">`,{opt:1})}</div>
+ ${vid?field('Platform',`<select><option>Nintendo Switch</option></select>`):''}
+ <div class="row2" style="margin-top:26px"><a class="btn primary lg" href="#"><i class="ic">${I.check}</i>Add this copy</a><a class="btn ghost lg" href="detail.html">Cancel</a></div></section>`;
+const side=empty?`<section class="card"><div class="empty">${shelfArt(3)}<h3>No copies yet</h3><p>${g.t} is in the catalog, but nothing on the shelf is linked to it. Add the first copy so the family can find it, and lend it out.</p></div></section>`
+ :`<section class="card"><h2>Copies already added</h2><div class="copyc"><b>Sam’s copy</b><span class="pill g">On the shelf</span><dl><dt>Where</dt><dd>Basement › Shelf 3</dd><dt>Condition</dt><dd>Very good</dd></dl></div></section>`;
+boot('Library',`<a class="backlink" href="detail.html"><i class="ic">${I.back}</i>${g.t}</a><div class="gh"><div>${cover(g)}</div><div><h1>${g.t}</h1><p>${empty?'0 copies':'1 copy'} · ${g.ty==='Board'?'Board game':g.ty}</p></div></div><div class="ac"><main>${form}</main><aside>${side}</aside></div>`);
+</script></body></html>

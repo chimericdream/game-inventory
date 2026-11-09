@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>More · The Shelf</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>
+.me2{display:grid;grid-template-columns:56px 1fr;gap:16px;align-items:center;background:var(--surface);border-radius:20px;padding:16px}
+.me2 .av{width:56px;height:56px;font-size:24px}.me2 b{font:700 22px var(--serif);display:block}.me2 span{color:var(--muted);font-size:15px}
+.lst{margin-top:18px;background:var(--surface);border-radius:20px;padding:6px 16px}
+.li{display:grid;grid-template-columns:28px 1fr auto;gap:14px;align-items:center;min-height:62px;border-top:2px solid var(--bg);font-size:17px;font-weight:600}
+.li:first-child{border-top:0}
+.li .ic{width:24px;height:24px;color:var(--accent)}
+.li small{display:block;font:500 14px var(--sans);color:var(--muted);margin-top:1px}
+.li .ic.r{width:18px;height:18px;color:var(--muted)}
+.li.out{color:var(--loan)}.li.out .ic{color:var(--loan)}
+.seg3{margin-top:18px}
+@media (min-width:861px){.pg{max-width:560px;margin:0 auto}}
+</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script>
+<script>
+const items=[['upload','Import','Bring in a CSV list'],['cog','Settings','People, places and guest links'],['link','Guest links','2 active'],['image','Appearance','Light, dark or follow the phone']];
+boot('More',`<div class="pghead"><div><h1 class="title">More</h1></div></div>
+<div class="me2"><span class="av pp" style="--h:160">S</span><span><b>Sam</b><span>Admin · sam@hartwell.example</span></span></div>
+<div class="lst">${items.map(([ic,t,s])=>`<a class="li" href="#"><i class="ic">${I[ic]}</i><span>${t}<small>${s}</small></span><i class="ic r">${I.right}</i></a>`).join('')}</div>
+<div class="lst"><a class="li out" href="#"><i class="ic">${I.back}</i><span>Sign out</span><span></span></a></div>`);
+</script></body></html>
