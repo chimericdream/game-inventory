@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
@@ -345,4 +345,15 @@ export async function deleteGame(ctx: DataContext, id: string): Promise<boolean>
     });
     return true;
   });
+}
+
+/** Current titles for a set of game ids (ids that no longer exist, or that this viewer cannot see, are left out). */
+export async function gameTitles(ctx: DataContext, ids: string[]): Promise<Map<string, string>> {
+  const valid = [...new Set(ids)].filter(isUuid);
+  if (valid.length === 0) return new Map();
+  const rows = await ctx.db
+    .select({ id: games.id, title: games.title })
+    .from(games)
+    .where(and(inArray(games.id, valid), gameVisibilityCondition(ctx)));
+  return new Map(rows.map((r) => [r.id, r.title]));
 }

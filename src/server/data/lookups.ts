@@ -1,10 +1,11 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { copies, locations, tags, users } from '../db/schema';
+import { copies, games, locations, tags, users } from '../db/schema';
 import { createdFields, deletedFields, recordAudit, stampCreate } from './audit';
 import type { DataContext } from './context';
 import { isUuid } from './ids';
+import { gameVisibilityCondition } from './visibility';
 
 export async function listLocations(ctx: DataContext) {
   return ctx.db
@@ -12,6 +13,55 @@ export async function listLocations(ctx: DataContext) {
     .from(locations)
     .where(eq(locations.householdId, ctx.householdId))
     .orderBy(asc(locations.name));
+}
+
+export interface LocationWithCounts {
+  id: string;
+  name: string;
+  parentId: string | null;
+  /** Copies kept directly here. */
+  copies: number;
+  /** Copies here and anywhere underneath. */
+  total: number;
+}
+
+/**
+ * Every location with how many copies it holds, in tree order. Counts only include copies of
+ * games this viewer may see, so a restricted profile never learns that hidden games exist.
+ */
+export async function listLocationsWithCounts(ctx: DataContext): Promise<LocationWithCounts[]> {
+  const [locs, counts] = await Promise.all([
+    listLocations(ctx),
+    ctx.db
+      .select({ locationId: copies.locationId, n: sql<number>`count(*)::int` })
+      .from(copies)
+      .innerJoin(games, eq(games.id, copies.gameId))
+      .where(and(eq(copies.householdId, ctx.householdId), gameVisibilityCondition(ctx)))
+      .groupBy(copies.locationId),
+  ]);
+  const direct = new Map(counts.map((c) => [c.locationId, c.n]));
+  const children = new Map<string | null, typeof locs>();
+  for (const l of locs) children.set(l.parentId, [...(children.get(l.parentId) ?? []), l]);
+  const out: LocationWithCounts[] = [];
+  const walk = (parent: string | null): number => {
+    let sum = 0;
+    for (const l of children.get(parent) ?? []) {
+      const index = out.length;
+      out.push({
+        id: l.id,
+        name: l.name,
+        parentId: l.parentId,
+        copies: direct.get(l.id) ?? 0,
+        total: 0,
+      });
+      const below = walk(l.id);
+      out[index]!.total = (direct.get(l.id) ?? 0) + below;
+      sum += out[index]!.total;
+    }
+    return sum;
+  };
+  walk(null);
+  return out;
 }
 
 export async function createLocation(ctx: DataContext, name: string, parentId?: string | null) {

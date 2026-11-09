@@ -60,7 +60,7 @@ test('GST-01 an admin creates a link, sees the URL once, and the link works for 
   db,
 }) => {
   await seed(db);
-  await page.goto('/settings');
+  await page.goto('/settings?tab=links');
   const form = formWith(page, 'Create link');
   await form.getByLabel('Name').fill('Game store trip');
   await form.getByRole('button', { name: 'Create link' }).click();
@@ -222,7 +222,7 @@ test('GST-08 an expired link stops working and is labelled as expired @security'
   expect((await anonPage.request.get(`/g/${expired}/cover/${shown}`)).status()).toBe(404);
   expect((await anonPage.goto(`/g/${live}`))?.status()).toBe(200);
 
-  await page.goto('/settings');
+  await page.goto('/settings?tab=links');
   const oldRow = page.locator('.mantine-Paper-root', { hasText: 'Old link' });
   await expect(oldRow.locator('.mantine-Badge-root')).toHaveText('Expired');
   await expect(oldRow.getByRole('button', { name: 'Revoke' })).toHaveCount(0);
@@ -236,7 +236,7 @@ test('GST-09 revoking a link ends access immediately @security', async ({ page, 
   const token = await db.seedShareLink({ label: 'To revoke' });
   expect((await anonPage.goto(`/g/${token}`))?.status()).toBe(200);
 
-  await page.goto('/settings');
+  await page.goto('/settings?tab=links');
   const row = page.locator('.mantine-Paper-root', { hasText: 'To revoke' });
   await row.getByRole('button', { name: 'Revoke' }).click();
   await expect(row.locator('.mantine-Badge-root')).toHaveText('Revoked');
@@ -272,7 +272,7 @@ test('GST-11 a guest link grants no access to the household app @security', asyn
 });
 
 test('GST-12 only a hash of the token is stored @security', async ({ page, db }) => {
-  await page.goto('/settings');
+  await page.goto('/settings?tab=links');
   const form = formWith(page, 'Create link');
   await form.getByLabel('Name').fill('Hash check');
   await form.getByRole('button', { name: 'Create link' }).click();
@@ -306,7 +306,7 @@ test('GST-14 only admins can create or revoke links, even by replaying the reque
   issues,
   db,
 }) => {
-  await page.goto('/settings');
+  await page.goto('/settings?tab=links');
   const form = formWith(page, 'Create link');
   await form.getByLabel('Name').fill('Replay me');
   const create = await captureAction(page, issues, () =>
@@ -321,7 +321,7 @@ test('GST-14 only admins can create or revoke links, even by replaying the reque
   expect(await db.count('share_links')).toBe(1);
 
   // Revoke
-  await page.goto('/settings');
+  await page.goto('/settings?tab=links');
   const revoke = await captureAction(page, issues, () =>
     page.getByRole('button', { name: 'Revoke' }).click(),
   );

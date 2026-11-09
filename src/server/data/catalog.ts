@@ -173,13 +173,18 @@ async function hydrate(
         ),
   ]);
 
+  // Both sides are date-only strings, so the difference is a whole number of days in any time zone.
+  const todayIso = new Date().toISOString().slice(0, 10);
   return visible.map(({ game, board }) => {
     const out = loanRows.filter((l) => l.gameId === game.id);
     const loan: CatalogLoan | null = out[0]
       ? {
           borrower: out[0].borrower,
           dueOn: out[0].dueOn,
-          daysOut: Math.max(0, Math.round((Date.now() - Date.parse(out[0].lentOn)) / 86_400_000)),
+          daysOut: Math.max(
+            0,
+            Math.round((Date.parse(todayIso) - Date.parse(out[0].lentOn)) / 86_400_000),
+          ),
           copiesOut: out.length,
         }
       : null;

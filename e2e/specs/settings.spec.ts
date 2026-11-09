@@ -56,7 +56,7 @@ test('SET-03 a short password is rejected', async ({ page, db }) => {
 });
 
 test('SET-04 locations can be nested and then used on copies', async ({ page, db }) => {
-  await page.goto('/settings');
+  await page.goto('/settings?tab=locations');
   await expect(page.getByText('None yet.')).toBeVisible();
 
   const add = formWith(page, 'Add location');
@@ -67,7 +67,7 @@ test('SET-04 locations can be nested and then used on copies', async ({ page, db
   await add.getByLabel('New location').fill('Shelf 2');
   await choose(page, add, 'Inside (optional)', 'Garage');
   await add.getByRole('button', { name: 'Add location' }).click();
-  await expect(page.getByText('Garage › Shelf 2')).toBeVisible();
+  await expect(page.locator('[data-location]', { hasText: 'Garage › Shelf 2' })).toBeVisible();
 
   const id = await db.seedGame({ title: 'Stored' });
   await page.goto(`/games/${id}`);
@@ -81,7 +81,9 @@ test('SET-05 a member manages locations but not people or guest links', async ({
   await expect(memberPage.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await expect(memberPage.getByText(ADMIN.name)).toBeVisible();
   await expect(memberPage.getByRole('button', { name: 'Add person' })).toHaveCount(0);
-  await expect(memberPage.getByRole('heading', { name: 'Guest links' })).toHaveCount(0);
+  await expect(memberPage.getByRole('link', { name: 'Guest links' })).toHaveCount(0);
+  await expect(memberPage.getByRole('link', { name: 'Activity' })).toHaveCount(0);
+  await memberPage.goto('/settings?tab=locations');
   await expect(memberPage.getByRole('button', { name: 'Add location' })).toBeVisible();
 });
 
@@ -90,8 +92,10 @@ test('SET-06 a restricted profile sees settings read-only', async ({ kidPage }) 
   await expect(kidPage.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await expect(kidPage.getByRole('main').getByText(KID.name, { exact: true })).toBeVisible();
   await expect(kidPage.getByRole('button', { name: 'Add person' })).toHaveCount(0);
+  await expect(kidPage.getByRole('link', { name: 'Guest links' })).toHaveCount(0);
+  await kidPage.goto('/settings?tab=locations');
   await expect(kidPage.getByRole('button', { name: 'Add location' })).toHaveCount(0);
-  await expect(kidPage.getByRole('heading', { name: 'Guest links' })).toHaveCount(0);
+  await expect(kidPage.getByRole('button', { name: /^Remove/ })).toHaveCount(0);
 });
 
 test('SET-07 the people list shows each profile type', async ({ page }) => {

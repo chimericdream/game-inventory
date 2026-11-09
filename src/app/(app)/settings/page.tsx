@@ -1,86 +1,270 @@
-import { Badge, Group, Stack, Text, Title } from '@mantine/core';
+import { Badge } from '@mantine/core';
+import Link from 'next/link';
 
+import { longDate } from '@/lib/dates';
 import { requireContext } from '@/server/auth/current';
+import { recentActivity } from '@/server/data/audit';
+import { gameTitles } from '@/server/data/games';
 import { listShareLinks } from '@/server/data/guest';
-import { listLocations, listMembers } from '@/server/data/lookups';
+import { listLocationsWithCounts, listMembers } from '@/server/data/lookups';
+import { listPlayers } from '@/server/data/players';
 
-import { Section } from './Section';
-import { AddLocationForm, AddMemberForm } from './SettingsForms';
+import { describeActivity } from './activity';
+import classes from './Settings.module.css';
+import { AddLocationForm, AddMemberForm, DeleteLocationButton, PlayerAdmin } from './SettingsForms';
 import { ShareLinks } from './ShareLinks';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SettingsPage() {
+type Tab = 'people' | 'locations' | 'links' | 'activity';
+type SearchParams = Record<string, string | string[] | undefined>;
+
+const TAB_LABELS: Record<Tab, string> = {
+  people: 'People',
+  locations: 'Locations',
+  links: 'Guest links',
+  activity: 'Activity',
+};
+
+const choice = (p: { id: string; displayName: string }) => ({
+  value: p.id,
+  label: p.displayName,
+});
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
   const { ctx } = await requireContext();
-  const [members, locations] = await Promise.all([listMembers(ctx), listLocations(ctx)]);
   const isAdmin = ctx.viewer.role === 'admin';
   const canEdit = ctx.viewer.role !== 'restricted';
-  const links = isAdmin ? await listShareLinks(ctx) : [];
-  const locationName = new Map(locations.map((l) => [l.id, l.name]));
+  const tabs: Tab[] = isAdmin
+    ? ['people', 'locations', 'links', 'activity']
+    : ['people', 'locations'];
+  const params = await searchParams;
+  const raw = params.tab;
+  const asked = Array.isArray(raw) ? raw[0] : raw;
+  const tab: Tab = tabs.includes(asked as Tab) ? (asked as Tab) : 'people';
 
   return (
-    <Stack gap="xl">
-      <Title order={1}>Settings</Title>
+    <>
+      <header className={classes.head}>
+        <h1 className={classes.title}>Settings</h1>
+      </header>
+      <nav className={classes.tabs} aria-label="Settings sections">
+        {tabs.map((t) => (
+          <Link
+            key={t}
+            href={t === 'people' ? '/settings' : `/settings?tab=${t}`}
+            className={classes.tab}
+            aria-current={t === tab ? 'page' : undefined}
+          >
+            {TAB_LABELS[t]}
+          </Link>
+        ))}
+      </nav>
 
-      <Section
-        title="People"
-        description="Everyone who can sign in. Restricted profiles are read-only and never see games marked hidden for them."
-      >
-        <Stack gap={6}>
+      {tab === 'people' && <Notice params={params} />}
+      {tab === 'people' && <PeopleTab isAdmin={isAdmin} canEdit={canEdit} />}
+      {tab === 'locations' && <LocationsTab canEdit={canEdit} />}
+      {tab === 'links' && isAdmin && <LinksTab />}
+      {tab === 'activity' && isAdmin && <ActivityTab />}
+    </>
+  );
+}
+
+/** Confirmation after something that removes the person from the list. Fixed sentences only. */
+function Notice({ params }: { params: SearchParams }) {
+  const done = Array.isArray(params.done) ? params.done[0] : params.done;
+  const n = Math.max(0, Number(Array.isArray(params.n) ? params.n[0] : params.n) || 0);
+  const text =
+    done === 'linked'
+      ? `${plural(n, 'play')} now ${n === 1 ? 'counts' : 'count'} for that account.`
+      : done === 'merged'
+        ? `Merged. ${plural(n, 'play')} moved.`
+        : null;
+  if (!text) return null;
+  return (
+    <p className={classes.readOnly} role="status">
+      {text}
+    </p>
+  );
+}
+
+async function PeopleTab({ isAdmin, canEdit }: { isAdmin: boolean; canEdit: boolean }) {
+  const { ctx } = await requireContext();
+  const members = await listMembers(ctx);
+  const players = canEdit ? await listPlayers(ctx) : [];
+  const guests = players.filter((p) => p.userId === null);
+
+  return (
+    <>
+      {!canEdit && (
+        <p className={classes.readOnly}>
+          You can look around here, but only the grown-ups can change things.
+        </p>
+      )}
+      <section className={classes.section} aria-labelledby="people">
+        <h2 id="people">People</h2>
+        <p className={classes.lede}>
+          Everyone who can sign in. Restricted profiles are read-only and never see games marked
+          hidden for them.
+        </p>
+        <ul className={classes.list}>
           {members.map((m) => (
-            <Group key={m.id} gap="xs">
-              <Text>{m.name}</Text>
+            <li key={m.id} className={classes.person}>
+              <span className={classes.avatar} aria-hidden>
+                {m.name.slice(0, 1).toUpperCase()}
+              </span>
+              <span className={classes.personName}>{m.name}</span>
               <Badge variant="light" color={m.role === 'restricted' ? 'berry' : 'forest'}>
                 {m.role}
               </Badge>
-            </Group>
+            </li>
           ))}
-        </Stack>
-        {isAdmin && <AddMemberForm />}
-      </Section>
-
-      <Section
-        title="Locations"
-        description="Where copies are kept. Put one inside another to make a path such as Hall closet › Shelf 2."
-      >
-        {locations.length === 0 && <Text c="dimmed">None yet.</Text>}
-        <Stack gap={6}>
-          {locations.map((l) => (
-            <Text key={l.id}>
-              {l.parentId ? `${locationName.get(l.parentId)} › ${l.name}` : l.name}
-            </Text>
-          ))}
-        </Stack>
-        {canEdit && (
-          <AddLocationForm parents={locations.map((l) => ({ value: l.id, label: l.name }))} />
-        )}
-      </Section>
+        </ul>
+        {isAdmin && <AddMemberForm earlierPlayers={guests.map(choice)} />}
+      </section>
 
       {isAdmin && (
-        <Section
-          title="Guest links"
-          description="Read-only links for visitors. Guests only see games marked “Allow on guest links”."
-          panel={false}
-        >
-          <ShareLinks
-            links={links.map((l) => ({
-              id: l.id,
-              label: l.label,
-              expiresAt: l.expiresAt?.toISOString() ?? null,
-              revokedAt: l.revokedAt?.toISOString() ?? null,
-              status: l.revokedAt
-                ? ('revoked' as const)
-                : l.expiresAt && l.expiresAt < new Date()
-                  ? ('expired' as const)
-                  : ('active' as const),
-              hideTypes: l.hideTypes,
-              hideTags: l.hideTags,
-              showNotes: l.showNotes,
-              showLocations: l.showLocations,
-            }))}
-          />
-        </Section>
+        <section className={classes.section} aria-labelledby="guests">
+          <h2 id="guests">People who play but have no account</h2>
+          <p className={classes.lede}>
+            Friends and relatives added while logging a play. If one of them gets an account later,
+            link them here and their plays will count for it. If two names are the same person,
+            merge them.
+          </p>
+          {guests.length === 0 ? (
+            <p className={classes.empty}>Nobody yet.</p>
+          ) : (
+            <div className={classes.list}>
+              {guests.map((g) => (
+                <PlayerAdmin
+                  key={g.id}
+                  playerId={g.id}
+                  name={g.displayName}
+                  plays={g.plays}
+                  users={members.map((m) => ({ value: m.id, label: m.name }))}
+                  others={players.filter((p) => p.id !== g.id).map(choice)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       )}
-    </Stack>
+    </>
+  );
+}
+
+async function LocationsTab({ canEdit }: { canEdit: boolean }) {
+  const { ctx } = await requireContext();
+  const locations = await listLocationsWithCounts(ctx);
+  const byId = new Map(locations.map((l) => [l.id, l]));
+  const depth = (id: string): number => {
+    let n = 0;
+    for (let l = byId.get(id); l?.parentId && n < 10; n++) l = byId.get(l.parentId);
+    return n;
+  };
+  const path = (id: string): string => {
+    const names: string[] = [];
+    for (let l = byId.get(id), n = 0; l && n < 10; n++) {
+      names.unshift(l.name);
+      l = l.parentId ? byId.get(l.parentId) : undefined;
+    }
+    return names.join(' › ');
+  };
+
+  return (
+    <section className={classes.section} aria-labelledby="locations">
+      <h2 id="locations">Locations</h2>
+      <p className={classes.lede}>
+        Where copies are kept. Put one inside another to make a path such as Hall closet › Shelf 2.
+      </p>
+      {locations.length === 0 ? (
+        <p className={classes.empty}>None yet.</p>
+      ) : (
+        <ul className={classes.list}>
+          {locations.map((l) => (
+            <li
+              key={l.id}
+              className={classes.place}
+              data-location
+              style={{ marginLeft: depth(l.id) * 24 }}
+            >
+              <span className={classes.placeName}>{l.parentId ? path(l.id) : l.name}</span>
+              <span className={classes.placeCount}>{plural(l.total, 'copy', 'copies')}</span>
+              {canEdit && <DeleteLocationButton id={l.id} name={l.name} />}
+            </li>
+          ))}
+        </ul>
+      )}
+      {canEdit && (
+        <AddLocationForm parents={locations.map((l) => ({ value: l.id, label: path(l.id) }))} />
+      )}
+    </section>
+  );
+}
+
+async function LinksTab() {
+  const { ctx } = await requireContext();
+  const links = await listShareLinks(ctx);
+  return (
+    <section className={classes.section} aria-labelledby="links">
+      <h2 id="links">Guest links</h2>
+      <p className={classes.lede}>
+        Read-only links for visitors. Guests only see games marked “Allow on guest links”.
+      </p>
+      <ShareLinks
+        links={links.map((l) => ({
+          id: l.id,
+          label: l.label,
+          expiresAt: l.expiresAt?.toISOString() ?? null,
+          revokedAt: l.revokedAt?.toISOString() ?? null,
+          status: l.revokedAt
+            ? ('revoked' as const)
+            : l.expiresAt && l.expiresAt < new Date()
+              ? ('expired' as const)
+              : ('active' as const),
+          hideTypes: l.hideTypes,
+          hideTags: l.hideTags,
+          showNotes: l.showNotes,
+          showLocations: l.showLocations,
+        }))}
+      />
+    </section>
+  );
+}
+
+async function ActivityTab() {
+  const { ctx } = await requireContext();
+  const entries = await recentActivity(ctx, { limit: 60 });
+  const ids = entries.flatMap((e) => [
+    e.entityType === 'game' ? e.entityId : '',
+    typeof e.changes.gameId?.[1] === 'string' ? (e.changes.gameId[1] as string) : '',
+    typeof e.changes.gameId?.[0] === 'string' ? (e.changes.gameId[0] as string) : '',
+  ]);
+  const titles = await gameTitles(ctx, ids);
+  return (
+    <section className={classes.section} aria-labelledby="activity">
+      <h2 id="activity">Activity</h2>
+      <p className={classes.lede}>Who changed what, most recent first.</p>
+      {entries.length === 0 ? (
+        <p className={classes.empty}>Nothing has happened yet.</p>
+      ) : (
+        <ul className={classes.activity}>
+          {entries.map((e) => (
+            <li key={e.id} className={classes.event} data-activity>
+              <span className={classes.when}>{longDate(e.at.toISOString().slice(0, 10))}</span>
+              <span>
+                <b>{e.actorName ?? 'Someone who has since left'}</b> {describeActivity(e, titles)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
