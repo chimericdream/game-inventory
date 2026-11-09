@@ -26,12 +26,15 @@ test('CAT-01 add a board game with every field and see it on the detail page @sm
     notes: 'Missing one road piece.',
   });
   await expect(page.getByRole('heading', { name: 'Catan' })).toBeVisible();
-  await expect(page.getByText('3–4 players · 90 min · Complexity 3/5 · Ages 10+')).toBeVisible();
+  const facts = page.getByRole('main').locator('dl');
+  for (const text of ['3–4', 'players', '90', 'play time', 'complexity, medium', '10+']) {
+    await expect(facts).toContainText(text);
+  }
   await expect(page.getByText('Trade and build.')).toBeVisible();
   await expect(page.getByText('Missing one road piece.')).toBeVisible();
   await expect(page.getByText('strategy', { exact: true })).toBeVisible();
   await expect(page.getByText('trading', { exact: true })).toBeVisible();
-  await expect(page.getByText('Board game', { exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Board game');
 });
 
 test('CAT-02 type-specific fields follow the chosen type', async ({ page }) => {
@@ -68,11 +71,12 @@ test('CAT-02b RPG and video game save with their own details', async ({ page }) 
     system: 'D&D 5e',
     bookKind: 'Core rulebook',
   });
-  await expect(page.getByText('D&D 5e · Core rulebook')).toBeVisible();
+  await expect(page.getByRole('main').locator('dl')).toContainText('D&D 5e');
+  await expect(page.getByRole('main').locator('dl')).toContainText('Core rulebook');
 
   await addGameViaUi(page, { title: 'Zelda', type: 'Video game' });
   await expect(page.getByRole('heading', { name: 'Zelda' })).toBeVisible();
-  await expect(page.getByText('Video game', { exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Video game');
 });
 
 test('CAT-03 a blank title is rejected and nothing is created', async ({ page, db }) => {
@@ -125,7 +129,7 @@ test('CAT-04 edit a game: values are prefilled, changes persist, tag casing is d
 
   await expect(page).toHaveURL(new RegExp(`/games/${id}$`));
   await expect(page.getByRole('heading', { name: 'Pandemic Legacy' })).toBeVisible();
-  await expect(page.getByText('2–5 players')).toBeVisible();
+  await expect(page.getByRole('main').locator('dl')).toContainText('2–5');
   await expect(page.getByText('Co-op', { exact: true })).toBeVisible();
   await expect(page.getByText('legacy', { exact: true })).toBeVisible();
   await expect(page.getByText('medical', { exact: true })).toHaveCount(0);
@@ -137,7 +141,7 @@ test('CAT-05 delete a game: it disappears, its URL is gone, its copies go with i
 }) => {
   const id = await db.seedGame({ title: 'Doomed', copies: [{}, {}] });
   await page.goto(`/games/${id}`);
-  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete game', exact: true }).click();
   await expect(page).toHaveURL(/\/games$/);
   await expect(page.getByText('Doomed')).toHaveCount(0);
 

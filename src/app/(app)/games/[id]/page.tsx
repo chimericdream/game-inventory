@@ -1,17 +1,39 @@
-import { Badge, Button, Flex, Group, Image, Stack, Text, Title } from '@mantine/core';
-import { IconPencil } from '@tabler/icons-react';
+import { Button } from '@mantine/core';
+import { IconPencil, IconStar, IconStarFilled } from '@tabler/icons-react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { LinkButton } from '@/components/Links';
+import { CoverTile } from '@/components/shelf/CoverTile';
+import { TYPE_LABELS } from '@/components/shelf/types';
+import { longDate } from '@/lib/dates';
 import { requireContext } from '@/server/auth/current';
+import { lastEdit } from '@/server/data/audit';
 import { getGameDetail } from '@/server/data/games';
 import { listLocations, listMembers } from '@/server/data/lookups';
+import { playerStats, playsForGame } from '@/server/data/plays';
+import { ratingSummary } from '@/server/data/ratings';
 
-import { deleteGameAction } from '../actions';
-import { TYPE_LABELS, playersLabel } from '../labels';
+import { deleteGameAction, rateGameAction } from '../actions';
+import { coverUrl } from '../tiles';
 import { CopiesPanel } from './CopiesPanel';
+import classes from './Detail.module.css';
 
 export const dynamic = 'force-dynamic';
+
+const COMPLEXITY = ['Very light', 'Light', 'Medium', 'Heavy', 'Very heavy'];
+
+const weekday = (iso: string) =>
+  new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'UTC' }).format(
+    new Date(`${iso}T00:00:00Z`),
+  );
+
+interface Fact {
+  value: string;
+  unit?: string;
+  label: string;
+  meter?: number;
+}
 
 export default async function GameDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,89 +41,161 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const detail = await getGameDetail(ctx, id);
   if (!detail) notFound();
   const { game, board, rpg, puzzle } = detail;
-  const canEdit = ctx.viewer.role !== 'restricted';
+  const member = ctx.viewer.role !== 'restricted';
 
-  const [members, locations] = await Promise.all([listMembers(ctx), listLocations(ctx)]);
+  const [members, locations, plays, whoPlays, rating, edited] = await Promise.all([
+    listMembers(ctx),
+    listLocations(ctx),
+    member ? playsForGame(ctx, id) : Promise.resolve([]),
+    member ? playerStats(ctx, { gameId: id }) : Promise.resolve([]),
+    member ? ratingSummary(ctx, id) : Promise.resolve(null),
+    member ? lastEdit(ctx, 'game', id) : Promise.resolve(null),
+  ]);
   const memberName = new Map(members.map((m) => [m.id, m.name]));
 
-  const facts = [
-    playersLabel(board?.minPlayers, board?.maxPlayers),
-    board?.playTimeMinutes ? `${board.playTimeMinutes} min` : null,
-    board?.complexity ? `Complexity ${board.complexity}/5` : null,
-    board?.minAge ? `Ages ${board.minAge}+` : null,
-    rpg?.system,
-    rpg?.bookKind,
-    puzzle?.pieceCount ? `${puzzle.pieceCount.toLocaleString('en-US')} pieces` : null,
+  const facts: Fact[] = [];
+  const players =
+    board?.minPlayers && board?.maxPlayers && board.minPlayers !== board.maxPlayers
+      ? `${board.minPlayers}–${board.maxPlayers}`
+      : String(board?.minPlayers ?? board?.maxPlayers ?? '');
+  if (players) facts.push({ value: players, label: 'players' });
+  if (board?.playTimeMinutes)
+    facts.push({ value: String(board.playTimeMinutes), unit: 'min', label: 'play time' });
+  if (board?.complexity) {
+    facts.push({
+      value: String(board.complexity),
+      unit: '/ 5',
+      label: `complexity, ${COMPLEXITY[board.complexity - 1]?.toLowerCase()}`,
+      meter: board.complexity,
+    });
+  }
+  if (board?.minAge) facts.push({ value: `${board.minAge}+`, label: 'minimum age' });
+  if (puzzle?.pieceCount) {
+    facts.push({ value: puzzle.pieceCount.toLocaleString('en-US'), label: 'pieces' });
+  }
+  if (rpg?.system) facts.push({ value: rpg.system, label: 'system' });
+  if (rpg?.bookKind) facts.push({ value: rpg.bookKind, label: 'kind of book' });
+
+  const copyCount = detail.copies.length;
+  const subtitle = [
+    TYPE_LABELS[game.type],
+    `${copyCount} ${copyCount === 1 ? 'copy' : 'copies'}`,
+    member && plays.length > 0
+      ? `played ${plays.length} ${plays.length === 1 ? 'time' : 'times'}`
+      : null,
   ].filter(Boolean);
 
   return (
-    <Stack gap="lg">
-      <Group justify="space-between" align="flex-start">
-        <div style={{ flex: '1 1 320px', minWidth: 0 }}>
-          <Title order={1} lineClamp={2} title={game.title}>
-            {game.title}
-          </Title>
-          <Group gap="xs" mt={4}>
-            <Badge variant="light">{TYPE_LABELS[game.type]}</Badge>
-            {detail.tags.map((t) => (
-              <Badge key={t} variant="default">
-                {t}
-              </Badge>
-            ))}
-          </Group>
-        </div>
-        {canEdit && (
-          <Group>
-            <LinkButton
-              href={`/games/${id}/edit`}
-              variant="default"
-              leftSection={<IconPencil size={16} />}
-            >
-              Edit
-            </LinkButton>
-            <form action={deleteGameAction.bind(null, id)}>
-              <Button
-                type="submit"
-                color="red"
-                variant="default"
-                c="light-dark(var(--mantine-color-red-8), var(--mantine-color-red-3))"
-              >
-                Delete
-              </Button>
-            </form>
-          </Group>
-        )}
-      </Group>
+    <>
+      <nav className={classes.crumbs} aria-label="Breadcrumb">
+        <Link href="/games">Library</Link>
+        <span aria-hidden>›</span>
+        <span>{TYPE_LABELS[game.type]}</span>
+      </nav>
 
-      <Flex gap="xl" direction={{ base: 'column', sm: 'row' }} align="flex-start">
-        {game.coverImage && (
-          <Image
-            src={`/api/games/${id}/cover`}
-            alt=""
-            w={{ base: '100%', sm: 240 }}
-            maw={{ base: 320, sm: 240 }}
-            radius="md"
-            style={{ flex: 'none' }}
-          />
-        )}
-        <Stack gap="lg" style={{ flex: 1, minWidth: 0, width: '100%' }}>
-          <Stack gap="xs">
-            {facts.length > 0 && <Text>{facts.join(' · ')}</Text>}
-            {game.description && <Text maw={640}>{game.description}</Text>}
-            {canEdit && game.notes && (
-              <Text c="dimmed" maw={640}>
-                {game.notes}
-              </Text>
+      <div className={classes.layout}>
+        <aside className={classes.side}>
+          <div className={classes.stand}>
+            <CoverTile
+              title={game.title}
+              type={game.type}
+              src={game.coverImage ? coverUrl(game.id) : null}
+            />
+          </div>
+
+          {rating && (
+            <section className={classes.card} aria-labelledby="your-rating">
+              <h2 id="your-rating">Your rating</h2>
+              <form action={rateGameAction.bind(null, id)} className={classes.stars}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="submit"
+                    name="score"
+                    value={n}
+                    className={classes.star}
+                    aria-label={`${n} out of 5`}
+                    aria-pressed={rating.mine === n}
+                  >
+                    {rating.mine !== null && n <= rating.mine ? (
+                      <IconStarFilled size={26} aria-hidden />
+                    ) : (
+                      <IconStar size={26} aria-hidden />
+                    )}
+                  </button>
+                ))}
+              </form>
+              <p className={classes.hint}>
+                {rating.count > 0
+                  ? `Family average ${rating.average} from ${rating.count} ${rating.count === 1 ? 'rating' : 'ratings'}`
+                  : 'Nobody has rated this yet'}
+              </p>
+            </section>
+          )}
+        </aside>
+
+        <div className={classes.main}>
+          <header>
+            <h1 className={classes.title}>{game.title}</h1>
+            <p className={classes.subtitle}>{subtitle.join(' · ')}</p>
+            {member && (
+              <div className={classes.actions}>
+                <LinkButton
+                  href={`/games/${id}/edit`}
+                  variant="default"
+                  leftSection={<IconPencil size={16} aria-hidden />}
+                >
+                  Edit
+                </LinkButton>
+              </div>
             )}
-          </Stack>
+          </header>
 
-          <div>
-            <Title order={2} size="h4" mb="xs">
-              Copies
-            </Title>
+          {facts.length > 0 && (
+            <dl className={classes.facts}>
+              {facts.map((f) => (
+                <div key={f.label} className={classes.fact}>
+                  <dt className={classes.factLabel}>{f.label}</dt>
+                  <dd className={classes.factValue}>
+                    {f.value}
+                    {f.unit && <small>{f.unit}</small>}
+                    {f.meter && (
+                      <span className={classes.meter} aria-hidden>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <i key={n} data-on={f.meter && n <= f.meter ? true : undefined} />
+                        ))}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          {game.description && <p className={classes.text}>{game.description}</p>}
+
+          {detail.tags.length > 0 && (
+            <ul className={classes.tags} aria-label="Tags">
+              {detail.tags.map((t) => (
+                <li key={t} className={classes.tag}>
+                  {t}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {member && game.notes && (
+            <figure className={classes.notes} style={{ margin: 0 }}>
+              <figcaption>Notes</figcaption>
+              <blockquote>{game.notes}</blockquote>
+            </figure>
+          )}
+
+          <section className={classes.section} aria-labelledby="copies">
+            <h2 id="copies">Copies</h2>
             <CopiesPanel
               gameId={id}
-              canEdit={canEdit}
+              canEdit={member}
               members={members.map((m) => ({ value: m.id, label: m.name }))}
               locations={locations.map((l) => ({ value: l.id, label: l.name }))}
               copies={detail.copies.map((c) => ({
@@ -115,9 +209,64 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 priceCents: c.priceCents,
               }))}
             />
-          </div>
-        </Stack>
-      </Flex>
-    </Stack>
+          </section>
+
+          {member && (
+            <section className={classes.section} aria-labelledby="plays">
+              <h2 id="plays">
+                Recent plays
+                {plays.length > 0 && (
+                  <span className={classes.sectionNote}>{plays.length} in all</span>
+                )}
+              </h2>
+              {plays.length === 0 ? (
+                <p className={classes.hint}>Nobody has logged a play of this game yet.</p>
+              ) : (
+                <ul className={classes.plays}>
+                  {plays.slice(0, 5).map((p) => (
+                    <li key={p.id} className={classes.play}>
+                      <span className={classes.playDate}>
+                        {longDate(p.playedOn)}
+                        <small>{weekday(p.playedOn)}</small>
+                      </span>
+                      <span className={classes.who}>
+                        {p.participants.length === 0 && (
+                          <span className={classes.hint}>No players recorded</span>
+                        )}
+                        {p.participants.map((person) => (
+                          <span key={person.id} className={classes.person}>
+                            {person.displayName}
+                          </span>
+                        ))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {whoPlays.length > 0 && (
+                <p className={classes.hint}>
+                  Who plays this: {whoPlays.map((p) => `${p.displayName} ${p.plays}`).join(' · ')}
+                </p>
+              )}
+            </section>
+          )}
+
+          {member && (
+            <footer className={classes.footer}>
+              <span>
+                {edited
+                  ? `Last ${edited.action === 'create' ? 'added' : 'edited'} by ${edited.actorName ?? 'someone who has since left'} on ${longDate(edited.at.toISOString().slice(0, 10))}`
+                  : ''}
+              </span>
+              <form action={deleteGameAction.bind(null, id)}>
+                <Button type="submit" color="red" variant="subtle">
+                  Delete game
+                </Button>
+              </form>
+            </footer>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

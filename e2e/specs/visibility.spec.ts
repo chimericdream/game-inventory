@@ -170,7 +170,7 @@ test('VIS-08 replaying an admin’s edit, delete, or add-copy request as a restr
   // Delete
   await page.goto(`/games/${normal}`);
   const del = await captureAction(page, issues, () =>
-    page.getByRole('button', { name: 'Delete', exact: true }).click(),
+    page.getByRole('button', { name: 'Delete game', exact: true }).click(),
   );
   await replayAction(kidPage.request, del);
   expect(await db.count('games', `id = '${normal}'`)).toBe(1);

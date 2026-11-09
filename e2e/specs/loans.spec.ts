@@ -126,7 +126,7 @@ test('LOAN-08 deleting a game that is out on loan does not break the loans page'
   const [copy] = await db.sql`select id from copies where game_id = ${id}`;
   await db.seedLoan(copy!.id as string, { borrower: 'Ghost' });
   await page.goto(`/games/${id}`);
-  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete game', exact: true }).click();
   await expect(page).toHaveURL(/\/games$/);
   const res = await page.goto('/loans');
   expect(res?.status()).toBe(200);

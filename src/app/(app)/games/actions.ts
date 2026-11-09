@@ -15,6 +15,7 @@ import {
   updateGame,
   type GameInput,
 } from '@/server/data/games';
+import { clearRating, ratingSummary, setRating } from '@/server/data/ratings';
 import { removeStored, saveCover } from '@/server/storage';
 
 import { toTile } from './tiles';
@@ -148,4 +149,15 @@ export async function loadMoreGamesAction(query: string, page: number): Promise<
   const filters = parseCatalogFilters(Object.fromEntries(new URLSearchParams(query)));
   const result = await listCatalogPage(ctx, { ...filters, page });
   return { ok: true, tiles: result.rows.map(toTile), hasMore: result.hasMore };
+}
+
+/** Sets the viewer's rating from the star buttons; choosing the current score again clears it. */
+export async function rateGameAction(gameId: string, fd: FormData) {
+  const { ctx } = await requireContext();
+  const score = Number(fd.get('score'));
+  if (!Number.isInteger(score)) return;
+  const { mine } = await ratingSummary(ctx, gameId);
+  if (mine === score) await clearRating(ctx, gameId);
+  else await setRating(ctx, gameId, score);
+  revalidatePath(`/games/${gameId}`);
 }

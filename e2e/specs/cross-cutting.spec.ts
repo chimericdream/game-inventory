@@ -324,7 +324,7 @@ test('X-11 cover files live under DATA_DIR and are removed with their game', asy
   expect(file.startsWith(DATA_DIR)).toBe(true);
   expect(existsSync(file)).toBe(true);
 
-  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete game', exact: true }).click();
   await expect(page).toHaveURL(/\/games$/);
   expect(existsSync(file)).toBe(false);
   await expect(gameCards(page)).toHaveCount(0);
