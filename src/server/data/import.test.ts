@@ -6,6 +6,7 @@ import { createTestDb } from '../db/test-db';
 import { parseImport } from '../import/csv';
 import { createContext, type DataContext } from './context';
 import { listCatalog } from './catalog';
+import { getGameDetail } from './games';
 import { importGames } from './import';
 import { listLocations } from './lookups';
 
@@ -37,6 +38,13 @@ describe('importGames', () => {
       'Hall closet',
       'Living room',
     ]);
+  });
+
+  it('imports a puzzle with its piece count', async () => {
+    const puzzleCsv = 'title,type,pieces\nAlpine Lake,puzzle,1000\n';
+    await importGames(ctx, parseImport(puzzleCsv).rows);
+    const [game] = await listCatalog(ctx);
+    expect((await getGameDetail(ctx, game!.id))?.puzzle?.pieceCount).toBe(1000);
   });
 
   it('skips games that already exist so re-importing is safe', async () => {

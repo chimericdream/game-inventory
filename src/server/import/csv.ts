@@ -43,6 +43,7 @@ export interface ImportRow {
   maxPlayers: number | null;
   playTimeMinutes: number | null;
   complexity: number | null;
+  pieceCount: number | null;
   tags: string[];
   platform: string | null;
   location: string | null;
@@ -52,6 +53,22 @@ export interface ImportRow {
 export interface ImportParseResult {
   rows: ImportRow[];
   errors: { line: number; message: string }[];
+  /** The file's header row as written. */
+  header: string[];
+  /** Header names that were not recognised, so their values were ignored. */
+  unusedColumns: string[];
+  /** The rows behind `errors`, with their original cells, so they can be fixed and re-imported. */
+  failedRows: { line: number; cells: string[] }[];
+}
+
+function csvCell(value: string) {
+  return /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+}
+
+/** The header plus the rows that failed, as CSV text ready to download, fix and import again. */
+export function failedRowsCsv(result: Pick<ImportParseResult, 'header' | 'failedRows'>): string {
+  const lines = [result.header, ...result.failedRows.map((r) => r.cells)];
+  return lines.map((cells) => cells.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
 
 const HEADER_ALIASES: Record<string, string> = {
@@ -69,6 +86,9 @@ const HEADER_ALIASES: Record<string, string> = {
   minutes: 'playTimeMinutes',
   complexity: 'complexity',
   weight: 'complexity',
+  pieces: 'pieceCount',
+  piece_count: 'pieceCount',
+  piececount: 'pieceCount',
   tags: 'tags',
   genre: 'tags',
   platform: 'platform',
@@ -96,11 +116,28 @@ const TYPE_ALIASES: Record<string, GameType> = {
 export function parseImport(csv: string): ImportParseResult {
   const table = parseCsv(csv);
   const errors: ImportParseResult['errors'] = [];
-  if (table.length === 0) return { rows: [], errors: [{ line: 1, message: 'File is empty' }] };
+  const failedRows: ImportParseResult['failedRows'] = [];
+  if (table.length === 0) {
+    return {
+      rows: [],
+      errors: [{ line: 1, message: 'File is empty' }],
+      header: [],
+      unusedColumns: [],
+      failedRows,
+    };
+  }
 
-  const header = table[0]!.map((h) => HEADER_ALIASES[h.trim().toLowerCase()] ?? null);
+  const rawHeader = table[0]!.map((h) => h.trim());
+  const header = rawHeader.map((h) => HEADER_ALIASES[h.toLowerCase()] ?? null);
+  const unusedColumns = rawHeader.filter((h, i) => h !== '' && header[i] === null);
   if (!header.includes('title')) {
-    return { rows: [], errors: [{ line: 1, message: 'A "title" (or "name") column is required' }] };
+    return {
+      rows: [],
+      errors: [{ line: 1, message: 'A "title" (or "name") column is required' }],
+      header: rawHeader,
+      unusedColumns,
+      failedRows,
+    };
   }
 
   const rows: ImportRow[] = [];
@@ -113,6 +150,7 @@ export function parseImport(csv: string): ImportParseResult {
     const title = get('title');
     if (!title) {
       errors.push({ line, message: 'Missing title' });
+      failedRows.push({ line, cells });
       return;
     }
     const rawType = (get('type') ?? 'board').toLowerCase();
@@ -120,6 +158,7 @@ export function parseImport(csv: string): ImportParseResult {
       TYPE_ALIASES[rawType] ?? (GAME_TYPES.find((t) => t === rawType) as GameType | undefined);
     if (!type) {
       errors.push({ line, message: `Unknown type "${get('type')}"` });
+      failedRows.push({ line, cells });
       return;
     }
     const complexity = num(get('complexity'));
@@ -130,6 +169,7 @@ export function parseImport(csv: string): ImportParseResult {
       maxPlayers: num(get('maxPlayers')),
       playTimeMinutes: num(get('playTimeMinutes')),
       complexity: complexity && complexity >= 1 && complexity <= 5 ? complexity : null,
+      pieceCount: num(get('pieceCount')),
       tags: (get('tags') ?? '')
         .split(/[;|]/)
         .map((t) => t.trim())
@@ -139,5 +179,5 @@ export function parseImport(csv: string): ImportParseResult {
       notes: get('notes') || null,
     });
   });
-  return { rows, errors };
+  return { rows, errors, header: rawHeader, unusedColumns, failedRows };
 }

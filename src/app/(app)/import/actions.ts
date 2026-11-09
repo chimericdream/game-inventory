@@ -4,13 +4,17 @@ import { revalidatePath } from 'next/cache';
 
 import { requireContext } from '@/server/auth/current';
 import { importGames } from '@/server/data/import';
-import { parseImport } from '@/server/import/csv';
+import { failedRowsCsv, parseImport } from '@/server/import/csv';
 
 export interface ImportState {
   error?: string;
   created?: number;
   skipped?: string[];
   rowErrors?: { line: number; message: string }[];
+  /** Header names that were ignored because the importer does not know them. */
+  unusedColumns?: string[];
+  /** The failed rows as CSV, so they can be corrected and imported again. */
+  failedCsv?: string;
 }
 
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -22,12 +26,26 @@ export async function importAction(_prev: ImportState, fd: FormData): Promise<Im
   if (!(file instanceof File) || file.size === 0) return { error: 'Choose a CSV file.' };
   if (file.size > MAX_BYTES) return { error: 'That file is larger than 2 MB.' };
 
-  const { rows, errors } = parseImport(await file.text());
-  if (rows.length === 0)
-    return { error: errors[0]?.message ?? 'No rows to import.', rowErrors: errors };
+  const parsed = parseImport(await file.text());
+  const { rows, errors, unusedColumns } = parsed;
+  const failedCsv = parsed.failedRows.length ? failedRowsCsv(parsed) : undefined;
+  if (rows.length === 0) {
+    return {
+      error: errors[0]?.message ?? 'No rows to import.',
+      rowErrors: errors,
+      unusedColumns,
+      failedCsv,
+    };
+  }
   if (rows.length > 2000) return { error: 'Import at most 2000 rows at a time.' };
 
   const summary = await importGames(ctx, rows);
   revalidatePath('/games');
-  return { created: summary.created, skipped: summary.skipped, rowErrors: errors };
+  return {
+    created: summary.created,
+    skipped: summary.skipped,
+    rowErrors: errors,
+    unusedColumns,
+    failedCsv,
+  };
 }

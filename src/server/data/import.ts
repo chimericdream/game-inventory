@@ -70,6 +70,7 @@ export async function importGames(ctx: DataContext, rows: ImportRow[]): Promise<
       type: row.type,
       notes: row.notes,
       tags: row.tags,
+      puzzle: row.type === 'puzzle' ? { pieceCount: row.pieceCount } : undefined,
       board: isBoard
         ? {
             minPlayers: row.minPlayers,

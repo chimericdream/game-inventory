@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseCsv, parseImport } from './csv';
+import { failedRowsCsv, parseCsv, parseImport } from './csv';
 
 describe('parseCsv', () => {
   it('handles quotes, escaped quotes, embedded commas and newlines, CRLF and BOM', () => {
@@ -50,5 +50,33 @@ describe('parseImport', () => {
 
   it('requires a title column', () => {
     expect(parseImport('foo,bar\n1,2').errors[0]?.message).toMatch(/title/);
+  });
+});
+
+describe('import extras', () => {
+  it('reads a puzzle piece count from a "pieces" column', () => {
+    const { rows } = parseImport('title,type,pieces\nAlpine Lake,puzzle,1000\nCatan,board,\n');
+    expect(rows.map((r) => r.pieceCount)).toEqual([1000, null]);
+  });
+
+  it('lists the columns it did not recognise', () => {
+    const result = parseImport('Title,Type,Colour,Shelf Code\nCatan,board,red,A1\n');
+    expect(result.unusedColumns).toEqual(['Colour', 'Shelf Code']);
+    expect(result.rows).toHaveLength(1);
+  });
+
+  it('keeps failed rows so they can be downloaded, fixed and imported again', () => {
+    const csv = 'title,type,notes\nOk,board,fine\n,board,"no, title"\nBad,spaceship,\n';
+    const result = parseImport(csv);
+    expect(result.errors.map((e) => e.line)).toEqual([3, 4]);
+    expect(failedRowsCsv(result)).toBe(
+      'title,type,notes\r\n,board,"no, title"\r\nBad,spaceship,\r\n',
+    );
+    // Fix the type and the title, and the same file imports cleanly.
+    const fixed = parseImport(
+      failedRowsCsv(result).replace('spaceship', 'card').replace(',board,', 'Named,board,'),
+    );
+    expect(fixed.errors).toEqual([]);
+    expect(fixed.rows.map((r) => r.title)).toEqual(['Named', 'Bad']);
   });
 });
