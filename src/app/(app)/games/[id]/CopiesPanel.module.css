@@ -1,0 +1,23 @@
+.table {
+  --table-border-color: var(--app-rule);
+}
+
+.head th {
+  color: var(--mantine-color-dimmed);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cell {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.condition {
+  text-transform: capitalize;
+}
+
+.none {
+  color: var(--mantine-color-dimmed);
+}

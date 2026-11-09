@@ -55,6 +55,7 @@ export function FilterBar({ tags, locations }: Props) {
       <NumberInput
         placeholder="Players"
         min={1}
+        hideControls
         value={params.get('players') ?? ''}
         onChange={(v) => update('players', v)}
         w={100}
@@ -62,6 +63,7 @@ export function FilterBar({ tags, locations }: Props) {
       <NumberInput
         placeholder="Max minutes"
         min={1}
+        hideControls
         step={15}
         value={params.get('maxMinutes') ?? ''}
         onChange={(v) => update('maxMinutes', v)}

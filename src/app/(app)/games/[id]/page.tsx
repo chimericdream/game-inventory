@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Image, Stack, Text, Title } from '@mantine/core';
+import { Badge, Button, Flex, Group, Image, Stack, Text, Title } from '@mantine/core';
 import { IconPencil } from '@tabler/icons-react';
 import { notFound } from 'next/navigation';
 
@@ -41,7 +41,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           <Group gap="xs" mt={4}>
             <Badge variant="light">{TYPE_LABELS[game.type]}</Badge>
             {detail.tags.map((t) => (
-              <Badge key={t} variant="outline">
+              <Badge key={t} variant="default">
                 {t}
               </Badge>
             ))}
@@ -57,7 +57,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               Edit
             </LinkButton>
             <form action={deleteGameAction.bind(null, id)}>
-              <Button type="submit" color="red" variant="light">
+              <Button type="submit" color="red" variant="default" c="red.8">
                 Delete
               </Button>
             </form>
@@ -65,35 +65,50 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
         )}
       </Group>
 
-      <Group align="flex-start" wrap="nowrap">
-        {game.coverImage && <Image src={`/api/games/${id}/cover`} alt="" w={220} radius="md" />}
-        <Stack gap="xs">
-          {facts.length > 0 && <Text>{facts.join(' · ')}</Text>}
-          {game.description && <Text>{game.description}</Text>}
-          {canEdit && game.notes && <Text c="dimmed">{game.notes}</Text>}
-        </Stack>
-      </Group>
+      <Flex gap="xl" direction={{ base: 'column', sm: 'row' }} align="flex-start">
+        {game.coverImage && (
+          <Image
+            src={`/api/games/${id}/cover`}
+            alt=""
+            w={{ base: '100%', sm: 240 }}
+            maw={{ base: 320, sm: 240 }}
+            radius="md"
+            style={{ flex: 'none' }}
+          />
+        )}
+        <Stack gap="lg" style={{ flex: 1, minWidth: 0, width: '100%' }}>
+          <Stack gap="xs">
+            {facts.length > 0 && <Text>{facts.join(' · ')}</Text>}
+            {game.description && <Text maw={640}>{game.description}</Text>}
+            {canEdit && game.notes && (
+              <Text c="dimmed" maw={640}>
+                {game.notes}
+              </Text>
+            )}
+          </Stack>
 
-      <div>
-        <Title order={2} size="h4" mb="xs">
-          Copies
-        </Title>
-        <CopiesPanel
-          gameId={id}
-          canEdit={canEdit}
-          members={members.map((m) => ({ value: m.id, label: m.name }))}
-          locations={locations.map((l) => ({ value: l.id, label: l.name }))}
-          copies={detail.copies.map((c) => ({
-            id: c.id,
-            format: c.format,
-            platform: c.platform,
-            condition: c.condition,
-            ownerName: c.ownerUserId ? (memberName.get(c.ownerUserId) ?? null) : null,
-            locationName: c.locationName,
-            priceCents: c.priceCents,
-          }))}
-        />
-      </div>
+          <div>
+            <Title order={2} size="h4" mb="xs">
+              Copies
+            </Title>
+            <CopiesPanel
+              gameId={id}
+              canEdit={canEdit}
+              members={members.map((m) => ({ value: m.id, label: m.name }))}
+              locations={locations.map((l) => ({ value: l.id, label: l.name }))}
+              copies={detail.copies.map((c) => ({
+                id: c.id,
+                format: c.format,
+                platform: c.platform,
+                condition: c.condition,
+                ownerName: c.ownerUserId ? (memberName.get(c.ownerUserId) ?? null) : null,
+                locationName: c.locationName,
+                priceCents: c.priceCents,
+              }))}
+            />
+          </div>
+        </Stack>
+      </Flex>
     </Stack>
   );
 }

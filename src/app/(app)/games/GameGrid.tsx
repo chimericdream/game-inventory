@@ -68,7 +68,7 @@ export function GameGrid({
                   {TYPE_LABELS[g.type]}
                 </Badge>
                 {g.platforms.map((p) => (
-                  <Badge key={p} variant="outline" size="sm">
+                  <Badge key={p} variant="default" size="sm">
                     {p}
                   </Badge>
                 ))}

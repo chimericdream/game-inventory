@@ -18,12 +18,12 @@ test('COPY-01 add a copy with every detail and see it on the game @smoke', async
   await form.getByLabel('Price ($)').fill('29.99');
   await form.getByRole('button', { name: ADD }).click();
 
-  const row = page.locator('.mantine-Paper-root').filter({ hasText: 'Owner:' });
+  const row = page.getByRole('row').filter({ hasText: 'Hall closet' });
   await expect(row).toContainText('physical');
   await expect(row).toContainText('Tabletop');
   await expect(row).toContainText('worn');
-  await expect(row).toContainText(`Owner: ${MEMBER.name}`);
-  await expect(row).toContainText('Location: Hall closet');
+  await expect(row).toContainText(MEMBER.name);
+  await expect(row).toContainText('Hall closet');
   await expect(row).toContainText('$29.99');
   await expect(page.getByText('No copies recorded yet.')).toHaveCount(0);
 });
@@ -39,8 +39,8 @@ test('COPY-02 two copies with different owners and locations both list', async (
     ],
   });
   await page.goto(`/games/${id}`);
-  await expect(page.getByText('Location: Hall')).toBeVisible();
-  await expect(page.getByText('Location: Attic')).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Hall', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Attic', exact: true })).toBeVisible();
   await expect(page.getByText('$10.00')).toBeVisible();
   await expect(page.getByText('$20.00')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Delete copy' })).toHaveCount(2);
@@ -53,7 +53,8 @@ test('COPY-03 deleting a copy leaves the other copy and the game', async ({ page
   });
   await page.goto(`/games/${id}`);
   await page
-    .locator('.mantine-Paper-root', { hasText: '$11.11' })
+    .getByRole('row')
+    .filter({ hasText: '$11.11' })
     .getByRole('button', { name: 'Delete copy' })
     .click();
   await expect(page.getByText('$11.11')).toHaveCount(0);
