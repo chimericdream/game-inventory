@@ -5,7 +5,7 @@ import type { Db } from '../db/client';
 import { createTestDb } from '../db/test-db';
 import { parseImport } from '../import/csv';
 import { createContext, type DataContext } from './context';
-import { listCatalog } from './games';
+import { listCatalog } from './catalog';
 import { importGames } from './import';
 import { listLocations } from './lookups';
 

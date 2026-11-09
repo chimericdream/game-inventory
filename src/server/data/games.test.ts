@@ -5,7 +5,8 @@ import type { Db } from '../db/client';
 import { createTestDb } from '../db/test-db';
 import { addCopy } from './copies';
 import { createContext, type DataContext } from './context';
-import { createGame, deleteGame, getGameDetail, listCatalog, updateGame } from './games';
+import { listCatalog } from './catalog';
+import { createGame, deleteGame, getGameDetail, updateGame } from './games';
 
 let db: Db;
 let admin: DataContext;

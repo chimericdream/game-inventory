@@ -164,15 +164,29 @@ test('BRW-06 the result count is right, including the singular', async ({ page, 
   await expect(page.getByText('1 game', { exact: true })).toBeVisible();
 });
 
-test('BRW-07 a library of 500 games lists them all, in title order', async ({ page, db }) => {
+test('BRW-07 a library of 500 games is paged, in title order, with the total shown', async ({
+  page,
+  db,
+}) => {
   await db.seedMany(500);
   const started = Date.now();
   await page.goto('/games');
   await expect(page.getByText('500 games', { exact: true })).toBeVisible();
   expect(Date.now() - started).toBeLessThan(10_000);
-  await expect(gameCards(page)).toHaveCount(500);
+  await expect(gameCards(page)).toHaveCount(48);
   await expect(gameCards(page).first()).toContainText('Bulk Game 0001');
+  await expect(gameCards(page).last()).toContainText('Bulk Game 0048');
+
+  await page.getByRole('link', { name: 'Next' }).click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(gameCards(page)).toHaveCount(48);
+  await expect(gameCards(page).first()).toContainText('Bulk Game 0049');
+  await expect(page.getByRole('link', { name: 'Previous' })).toBeVisible();
+
+  await page.goto('/games?page=11');
+  await expect(gameCards(page)).toHaveCount(20);
   await expect(gameCards(page).last()).toContainText('Bulk Game 0500');
+  await expect(page.getByRole('link', { name: 'Next' })).toHaveCount(0);
 });
 
 test('BRW-08 a card opens its game, and back returns to the same filtered list', async ({

@@ -2,7 +2,7 @@ import { Title } from '@mantine/core';
 import { redirect } from 'next/navigation';
 
 import { requireContext } from '@/server/auth/current';
-import { listCatalog } from '@/server/data/games';
+import { listCatalog } from '@/server/data/catalog';
 import { playStats, recentPlays } from '@/server/data/plays';
 
 import { PlaysView } from './PlaysView';

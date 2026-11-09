@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ilike, inArray, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
@@ -7,7 +7,6 @@ import {
   gameTags,
   games,
   locations,
-  loans,
   puzzleDetails,
   rpgDetails,
   tags,
@@ -59,123 +58,11 @@ export const gameInput = z.object({
 });
 export type GameInput = z.input<typeof gameInput>;
 
-export interface CatalogFilters {
-  search?: string;
-  type?: GameType;
-  /** Games that can be played with exactly this many players. */
-  players?: number;
-  /** Games that take at most this many minutes. */
-  maxMinutes?: number;
-  tag?: string;
-  locationId?: string;
-  ownerUserId?: string;
-}
-
 function assertCanEdit(ctx: DataContext) {
   if (ctx.viewer.role === 'restricted') {
     throw new Error('Restricted profiles cannot edit the catalog');
   }
 }
-
-const escapeLike = (s: string) => s.replace(/[%_\\]/g, '\\$&');
-
-export async function listCatalog(ctx: DataContext, filters: CatalogFilters = {}) {
-  if (filters.locationId && !isUuid(filters.locationId)) return [];
-  if (filters.ownerUserId && !isUuid(filters.ownerUserId)) return [];
-  const conditions: (SQL | undefined)[] = [gameVisibilityCondition(ctx)];
-  const search = filters.search?.trim();
-  if (search) conditions.push(ilike(games.title, `%${escapeLike(search)}%`));
-  if (filters.type) conditions.push(eq(games.type, filters.type));
-  if (filters.players) {
-    conditions.push(
-      and(
-        or(
-          sql`${boardGameDetails.minPlayers} is null`,
-          lte(boardGameDetails.minPlayers, filters.players),
-        ),
-        or(
-          sql`${boardGameDetails.maxPlayers} is null`,
-          gte(boardGameDetails.maxPlayers, filters.players),
-        ),
-        sql`(${boardGameDetails.minPlayers} is not null or ${boardGameDetails.maxPlayers} is not null)`,
-      ),
-    );
-  }
-  if (filters.maxMinutes) {
-    conditions.push(lte(boardGameDetails.playTimeMinutes, filters.maxMinutes));
-  }
-  if (filters.tag) {
-    conditions.push(
-      sql`exists (select 1 from ${gameTags} gt join ${tags} t on t.id = gt.tag_id
-        where gt.game_id = ${games.id} and lower(t.name) = ${filters.tag.toLowerCase()})`,
-    );
-  }
-  if (filters.locationId) {
-    conditions.push(
-      sql`exists (select 1 from ${copies} c where c.game_id = ${games.id} and c.location_id = ${filters.locationId})`,
-    );
-  }
-  if (filters.ownerUserId) {
-    conditions.push(
-      sql`exists (select 1 from ${copies} c where c.game_id = ${games.id} and c.owner_user_id = ${filters.ownerUserId})`,
-    );
-  }
-
-  const rows = await ctx.db
-    .select({ game: games, board: boardGameDetails })
-    .from(games)
-    .leftJoin(boardGameDetails, eq(boardGameDetails.gameId, games.id))
-    .where(and(...conditions))
-    .orderBy(asc(games.title));
-
-  const visible = rows.flatMap((r) => {
-    const game = redactGame(r.game, ctx.viewer);
-    return game ? [{ game, board: r.board }] : [];
-  });
-  const ids = visible.map((r) => r.game.id);
-  if (ids.length === 0) return [];
-
-  const canSeeLoans = ctx.viewer.role !== 'restricted';
-  const [copyRows, tagRows, loanRows] = await Promise.all([
-    ctx.db
-      .select({ gameId: copies.gameId, platform: copies.platform })
-      .from(copies)
-      .where(and(eq(copies.householdId, ctx.householdId), inArray(copies.gameId, ids))),
-    ctx.db
-      .select({ gameId: gameTags.gameId, name: tags.name })
-      .from(gameTags)
-      .innerJoin(tags, eq(tags.id, gameTags.tagId))
-      .where(and(eq(gameTags.householdId, ctx.householdId), inArray(gameTags.gameId, ids))),
-    canSeeLoans
-      ? ctx.db
-          .select({ gameId: copies.gameId })
-          .from(loans)
-          .innerJoin(copies, eq(copies.id, loans.copyId))
-          .where(
-            and(
-              eq(loans.householdId, ctx.householdId),
-              isNull(loans.returnedOn),
-              inArray(copies.gameId, ids),
-            ),
-          )
-      : Promise.resolve([] as { gameId: string }[]),
-  ]);
-  const lentOut = new Set(loanRows.map((l) => l.gameId));
-
-  return visible.map(({ game, board }) => ({
-    ...game,
-    board,
-    onLoan: lentOut.has(game.id),
-    copyCount: copyRows.filter((c) => c.gameId === game.id).length,
-    platforms: [
-      ...new Set(
-        copyRows.filter((c) => c.gameId === game.id && c.platform).map((c) => c.platform!),
-      ),
-    ],
-    tags: tagRows.filter((t) => t.gameId === game.id).map((t) => t.name),
-  }));
-}
-export type CatalogRow = Awaited<ReturnType<typeof listCatalog>>[number];
 
 export async function getGameDetail(ctx: DataContext, id: string) {
   if (!isUuid(id)) return null;

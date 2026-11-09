@@ -5,7 +5,8 @@ import type { Db } from '../db/client';
 import { ratings } from '../db/schema';
 import { createTestDb } from '../db/test-db';
 import { createContext, type DataContext } from './context';
-import { createGame, getGameDetail, listCatalog } from './games';
+import { listCatalog } from './catalog';
+import { createGame, getGameDetail } from './games';
 import { createShareLink, guestCatalog, guestGame, resolveShareLink } from './guest';
 import { clearRating, ratingSummary, setRating } from './ratings';
 
