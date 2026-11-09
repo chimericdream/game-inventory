@@ -72,11 +72,17 @@ export function ShareLinks({ links }: { links: LinkRow[] }) {
                 <Group gap="xs">
                   <Text fw={600}>{l.label}</Text>
                   {l.status === 'revoked' ? (
-                    <Badge color="red">Revoked</Badge>
+                    <Badge color="red" variant="light">
+                      Revoked
+                    </Badge>
                   ) : inactive ? (
-                    <Badge color="gray">Expired</Badge>
+                    <Badge color="gray" variant="light">
+                      Expired
+                    </Badge>
                   ) : (
-                    <Badge color="green">Active</Badge>
+                    <Badge color="green" variant="light">
+                      Active
+                    </Badge>
                   )}
                 </Group>
                 <Text size="xs" c="dimmed">
@@ -91,7 +97,7 @@ export function ShareLinks({ links }: { links: LinkRow[] }) {
               </div>
               {!inactive && (
                 <form action={revokeShareLinkAction.bind(null, l.id)}>
-                  <Button type="submit" color="red" variant="light" size="compact-sm">
+                  <Button type="submit" color="red" variant="default" c="red.8" size="compact-sm">
                     Revoke
                   </Button>
                 </form>

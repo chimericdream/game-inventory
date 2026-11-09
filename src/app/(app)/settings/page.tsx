@@ -29,7 +29,7 @@ export default async function SettingsPage() {
           {members.map((m) => (
             <Group key={m.id} gap="xs">
               <Text>{m.name}</Text>
-              <Badge variant="light" color={m.role === 'restricted' ? 'orange' : 'blue'}>
+              <Badge variant="light" color={m.role === 'restricted' ? 'orange' : 'ink'}>
                 {m.role}
               </Badge>
             </Group>

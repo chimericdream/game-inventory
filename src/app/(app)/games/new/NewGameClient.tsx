@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Box } from '@mantine/core';
 
 import { saveGameAction } from '../actions';
 import { EMPTY_GAME, GameForm, type GameFormValues } from '../GameForm';
@@ -11,12 +12,14 @@ export function NewGameClient() {
   const [version, setVersion] = useState(0);
   return (
     <>
-      <Lookup
-        onPick={(values) => {
-          setInitial({ ...EMPTY_GAME, ...values });
-          setVersion((v) => v + 1); // remount the form so its defaults update
-        }}
-      />
+      <Box maw={{ base: '100%', md: 700 }}>
+        <Lookup
+          onPick={(values) => {
+            setInitial({ ...EMPTY_GAME, ...values });
+            setVersion((v) => v + 1); // remount the form so its defaults update
+          }}
+        />
+      </Box>
       <GameForm
         key={version}
         action={saveGameAction.bind(null, null)}

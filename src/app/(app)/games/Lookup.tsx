@@ -46,6 +46,7 @@ export function Lookup({ onPick }: Props) {
     if (!q.trim()) return;
     setBusy(true);
     setError(null);
+    setHits([]); // a failed or empty search must not leave the previous results on screen
     try {
       const res = await fetch(`/api/lookup/bgg?q=${encodeURIComponent(q)}`);
       const data = await res.json();

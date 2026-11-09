@@ -5,6 +5,7 @@ import {
   Alert,
   Badge,
   Button,
+  Flex,
   Group,
   Paper,
   Select,
@@ -34,17 +35,21 @@ interface Props {
 export function LoansView({ loans, copies }: Props) {
   const [state, action, pending] = useActionState(lendAction, {});
   return (
-    <Stack gap="lg">
-      <Stack gap="xs">
+    <Flex gap="lg" direction={{ base: 'column', md: 'row' }} align="flex-start">
+      <Stack gap="xs" style={{ flex: 1, minWidth: 0, width: '100%' }}>
         {loans.length === 0 && <Text c="dimmed">Nothing is out on loan.</Text>}
         {loans.map((l) => (
-          <Paper key={l.id} withBorder p="sm" radius="md">
-            <Group justify="space-between">
+          <Paper key={l.id} withBorder p="sm">
+            <Group justify="space-between" wrap="nowrap">
               <div>
                 <Group gap="xs">
                   <Text fw={600}>{l.title}</Text>
-                  {l.platform && <Badge variant="outline">{l.platform}</Badge>}
-                  {l.overdue && <Badge color="red">Overdue</Badge>}
+                  {l.platform && <Badge variant="default">{l.platform}</Badge>}
+                  {l.overdue && (
+                    <Badge color="red" variant="light">
+                      Overdue
+                    </Badge>
+                  )}
                 </Group>
                 <Text size="sm" c="dimmed">
                   With {l.borrower} since {l.lentOn}
@@ -52,7 +57,7 @@ export function LoansView({ loans, copies }: Props) {
                 </Text>
               </div>
               <form action={returnLoanAction.bind(null, l.id)}>
-                <Button type="submit" variant="light" size="compact-sm">
+                <Button type="submit" variant="default" size="compact-sm">
                   Mark returned
                 </Button>
               </form>
@@ -61,8 +66,8 @@ export function LoansView({ loans, copies }: Props) {
         ))}
       </Stack>
 
-      <form action={action}>
-        <Paper withBorder p="md" radius="md" maw={640}>
+      <form action={action} style={{ width: '100%', maxWidth: 380, flex: 'none' }}>
+        <Paper withBorder p="md">
           <Stack gap="xs">
             <Title order={2} size="h5">
               Lend a game
@@ -85,6 +90,6 @@ export function LoansView({ loans, copies }: Props) {
           </Stack>
         </Paper>
       </form>
-    </Stack>
+    </Flex>
   );
 }

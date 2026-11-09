@@ -59,7 +59,7 @@ export function WishlistView({ items }: { items: WishRow[] }) {
               </div>
               <Group gap="xs">
                 <form action={acquiredAction.bind(null, i.id)}>
-                  <Button type="submit" variant="light" size="compact-sm">
+                  <Button type="submit" variant="default" size="compact-sm">
                     We got it
                   </Button>
                 </form>

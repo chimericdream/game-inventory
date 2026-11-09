@@ -41,12 +41,12 @@ export default async function GuestGamePage({
           <Group gap="xs" mt={4}>
             <Badge variant="light">{TYPE_LABELS[game.type]}</Badge>
             {game.platforms.map((p) => (
-              <Badge key={p} variant="outline">
+              <Badge key={p} variant="default">
                 {p}
               </Badge>
             ))}
             {game.tags.map((t) => (
-              <Badge key={t} variant="outline" color="gray">
+              <Badge key={t} variant="default">
                 {t}
               </Badge>
             ))}
