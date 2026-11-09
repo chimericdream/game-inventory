@@ -1,0 +1,14 @@
+/*
+ * On a phone the Save button stays in reach above the tab bar while a long form scrolls, instead
+ * of sitting at the bottom of a page the person has to scroll all the way to.
+ */
+.saveBar {
+  @media (max-width: $mantine-breakpoint-sm) {
+    position: sticky;
+    bottom: calc(60px + env(safe-area-inset-bottom));
+    z-index: 10;
+    padding: 12px 0;
+    background: var(--app-ground);
+    border-top: 1px solid var(--app-border);
+  }
+}

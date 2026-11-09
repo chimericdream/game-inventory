@@ -131,3 +131,43 @@ test('MOCK-04 at most ten search results come back @external', async ({ request 
   const { hits } = await (await request.get('/api/lookup/bgg?q=__many')).json();
   expect(hits).toHaveLength(10);
 });
+
+test('LOOK-01 picking a match fills the form and says what it filled @external', async ({
+  page,
+}) => {
+  await page.goto('/games/new');
+  await page.getByPlaceholder('Search a title to fill in the details').fill('catan');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('button', { name: 'Catan (1995)' }).click();
+
+  await expect(page.getByLabel('Title *')).toHaveValue('Catan');
+  await expect(page.getByLabel('Min players')).toHaveValue('3');
+  await expect(page.getByLabel('Max players')).toHaveValue('4');
+  const note = page.locator('[data-lookup-filled]');
+  await expect(note).toContainText('Filled in');
+  await expect(note).toContainText('players');
+  await expect(note).toContainText('Check the details, then save.');
+});
+
+test('LOOK-02 a failed lookup offers to try again @external', async ({ page }) => {
+  let calls = 0;
+  await page.route('**/api/lookup/bgg**', async (route) => {
+    calls++;
+    if (calls === 1) {
+      await route.fulfill({
+        status: 502,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'BoardGameGeek did not answer.' }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+  await page.goto('/games/new');
+  await page.getByPlaceholder('Search a title to fill in the details').fill('catan');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page.getByText('BoardGameGeek did not answer.')).toBeVisible();
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.getByRole('button', { name: 'Catan (1995)' })).toBeVisible();
+  await expect(page.getByText('BoardGameGeek did not answer.')).toHaveCount(0);
+});

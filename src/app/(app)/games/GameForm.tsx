@@ -19,6 +19,7 @@ import {
 import Link from 'next/link';
 
 import type { ActionState } from './actions';
+import classes from './GameForm.module.css';
 import { TYPE_OPTIONS, VISIBILITY_OPTIONS } from './labels';
 
 export interface GameFormValues {
@@ -169,7 +170,7 @@ export function GameForm({ action, initial = EMPTY_GAME, cancelHref }: Props) {
               defaultValue={initial.notes}
             />
 
-            <Group>
+            <Group className={classes.saveBar}>
               <Button type="submit" loading={pending}>
                 Save
               </Button>

@@ -13,7 +13,7 @@ export default async function NewGamePage() {
   return (
     <>
       <Title order={1} mb="md">
-        Add game
+        Add a game
       </Title>
       <NewGameClient />
     </>

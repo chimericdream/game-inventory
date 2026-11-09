@@ -23,7 +23,8 @@ interface Hit {
 }
 
 interface Props {
-  onPick: (values: Partial<GameFormValues>) => void;
+  /** `filled` names the fields the lookup supplied, for a note above the form. */
+  onPick: (values: Partial<GameFormValues>, filled: string[]) => void;
 }
 
 // BarcodeDetector is not in the TS DOM lib yet.
@@ -35,6 +36,8 @@ export function Lookup({ onPick }: Props) {
   const [hits, setHits] = useState<Hit[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // What "Try again" does after a failed lookup (not after an empty result, where retrying is pointless).
+  const [retry, setRetry] = useState<(() => void) | null>(null);
   const [scanning, setScanning] = useState(false);
   const canScan = useSyncExternalStore(
     () => () => {},
@@ -46,6 +49,7 @@ export function Lookup({ onPick }: Props) {
     if (!q.trim()) return;
     setBusy(true);
     setError(null);
+    setRetry(null);
     setHits([]); // a failed or empty search must not leave the previous results on screen
     try {
       const res = await fetch(`/api/lookup/bgg?q=${encodeURIComponent(q)}`);
@@ -55,6 +59,7 @@ export function Lookup({ onPick }: Props) {
       if (data.hits.length === 0) setError('No matches on BoardGameGeek.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Lookup failed');
+      setRetry(() => () => void search(q));
     } finally {
       setBusy(false);
     }
@@ -63,25 +68,38 @@ export function Lookup({ onPick }: Props) {
   async function pick(hit: Hit) {
     setBusy(true);
     setError(null);
+    setRetry(null);
     try {
       const res = await fetch(`/api/lookup/bgg?id=${hit.id}`);
       const data = await res.json();
       if (!res.ok || !data.game) throw new Error(data.error ?? 'Lookup failed');
       const g = data.game;
-      onPick({
-        title: g.name,
-        type: 'board',
-        description: g.description,
-        tags: g.tags.join(', '),
-        minPlayers: g.minPlayers,
-        maxPlayers: g.maxPlayers,
-        playTimeMinutes: g.playTimeMinutes,
-        complexity: g.complexity,
-        minAge: g.minAge,
-      });
+      onPick(
+        {
+          title: g.name,
+          type: 'board',
+          description: g.description,
+          tags: g.tags.join(', '),
+          minPlayers: g.minPlayers,
+          maxPlayers: g.maxPlayers,
+          playTimeMinutes: g.playTimeMinutes,
+          complexity: g.complexity,
+          minAge: g.minAge,
+        },
+        [
+          g.name && 'title',
+          g.description && 'description',
+          g.tags?.length && 'tags',
+          (g.minPlayers || g.maxPlayers) && 'players',
+          g.playTimeMinutes && 'play time',
+          g.complexity && 'complexity',
+          g.minAge && 'minimum age',
+        ].filter((x): x is string => typeof x === 'string'),
+      );
       setHits([]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Lookup failed');
+      setRetry(() => () => void pick(hit));
     } finally {
       setBusy(false);
     }
@@ -146,6 +164,11 @@ export function Lookup({ onPick }: Props) {
         {error && (
           <Alert color="yellow" variant="light">
             {error}
+            {retry && (
+              <Button variant="light" size="compact-sm" ml="sm" onClick={retry}>
+                Try again
+              </Button>
+            )}
           </Alert>
         )}
         {hits.map((h) => (
