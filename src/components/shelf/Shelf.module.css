@@ -1,7 +1,9 @@
 /*
  * A shelf is a grid of covers, each standing on its own piece of plank. Every plank piece reaches
  * half a gap to either side, so neighbours join into one continuous plank at any column count
- * without knowing where the rows break. The ends are clipped by the container.
+ * without knowing where the rows break. The end pieces overhang by half a gap, so the shelf is
+ * widened by that much on each side and padded back in: the covers keep the content column's edges
+ * and the plank ends sit in the shelf's own padding, visible rather than clipped.
  */
 .shelf {
   --gap: 22px;
@@ -9,9 +11,8 @@
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   column-gap: var(--gap);
   row-gap: 34px;
-  overflow-x: clip;
-  margin: 0;
-  padding: 0;
+  margin: 0 calc(var(--gap) / -2);
+  padding: 0 calc(var(--gap) / 2);
   list-style: none;
 
   @media (max-width: $mantine-breakpoint-sm) {
