@@ -41,15 +41,19 @@ test('VIS-01 a restricted list shows normal and hide-images games but not hidden
   await expect(kidPage.getByText('Open Game')).toBeVisible();
   await expect(kidPage.getByText('No Pictures Game')).toBeVisible();
   await expect(kidPage.getByText('Secret Game')).toHaveCount(0);
-  await expect(kidPage.getByText('2 games', { exact: true })).toBeVisible();
+  await expect(kidPage.locator('[data-result-count]')).toHaveText('2 games');
+  // The summary and the type counts never include the hidden game either.
+  await expect(kidPage.getByText(/^3 games/)).toHaveCount(0);
+  const html = await (await kidPage.request.get('/games')).text();
+  expect(html).not.toContain('Secret Game');
 });
 
 test('VIS-02 search and filters never surface a hidden game @security', async ({ kidPage, db }) => {
   await seed(db);
   await kidPage.goto('/games?q=Secret');
-  await expect(kidPage.getByText('No games match.')).toBeVisible();
+  await expect(kidPage.getByRole('heading', { name: 'No games match' })).toBeVisible();
   await kidPage.goto(`/games?tag=${HIDDEN_TAG}`);
-  await expect(kidPage.getByText('No games match.')).toBeVisible();
+  await expect(kidPage.getByRole('heading', { name: 'No games match' })).toBeVisible();
   await kidPage.goto('/games?q=game');
   await expect(gameCards(kidPage)).toHaveCount(2);
 });
@@ -60,9 +64,9 @@ test('VIS-02b the tag list does not reveal tags used only on hidden games @secur
 }) => {
   await seed(db);
   await kidPage.goto('/games');
-  await kidPage.getByPlaceholder('Any tag').click();
-  await expect(kidPage.getByRole('option', { name: 'family' })).toBeVisible();
-  await expect(kidPage.getByRole('option', { name: HIDDEN_TAG })).toHaveCount(0);
+  const facets = kidPage.getByRole('complementary', { name: 'Filters' });
+  await expect(facets.getByRole('link', { name: 'family', exact: true })).toBeVisible();
+  await expect(facets.getByRole('link', { name: HIDDEN_TAG })).toHaveCount(0);
   const html = await (await kidPage.request.get('/games')).text();
   expect(html).not.toContain(HIDDEN_TAG);
 });

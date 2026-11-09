@@ -56,7 +56,7 @@ export async function addGameViaUi(page: Page, g: NewGame): Promise<string> {
   return page.url().split('/').pop()!;
 }
 
-export const gameCards = (page: Page) => page.locator('.mantine-Card-root');
+export const gameCards = (page: Page) => page.locator('[data-game-card]');
 
 // --- server action capture and replay -------------------------------------------------------
 

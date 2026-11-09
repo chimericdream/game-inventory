@@ -1,5 +1,6 @@
 import { expect, test, MEMBER } from '../fixtures';
 import { choose, formWith } from '../support/mantine';
+import { gameCards } from '../support/actions';
 
 const ADD = 'Add copy';
 
@@ -113,7 +114,5 @@ test('COPY-06 a video game copy shows its platform in the grid and on the game',
   await expect(page.locator('.mantine-Badge-root', { hasText: 'digital' })).toBeVisible();
 
   await page.goto('/games');
-  await expect(
-    page.locator('.mantine-Card-root .mantine-Badge-root', { hasText: 'Switch' }),
-  ).toBeVisible();
+  await expect(gameCards(page).filter({ hasText: 'Switch' })).toHaveCount(1);
 });

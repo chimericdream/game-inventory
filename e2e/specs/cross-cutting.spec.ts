@@ -99,9 +99,9 @@ test('X-02 another household’s data is unreachable by every route @security', 
   await page.goto('/games');
   await expect(page.getByText('Our Game')).toBeVisible();
   await expect(page.getByText(other.title)).toHaveCount(0);
-  await page.getByPlaceholder('Any tag').click();
-  await expect(page.getByRole('option', { name: 'otherfam' })).toHaveCount(0);
-  await page.keyboard.press('Escape');
+  const facets = page.getByRole('complementary', { name: 'Filters' });
+  await expect(facets.getByRole('link', { name: 'ours', exact: true })).toBeVisible();
+  await expect(facets.getByRole('link', { name: 'otherfam' })).toHaveCount(0);
 
   expect((await page.goto(`/games/${other.gameId}`))?.status()).toBe(404);
   expect((await page.goto(`/games/${other.gameId}/edit`))?.status()).toBe(404);

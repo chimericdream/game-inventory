@@ -152,7 +152,12 @@ describe('filtering in the database', () => {
     expect(titles(await listCatalogPage(admin, { availability: 'out' }))).toEqual(['Catan']);
     expect(titles(await listCatalogPage(admin, { availability: 'here' }))).toEqual(['Uno']);
     const row = (await listCatalogPage(admin)).rows[0]!;
-    expect(row.loan).toEqual({ borrower: 'Dana', dueOn: '2030-01-01', copiesOut: 1 });
+    expect(row.loan).toEqual({
+      borrower: 'Dana',
+      dueOn: '2030-01-01',
+      daysOut: 0,
+      copiesOut: 1,
+    });
 
     // Restricted profiles see no loan information, and the filter cannot be used to probe it.
     const kidPage = await listCatalogPage(kid, { availability: 'out' });

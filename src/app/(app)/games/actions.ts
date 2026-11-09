@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { requireContext } from '@/server/auth/current';
+import { listCatalogPage, parseCatalogFilters } from '@/server/data/catalog';
 import { addCopy, deleteCopy } from '@/server/data/copies';
 import {
   createGame,
@@ -15,6 +16,8 @@ import {
   type GameInput,
 } from '@/server/data/games';
 import { removeStored, saveCover } from '@/server/storage';
+
+import { toTile } from './tiles';
 
 export interface ActionState {
   error?: string;
@@ -127,4 +130,22 @@ export async function deleteCopyAction(gameId: string, copyId: string) {
   const { ctx } = await requireContext();
   await deleteCopy(ctx, copyId);
   revalidatePath(`/games/${gameId}`);
+}
+
+export type LoadMoreResult =
+  | { ok: true; tiles: ReturnType<typeof toTile>[]; hasMore: boolean }
+  | { ok: false; error: string };
+
+/**
+ * The next page of the library for "Load more". It reads the same filters the page was built
+ * from, goes through the same data layer, and returns only the fields a tile draws.
+ */
+export async function loadMoreGamesAction(query: string, page: number): Promise<LoadMoreResult> {
+  const { ctx } = await requireContext();
+  if (typeof query !== 'string' || query.length > 2000 || !Number.isInteger(page) || page < 2) {
+    return { ok: false, error: 'Could not load more games.' };
+  }
+  const filters = parseCatalogFilters(Object.fromEntries(new URLSearchParams(query)));
+  const result = await listCatalogPage(ctx, { ...filters, page });
+  return { ok: true, tiles: result.rows.map(toTile), hasMore: result.hasMore };
 }

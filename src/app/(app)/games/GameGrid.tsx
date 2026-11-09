@@ -47,6 +47,7 @@ export function GameGrid({
           <Card
             key={g.id}
             component={Link}
+            data-game-card
             href={`${linkBase}/${g.id}`}
             withBorder
             padding="sm"

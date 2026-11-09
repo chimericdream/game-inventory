@@ -157,8 +157,10 @@ test('LOAN-05 the catalog marks a lent-out game and the loan shows how soon it i
   await db.seedLoan(copy!.id as string, { borrower: 'Pat', dueOn: tomorrow });
 
   await page.goto('/games');
-  await expect(page.getByText('On loan')).toHaveCount(1);
-  await expect(page.getByRole('link', { name: /Lent Out/ }).getByText('On loan')).toBeVisible();
+  await expect(page.getByText(/Out with/)).toHaveCount(1);
+  await expect(
+    page.getByRole('link', { name: /Lent Out/ }).getByText('Out with Pat'),
+  ).toBeVisible();
 
   await page.goto('/loans');
   await expect(page.getByText('Due tomorrow')).toBeVisible();

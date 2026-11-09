@@ -1,0 +1,54 @@
+.cover {
+  --hue: #8a8a5e;
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--hue) 22%, var(--app-sunk));
+  container-type: inline-size;
+  isolation: isolate;
+}
+
+.cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The stand-in for a game with no picture, or whose picture is hidden from this profile. */
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1cqw;
+  padding: 8cqw;
+  border-top: 4px solid var(--hue);
+}
+
+.initial {
+  position: absolute;
+  top: 4cqw;
+  right: 8cqw;
+  font-family: var(--app-serif);
+  font-weight: 700;
+  font-size: 60cqw;
+  line-height: 1;
+  color: color-mix(in srgb, var(--hue) 55%, transparent);
+}
+
+.kind {
+  position: relative;
+  font-size: max(11px, 7cqw);
+  color: var(--app-muted);
+}
+
+/* Anything laid over the cover, such as the loan tag, sits along its bottom edge. */
+.overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
+}

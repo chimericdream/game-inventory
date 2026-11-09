@@ -79,7 +79,7 @@ test('AUTH-02 setup creates the household and admin and signs in @smoke', async 
   await page.getByRole('button', { name: 'Create household' }).click();
 
   await expect(page).toHaveURL(/\/games$/);
-  await expect(page.getByRole('heading', { name: 'Games' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Library', exact: true })).toBeVisible();
   await expect(page.getByText(ADMIN.name)).toBeVisible();
 
   const [user] = await sql`select role from users where email = ${ADMIN.email}`;

@@ -126,6 +126,8 @@ function conditions(ctx: DataContext, f: CatalogFilters, omit?: FilterKey): SQL[
 export interface CatalogLoan {
   borrower: string;
   dueOn: string | null;
+  /** Whole days since the oldest open loan on this game began. */
+  daysOut: number;
   copiesOut: number;
 }
 
@@ -150,7 +152,12 @@ async function hydrate(
       .where(and(eq(gameTags.householdId, ctx.householdId), inArray(gameTags.gameId, ids))),
     canSeeLoans(ctx)
       ? ctx.db
-          .select({ gameId: copies.gameId, borrower: loans.borrower, dueOn: loans.dueOn })
+          .select({
+            gameId: copies.gameId,
+            borrower: loans.borrower,
+            dueOn: loans.dueOn,
+            lentOn: loans.lentOn,
+          })
           .from(loans)
           .innerJoin(copies, eq(copies.id, loans.copyId))
           .where(
@@ -161,13 +168,20 @@ async function hydrate(
             ),
           )
           .orderBy(asc(loans.lentOn), asc(loans.id))
-      : Promise.resolve([] as { gameId: string; borrower: string; dueOn: string | null }[]),
+      : Promise.resolve(
+          [] as { gameId: string; borrower: string; dueOn: string | null; lentOn: string }[],
+        ),
   ]);
 
   return visible.map(({ game, board }) => {
     const out = loanRows.filter((l) => l.gameId === game.id);
     const loan: CatalogLoan | null = out[0]
-      ? { borrower: out[0].borrower, dueOn: out[0].dueOn, copiesOut: out.length }
+      ? {
+          borrower: out[0].borrower,
+          dueOn: out[0].dueOn,
+          daysOut: Math.max(0, Math.round((Date.now() - Date.parse(out[0].lentOn)) / 86_400_000)),
+          copiesOut: out.length,
+        }
       : null;
     return {
       ...game,

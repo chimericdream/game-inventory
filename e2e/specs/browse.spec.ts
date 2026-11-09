@@ -1,6 +1,10 @@
 import { expect, test } from '../fixtures';
 import { gameCards } from '../support/actions';
-import { chooseByPlaceholder } from '../support/mantine';
+import type { Page } from '@playwright/test';
+
+const searchbox = (page: Page) => page.getByRole('searchbox', { name: 'Search titles' });
+const filters = (page: Page) => page.getByRole('complementary', { name: 'Filters' });
+const resultCount = (page: Page) => page.locator('[data-result-count]');
 
 async function seedLibrary(db: typeof import('../support/db')) {
   const garage = await db.seedLocation('Garage');
@@ -42,8 +46,9 @@ async function seedLibrary(db: typeof import('../support/db')) {
 
 test('BRW-01 an empty library says so @smoke', async ({ page }) => {
   await page.goto('/games');
-  await expect(page.getByText('No games match.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Add game' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your library is empty' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Add your first game' })).toBeVisible();
+  await expect(gameCards(page)).toHaveCount(0);
 });
 
 test('BRW-02 text search is a case-insensitive substring match', async ({ page, db }) => {
@@ -51,22 +56,26 @@ test('BRW-02 text search is a case-insensitive substring match', async ({ page, 
   await page.goto('/games');
   await expect(gameCards(page)).toHaveCount(8);
 
-  await page.getByPlaceholder('Search titles').fill('cAtA');
+  await searchbox(page).fill('cAtA');
   await expect(page).toHaveURL(/q=cAtA/);
   await expect(gameCards(page)).toHaveCount(1);
   await expect(gameCards(page)).toContainText('Catan');
 
-  await page.getByPlaceholder('Search titles').fill('zzz-nothing');
-  await expect(page.getByText('No games match.')).toBeVisible();
+  await searchbox(page).fill('zzz-nothing');
+  await expect(page.getByRole('heading', { name: 'No games match' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Clear search' }).click();
+  await expect(page).toHaveURL(/\/games$/);
+  await expect(gameCards(page)).toHaveCount(8);
 });
 
 test('BRW-02b search treats % and _ literally', async ({ page, db }) => {
   await seedLibrary(db);
   await page.goto('/games');
-  await page.getByPlaceholder('Search titles').fill('%');
+  await searchbox(page).fill('%');
   await expect(gameCards(page)).toHaveCount(1);
   await expect(gameCards(page)).toContainText('100% Orange Juice');
-  await page.getByPlaceholder('Search titles').fill('_');
+  await searchbox(page).fill('_');
   await expect(gameCards(page)).toHaveCount(1);
   await expect(gameCards(page)).toContainText('Under_score');
 });
@@ -74,10 +83,14 @@ test('BRW-02b search treats % and _ literally', async ({ page, db }) => {
 test('BRW-03 type filter', async ({ page, db }) => {
   await seedLibrary(db);
   await page.goto('/games');
-  await chooseByPlaceholder(page, 'Any type', 'RPG');
+  await filters(page).getByRole('link', { name: /^RPG/ }).click();
   await expect(page).toHaveURL(/type=rpg/);
   await expect(gameCards(page)).toHaveCount(1);
   await expect(gameCards(page)).toContainText('Player Handbook');
+  await expect(filters(page).getByRole('link', { name: /^RPG/ })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
 });
 
 test('BRW-03b player count filter includes the edges and excludes games without player data', async ({
@@ -111,12 +124,14 @@ test('BRW-03c max play time filter is inclusive', async ({ page, db }) => {
 test('BRW-04 tag and location filters', async ({ page, db }) => {
   await seedLibrary(db);
   await page.goto('/games');
-  await chooseByPlaceholder(page, 'Any tag', 'coop');
+  await filters(page).getByRole('link', { name: 'coop', exact: true }).click();
   await expect(gameCards(page)).toHaveCount(1);
   await expect(gameCards(page)).toContainText('Pandemic');
 
   await page.goto('/games');
-  await chooseByPlaceholder(page, 'Any location', 'Garage');
+  await filters(page)
+    .getByRole('link', { name: /^Garage/ })
+    .click();
   await expect(gameCards(page)).toHaveCount(1);
   await expect(gameCards(page)).toContainText('Catan');
 });
@@ -124,21 +139,41 @@ test('BRW-04 tag and location filters', async ({ page, db }) => {
 test('BRW-05 filters combine, live in the URL, survive reload and clear', async ({ page, db }) => {
   await seedLibrary(db);
   await page.goto('/games');
-  await chooseByPlaceholder(page, 'Any tag', 'strategy');
+  await filters(page).getByRole('link', { name: 'strategy', exact: true }).click();
   await expect(gameCards(page)).toHaveCount(2);
-  await page.getByPlaceholder('Max minutes').fill('60');
+  await filters(page).getByRole('link', { name: 'Up to 60 minutes' }).click();
   await expect(page).toHaveURL(/maxMinutes=60/);
   await expect(gameCards(page)).toHaveCount(1);
   await expect(gameCards(page)).toContainText('Pandemic');
 
   await page.reload();
   await expect(gameCards(page)).toHaveCount(1);
-  await expect(page.getByPlaceholder('Max minutes')).toHaveValue('60');
+  await expect(filters(page).getByRole('link', { name: 'Up to 60 minutes' })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
 
-  await page.getByRole('button', { name: 'Clear' }).click();
+  // Each active filter is a removable chip; "Clear all" removes everything.
+  await page.getByRole('link', { name: 'Remove filter: Up to 60 min' }).click();
+  await expect(gameCards(page)).toHaveCount(2);
+  await page.getByRole('link', { name: 'Clear all' }).click();
   await expect(page).toHaveURL(/\/games$/);
   await expect(gameCards(page)).toHaveCount(8);
-  await expect(page.getByRole('button', { name: 'Clear' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Clear all' })).toHaveCount(0);
+});
+
+test('BRW-05c a nested location filter includes everything underneath it', async ({ page, db }) => {
+  const garage = await db.seedLocation('Garage');
+  const shelf = await db.seedLocation('Shelf 2', garage);
+  await db.seedGame({ title: 'On The Shelf', copies: [{ locationId: shelf }] });
+  await db.seedGame({ title: 'In The Garage', copies: [{ locationId: garage }] });
+  await db.seedGame({ title: 'Elsewhere', copies: [{}] });
+  await page.goto('/games');
+  await filters(page)
+    .getByRole('link', { name: /^Garage/ })
+    .click();
+  await expect(gameCards(page)).toHaveCount(2);
+  await expect(gameCards(page).filter({ hasText: 'Elsewhere' })).toHaveCount(0);
 });
 
 test('BRW-05b a malformed filter value in the URL shows no games instead of an error', async ({
@@ -148,7 +183,7 @@ test('BRW-05b a malformed filter value in the URL shows no games instead of an e
   await seedLibrary(db);
   const res = await page.goto('/games?location=not-a-uuid');
   expect(res?.status()).toBe(200);
-  await expect(page.getByText('No games match.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No games match' })).toBeVisible();
   for (const q of ['players=abc', 'maxMinutes=-5', 'type=bogus']) {
     const r = await page.goto(`/games?${q}`);
     expect(r?.status(), q).toBe(200);
@@ -159,34 +194,54 @@ test('BRW-05b a malformed filter value in the URL shows no games instead of an e
 test('BRW-06 the result count is right, including the singular', async ({ page, db }) => {
   await seedLibrary(db);
   await page.goto('/games');
-  await expect(page.getByText('8 games', { exact: true })).toBeVisible();
+  await expect(resultCount(page)).toHaveText('8 games');
   await page.goto('/games?q=zelda');
-  await expect(page.getByText('1 game', { exact: true })).toBeVisible();
+  await expect(resultCount(page)).toHaveText('1 game');
 });
 
-test('BRW-07 a library of 500 games is paged, in title order, with the total shown', async ({
+test('BRW-06b the summary line describes the whole library, not the filter', async ({
+  page,
+  db,
+}) => {
+  await seedLibrary(db);
+  await page.goto('/games?q=zelda');
+  await expect(page.getByText(/8 games on 2 shelves/)).toBeVisible();
+});
+
+test('BRW-07 a library of 500 games loads a page at a time, in title order', async ({
   page,
   db,
 }) => {
   await db.seedMany(500);
   const started = Date.now();
   await page.goto('/games');
-  await expect(page.getByText('500 games', { exact: true })).toBeVisible();
+  await expect(resultCount(page)).toHaveText('500 games');
   expect(Date.now() - started).toBeLessThan(10_000);
   await expect(gameCards(page)).toHaveCount(48);
   await expect(gameCards(page).first()).toContainText('Bulk Game 0001');
   await expect(gameCards(page).last()).toContainText('Bulk Game 0048');
+  await expect(page.getByText('Showing 48 of 500')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Next' }).click();
-  await expect(page).toHaveURL(/page=2/);
-  await expect(gameCards(page)).toHaveCount(48);
-  await expect(gameCards(page).first()).toContainText('Bulk Game 0049');
-  await expect(page.getByRole('link', { name: 'Previous' })).toBeVisible();
+  await page.getByRole('button', { name: 'Load more' }).click();
+  await expect(gameCards(page)).toHaveCount(96);
+  await expect(gameCards(page).nth(48)).toContainText('Bulk Game 0049');
+  await expect(page.getByText('Showing 96 of 500')).toBeVisible();
 
-  await page.goto('/games?page=11');
-  await expect(gameCards(page)).toHaveCount(20);
-  await expect(gameCards(page).last()).toContainText('Bulk Game 0500');
-  await expect(page.getByRole('link', { name: 'Next' })).toHaveCount(0);
+  // Changing a filter starts a fresh shelf instead of appending to the old one.
+  await searchbox(page).fill('Bulk Game 0007');
+  await expect(gameCards(page)).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Load more' })).toHaveCount(0);
+});
+
+test('BRW-07b sorting by newest puts the latest additions first', async ({ page, db }) => {
+  await db.seedGame({ title: 'Aardvark' });
+  await db.sql`update games set created_at = now() - interval '2 days' where title = 'Aardvark'`;
+  await db.seedGame({ title: 'Zebra' });
+  await page.goto('/games');
+  await expect(gameCards(page).first()).toContainText('Aardvark');
+  await page.getByRole('link', { name: 'Newest first' }).click();
+  await expect(page).toHaveURL(/sort=newest/);
+  await expect(gameCards(page).first()).toContainText('Zebra');
 });
 
 test('BRW-08 a card opens its game, and back returns to the same filtered list', async ({
