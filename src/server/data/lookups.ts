@@ -15,6 +15,33 @@ export async function listLocations(ctx: DataContext) {
     .orderBy(asc(locations.name));
 }
 
+/**
+ * Locations as picker options: "Office › Small bookcase" labels, ordered as a tree so every
+ * child sits directly under its parent.
+ */
+export async function listLocationOptions(
+  ctx: DataContext,
+): Promise<{ value: string; label: string }[]> {
+  const locs = await listLocations(ctx);
+  const children = new Map<string | null, typeof locs>();
+  const ids = new Set(locs.map((l) => l.id));
+  for (const l of locs) {
+    // An orphan (parent missing) is treated as a root so it never disappears.
+    const key = l.parentId && ids.has(l.parentId) ? l.parentId : null;
+    children.set(key, [...(children.get(key) ?? []), l]);
+  }
+  const out: { value: string; label: string }[] = [];
+  const walk = (parent: string | null, prefix: string) => {
+    for (const l of children.get(parent) ?? []) {
+      const label = prefix ? `${prefix} › ${l.name}` : l.name;
+      out.push({ value: l.id, label });
+      walk(l.id, label);
+    }
+  };
+  walk(null, '');
+  return out;
+}
+
 export interface LocationWithCounts {
   id: string;
   name: string;

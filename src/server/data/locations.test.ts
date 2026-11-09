@@ -8,7 +8,7 @@ import { createTestDb } from '../db/test-db';
 import { createContext, type DataContext } from './context';
 import { addCopy, deleteCopy } from './copies';
 import { createGame } from './games';
-import { createLocation, deleteLocation } from './lookups';
+import { createLocation, deleteLocation, listLocationOptions } from './lookups';
 
 let db: Db;
 let admin: DataContext;
@@ -111,5 +111,20 @@ describe('deleting a location', () => {
   it('will not create a location under another household’s parent', async () => {
     const theirs = await createLocation(other, 'Their attic');
     await expect(createLocation(admin, 'Mine', theirs.id)).rejects.toThrow(/Unknown parent/);
+  });
+
+  it('orders picker options as a tree with children directly under their parent', async () => {
+    const office = await createLocation(admin, 'Office');
+    await createLocation(admin, 'Big Kallax', office.id);
+    const small = await createLocation(admin, 'Small bookcase', office.id);
+    await createLocation(admin, 'Attic');
+    await createLocation(admin, 'Top shelf', small.id);
+    expect((await listLocationOptions(admin)).map((o) => o.label)).toEqual([
+      'Attic',
+      'Office',
+      'Office › Big Kallax',
+      'Office › Small bookcase',
+      'Office › Small bookcase › Top shelf',
+    ]);
   });
 });
