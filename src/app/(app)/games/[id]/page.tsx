@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 
 import { LinkButton } from '@/components/Links';
 import { CoverTile } from '@/components/shelf/CoverTile';
-import { TYPE_LABELS } from '@/components/shelf/types';
+import { TYPE_LABELS, TYPE_PLURALS } from '@/components/shelf/types';
 import { longDate } from '@/lib/dates';
 import { requireContext } from '@/server/auth/current';
 import { lastEdit } from '@/server/data/audit';
@@ -90,7 +90,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
       <nav className={classes.crumbs} aria-label="Breadcrumb">
         <Link href="/games">Library</Link>
         <span aria-hidden>›</span>
-        <span>{TYPE_LABELS[game.type]}</span>
+        <Link href={`/games?type=${game.type}`}>
+          {TYPE_PLURALS[game.type] ?? TYPE_LABELS[game.type]}
+        </Link>
       </nav>
 
       <div className={classes.layout}>
