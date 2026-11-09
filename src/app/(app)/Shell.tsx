@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { LinkButton, LinkIconButton } from '@/components/Links';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { NavCounts } from '@/server/data/nav';
 
 import { logoutAction } from '../(auth)/actions';
@@ -118,6 +119,7 @@ export function Shell({ user, counts, children }: Props) {
                   </LinkIconButton>
                 </>
               )}
+              <ThemeToggle />
               <Group gap="xs" wrap="nowrap" className={classes.who}>
                 <Avatar color="forest" radius="xl" size={36} aria-hidden>
                   {user.name.slice(0, 1).toUpperCase()}
