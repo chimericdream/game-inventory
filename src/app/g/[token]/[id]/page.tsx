@@ -1,11 +1,12 @@
-import { Badge, Container, Group, Image, Stack, Text, Title } from '@mantine/core';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 
-import { LinkAnchor } from '@/components/Links';
+import { CoverTile } from '@/components/shelf/CoverTile';
+import { TYPE_LABELS } from '@/components/shelf/types';
 import { guestGame, resolveShareLink } from '@/server/data/guest';
 import { getDb } from '@/server/db/client';
 
-import { TYPE_LABELS, playersLabel } from '../../../(app)/games/labels';
+import classes from '../Guest.module.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,53 +24,63 @@ export default async function GuestGamePage({
   const game = await guestGame(db, link, id);
   if (!game) notFound();
 
+  const board = game.board;
+  const players =
+    board?.minPlayers && board?.maxPlayers && board.minPlayers !== board.maxPlayers
+      ? `${board.minPlayers}–${board.maxPlayers} players`
+      : board?.minPlayers || board?.maxPlayers
+        ? `${board.minPlayers ?? board.maxPlayers} ${(board.minPlayers ?? board.maxPlayers) === 1 ? 'player' : 'players'}`
+        : null;
   const facts = [
-    playersLabel(game.board?.minPlayers, game.board?.maxPlayers),
-    game.board?.playTimeMinutes ? `${game.board.playTimeMinutes} min` : null,
-    game.board?.complexity ? `Complexity ${game.board.complexity}/5` : null,
-    game.board?.minAge ? `Ages ${game.board.minAge}+` : null,
+    players,
+    board?.playTimeMinutes ? `${board.playTimeMinutes} min` : null,
+    board?.complexity ? `Complexity ${board.complexity} of 5` : null,
+    board?.minAge ? `Ages ${board.minAge}+` : null,
   ].filter(Boolean);
 
   return (
-    <Container size="md" py="lg">
-      <LinkAnchor href={`/g/${token}`} size="sm">
+    <div className={classes.page}>
+      <Link href={`/g/${token}`} className={classes.back}>
         ← All games
-      </LinkAnchor>
-      <Stack gap="md" mt="sm">
-        <div>
-          <Title order={1} lineClamp={2} title={game.title}>
-            {game.title}
-          </Title>
-          <Group gap="xs" mt={4}>
-            <Badge variant="light">{TYPE_LABELS[game.type]}</Badge>
-            {game.platforms.map((p) => (
-              <Badge key={p} variant="default">
-                {p}
-              </Badge>
-            ))}
-            {game.tags.map((t) => (
-              <Badge key={t} variant="default">
-                {t}
-              </Badge>
-            ))}
-          </Group>
+      </Link>
+      <div className={classes.detail}>
+        <div className={classes.stand}>
+          <CoverTile
+            title={game.title}
+            type={game.type}
+            src={game.coverImage ? `/g/${token}/cover/${game.id}` : null}
+          />
         </div>
-        <Group align="flex-start" wrap="nowrap">
-          {game.coverImage && (
-            <Image src={`/g/${token}/cover/${game.id}`} alt="" w={220} radius="md" />
+        <div>
+          <h1 className={classes.title}>{game.title}</h1>
+          <p className={classes.lead}>
+            {[TYPE_LABELS[game.type], ...game.platforms].filter(Boolean).join(' · ')}
+          </p>
+          {facts.length > 0 && (
+            <ul className={classes.facts}>
+              {facts.map((f) => (
+                <li key={f} className={classes.fact}>
+                  {f}
+                </li>
+              ))}
+            </ul>
           )}
-          <Stack gap="xs">
-            {facts.length > 0 && <Text>{facts.join(' · ')}</Text>}
-            {game.description && <Text>{game.description}</Text>}
-            {game.notes && <Text c="dimmed">{game.notes}</Text>}
-            {game.locations.length > 0 && (
-              <Text size="sm" c="dimmed">
-                Kept in: {game.locations.join(', ')}
-              </Text>
-            )}
-          </Stack>
-        </Group>
-      </Stack>
-    </Container>
+          {game.description && <p className={classes.text}>{game.description}</p>}
+          {game.tags.length > 0 && (
+            <ul className={classes.tags} aria-label="Tags">
+              {game.tags.map((t) => (
+                <li key={t} className={classes.tag}>
+                  {t}
+                </li>
+              ))}
+            </ul>
+          )}
+          {game.notes && <p className={classes.note}>{game.notes}</p>}
+          {game.locations.length > 0 && (
+            <p className={classes.kept}>Kept in: {game.locations.join(', ')}</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

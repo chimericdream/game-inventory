@@ -174,7 +174,7 @@ test('GST-06 guest search narrows the list @security', async ({ anonPage, db }) 
   await seed(db);
   const token = await db.seedShareLink();
   await anonPage.goto(`/g/${token}`);
-  await anonPage.getByPlaceholder('Search titles').fill('rpg');
+  await anonPage.getByRole('searchbox', { name: 'Search titles' }).fill('rpg');
   await expect(anonPage).toHaveURL(/q=rpg/);
   await expect(gameCards(anonPage)).toHaveCount(1);
   await expect(gameCards(anonPage)).toContainText('Shared RPG');

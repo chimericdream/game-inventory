@@ -198,10 +198,43 @@ async function hydrate(db: Db, link: ShareLink, ids: string[]) {
   return { tagRows, copyRows };
 }
 
+export interface GuestFilters {
+  search?: string;
+  type?: string;
+  players?: number;
+  maxMinutes?: number;
+  /** Paging, so a long shelf is never sent all at once. */
+  limit?: number;
+  offset?: number;
+}
+
+/** How many games a guest could see under these filters (ignores paging). */
+export async function guestCatalogCount(
+  db: Db,
+  link: ShareLink,
+  filters: GuestFilters = {},
+): Promise<number> {
+  const conds = guestConditions(link);
+  for (const shared of [
+    searchCondition(filters.search),
+    playersCondition(filters.players),
+    maxMinutesCondition(filters.maxMinutes),
+  ]) {
+    if (shared) conds.push(shared);
+  }
+  if (filters.type) conds.push(eq(games.type, filters.type as never));
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(games)
+    .leftJoin(boardGameDetails, eq(boardGameDetails.gameId, games.id))
+    .where(and(...conds));
+  return row?.n ?? 0;
+}
+
 export async function guestCatalog(
   db: Db,
   link: ShareLink,
-  filters: { search?: string; type?: string; players?: number; maxMinutes?: number } = {},
+  filters: GuestFilters = {},
   onlyId?: string,
 ): Promise<GuestGame[]> {
   if (onlyId !== undefined && !isUuid(onlyId)) return [];
@@ -235,7 +268,9 @@ export async function guestCatalog(
     .from(games)
     .leftJoin(boardGameDetails, eq(boardGameDetails.gameId, games.id))
     .where(and(...conds))
-    .orderBy(asc(games.title));
+    .orderBy(asc(games.title), asc(games.id))
+    .limit(filters.limit ?? 5000)
+    .offset(filters.offset ?? 0);
 
   const { tagRows, copyRows } = await hydrate(
     db,

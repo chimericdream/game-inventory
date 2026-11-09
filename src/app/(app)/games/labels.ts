@@ -31,10 +31,3 @@ export const CONDITION_OPTIONS = Object.entries(CONDITION_LABELS).map(([value, l
   value,
   label,
 }));
-
-export function playersLabel(min?: number | null, max?: number | null) {
-  if (!min && !max) return null;
-  if (min && max && min !== max) return `${min}–${max} players`;
-  const n = min ?? max;
-  return `${n} player${n === 1 ? '' : 's'}`;
-}

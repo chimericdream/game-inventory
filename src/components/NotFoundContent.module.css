@@ -1,0 +1,73 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+  min-height: 100vh;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  background: var(--app-ground);
+  color: var(--app-ink);
+
+  & h1,
+  & p {
+    margin: 0;
+  }
+
+  & p {
+    color: var(--app-muted);
+    font-size: 18px;
+  }
+}
+
+/* A shelf with one empty slot. */
+.shelf {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 10px;
+    background: var(--app-plank);
+  }
+}
+
+.book {
+  width: 56px;
+  height: 120px;
+  border-radius: 3px;
+}
+
+.gap {
+  width: 56px;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--app-accent);
+  color: var(--app-on-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Inside the app shell the page ground and height come from the shell. */
+.inShell {
+  min-height: 0;
+  margin: 0;
+  padding: 24px 0 48px;
+  background: transparent;
+}
