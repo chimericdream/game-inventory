@@ -52,6 +52,26 @@ export default defineConfig({
         permissions: ['camera'],
       },
     },
+    // Visual reference screenshots: E2E_SCREENSHOTS=1 pnpm shots
+    ...(process.env.E2E_SCREENSHOTS
+      ? [
+          {
+            name: 'screenshots',
+            testDir: './e2e/screenshots',
+            testMatch: /.shots.ts/,
+            dependencies: ['setup'],
+            use: {
+              ...devices['Desktop Chrome'],
+              viewport: { width: 1440, height: 900 },
+              storageState: ADMIN.storageState,
+              launchOptions: {
+                args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+              },
+              permissions: ['camera' as const],
+            },
+          },
+        ]
+      : []),
     // Slower cross-browser pass over the @smoke tests: E2E_BROWSERS=all pnpm e2e
     ...(process.env.E2E_BROWSERS === 'all'
       ? (['firefox', 'webkit'] as const).map((name) => ({

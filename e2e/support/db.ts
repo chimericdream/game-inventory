@@ -38,7 +38,7 @@ export interface SeedGame {
   minAge?: number | null;
   system?: string | null;
   bookKind?: string | null;
-  cover?: boolean;
+  cover?: boolean | Buffer;
   /** Seed copies in the same call. */
   copies?: SeedCopy[];
   householdId?: string;
@@ -115,17 +115,21 @@ export async function seedGame(g: SeedGame): Promise<string> {
     await sql`insert into game_tags (household_id, game_id, tag_id) values (${hh}, ${id}, ${tagId})`;
   }
   for (const c of g.copies ?? []) await seedCopy(id, c, hh);
-  if (g.cover) await seedCover(id, hh);
+  if (g.cover) await seedCover(id, hh, Buffer.isBuffer(g.cover) ? g.cover : undefined);
   return id;
 }
 
 /** Writes a real PNG into DATA_DIR and points the game at it. Returns the relative path. */
-export async function seedCover(gameId: string, hhId?: string): Promise<string> {
+export async function seedCover(
+  gameId: string,
+  hhId?: string,
+  image: Buffer = TINY_PNG,
+): Promise<string> {
   const hh = hhId ?? (await householdId());
   const rel = path.posix.join('covers', hh, `${gameId}-seed.png`);
   const abs = path.join(DATA_DIR, rel);
   mkdirSync(path.dirname(abs), { recursive: true });
-  writeFileSync(abs, TINY_PNG);
+  writeFileSync(abs, image);
   await sql`update games set cover_image = ${rel} where id = ${gameId}`;
   return rel;
 }

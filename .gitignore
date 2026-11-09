@@ -10,3 +10,4 @@ next-env.d.ts
 /e2e/.tmp/
 /playwright-report/
 /test-results/
+/screenshots/

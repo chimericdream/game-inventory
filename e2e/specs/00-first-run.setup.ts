@@ -9,7 +9,10 @@ import { login } from '../support/auth';
 import { sql } from '../support/db';
 import { BASE_URL } from '../support/env';
 import { PASSWORD, choose, formWith } from '../support/mantine';
+import { shot } from '../screenshots/shot';
 import { ACCOUNTS, ADMIN, KID, MEMBER } from '../support/roles';
+
+const SHOTS = !!process.env.E2E_SCREENSHOTS;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -23,6 +26,17 @@ test('AUTH-01 empty database sends every entry point to /setup @smoke', async ({
     await expect(page).toHaveURL(/\/setup$/);
   }
   await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();
+  if (SHOTS) {
+    await shot(
+      page,
+      '01-auth',
+      '00-first-run-setup-empty',
+      'First-run setup page on an empty database.',
+      {
+        viewer: 'anonymous',
+      },
+    );
+  }
 });
 
 test('AUTH-03 setup validation creates nothing', async ({ page }) => {
@@ -33,6 +47,17 @@ test('AUTH-03 setup validation creates nothing', async ({ page }) => {
   await page.getByLabel(PASSWORD).fill('short');
   await page.getByRole('button', { name: 'Create household' }).click();
   await expect(page.getByText('Use at least 8 characters')).toBeVisible();
+  if (SHOTS) {
+    await shot(
+      page,
+      '01-auth',
+      '00-first-run-setup-password-error',
+      'First-run setup with every field filled and a too-short password error.',
+      {
+        viewer: 'anonymous',
+      },
+    );
+  }
   await expect(page).toHaveURL(/\/setup$/);
 
   // The browser itself blocks an invalid email address, so the form is never submitted.
