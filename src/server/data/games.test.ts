@@ -3,10 +3,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { setupHousehold, createUser } from '../auth/accounts';
 import type { Db } from '../db/client';
 import { createTestDb } from '../db/test-db';
-import { addCopy } from './copies';
+import { addCopy, updateCopy } from './copies';
 import { createContext, type DataContext } from './context';
 import { listCatalog } from './catalog';
 import { createGame, deleteGame, getGameDetail, updateGame } from './games';
+import { createLocation } from './lookups';
 
 let db: Db;
 let admin: DataContext;
@@ -58,6 +59,32 @@ describe('catalog', () => {
     expect(detail?.board?.maxPlayers).toBe(4);
     expect(detail?.tags.toSorted()).toEqual(['Classic', 'Strategy']);
     expect(detail?.copies).toHaveLength(1);
+  });
+
+  it('shows a copy’s full location path and lets it be edited', async () => {
+    const office = await createLocation(admin, 'Office');
+    const kallax = await createLocation(admin, 'Small Kallax', office.id);
+    const game = await createGame(admin, { title: 'Catan', type: 'board', tags: [] });
+    const copy = await addCopy(admin, game.id, { locationId: kallax.id, notes: 'Gift' });
+    expect((await getGameDetail(admin, game.id))?.copies[0]?.locationName).toBe(
+      'Office › Small Kallax',
+    );
+
+    await updateCopy(admin, copy.id, {
+      locationId: office.id,
+      condition: 'worn',
+      priceCents: 1999,
+      notes: 'Gift',
+    });
+    const [edited] = (await getGameDetail(admin, game.id))!.copies;
+    expect(edited).toMatchObject({
+      locationName: 'Office',
+      condition: 'worn',
+      priceCents: 1999,
+      notes: 'Gift',
+    });
+    await expect(updateCopy(kid, copy.id, { condition: 'good' })).rejects.toThrow(/cannot/);
+    expect(await updateCopy(otherHousehold, copy.id, { condition: 'good' })).toBeNull();
   });
 
   it('filters by players, time, type, tag and search', async () => {

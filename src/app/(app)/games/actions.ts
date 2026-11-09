@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { requireContext } from '@/server/auth/current';
 import { listCatalogPage, parseCatalogFilters } from '@/server/data/catalog';
-import { addCopy, deleteCopy } from '@/server/data/copies';
+import { addCopy, deleteCopy, updateCopy } from '@/server/data/copies';
 import {
   createGame,
   deleteGame,
@@ -22,6 +22,7 @@ import { toTile } from './tiles';
 
 export interface ActionState {
   error?: string;
+  saved?: boolean;
 }
 
 const text = (fd: FormData, key: string) => {
@@ -125,6 +126,34 @@ export async function addCopyAction(
   }
   revalidatePath(`/games/${gameId}`);
   return {};
+}
+
+export async function updateCopyAction(
+  gameId: string,
+  copyId: string,
+  _prev: ActionState,
+  fd: FormData,
+): Promise<ActionState> {
+  const { ctx } = await requireContext();
+  const price = text(fd, 'price');
+  try {
+    const updated = await updateCopy(ctx, copyId, {
+      format: (text(fd, 'format') ?? 'physical') as 'physical' | 'digital',
+      platform: text(fd, 'platform'),
+      condition: (text(fd, 'condition') ?? 'good') as 'good',
+      conditionNotes: text(fd, 'conditionNotes'),
+      ownerUserId: text(fd, 'ownerUserId'),
+      locationId: text(fd, 'locationId'),
+      acquiredOn: text(fd, 'acquiredOn'),
+      priceCents: price ? Math.round(Number(price) * 100) : null,
+      notes: text(fd, 'notes'),
+    });
+    if (!updated) return { error: 'Copy not found.' };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Could not save copy.' };
+  }
+  revalidatePath(`/games/${gameId}`);
+  return { saved: true };
 }
 
 export async function deleteCopyAction(gameId: string, copyId: string) {

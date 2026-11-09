@@ -7,7 +7,6 @@ import {
   gameTags,
   games,
   loans,
-  locations,
   puzzleDetails,
   rpgDetails,
   tags,
@@ -22,6 +21,7 @@ import {
 } from './audit';
 import type { DataContext } from './context';
 import { isUuid } from './ids';
+import { listLocationOptions } from './lookups';
 import { gameVisibilityCondition, redactGame } from './visibility';
 
 const optionalInt = z.number().int().positive().nullable().optional();
@@ -79,11 +79,11 @@ export async function getGameDetail(ctx: DataContext, id: string) {
   const game = redactGame(row.game, ctx.viewer);
   if (!game) return null;
 
-  const [copyRows, tagRows, openLoans] = await Promise.all([
+  const [locationOptions, copyRows, tagRows, openLoans] = await Promise.all([
+    listLocationOptions(ctx),
     ctx.db
-      .select({ copy: copies, locationName: locations.name })
+      .select({ copy: copies })
       .from(copies)
-      .leftJoin(locations, eq(locations.id, copies.locationId))
       .where(and(eq(copies.gameId, id), eq(copies.householdId, ctx.householdId))),
     ctx.db
       .select({ name: tags.name })
@@ -106,6 +106,7 @@ export async function getGameDetail(ctx: DataContext, id: string) {
           )
           .then((rows) => rows.map((r) => r.loan)),
   ]);
+  const locationLabel = new Map(locationOptions.map((o) => [o.value, o.label]));
   const loanByCopy = new Map(
     openLoans.map((l) => [
       l.copyId,
@@ -119,7 +120,8 @@ export async function getGameDetail(ctx: DataContext, id: string) {
     puzzle: row.puzzle,
     copies: copyRows.map((c) => ({
       ...c.copy,
-      locationName: c.locationName,
+      /** Full path such as "Office › Small Kallax". */
+      locationName: c.copy.locationId ? (locationLabel.get(c.copy.locationId) ?? null) : null,
       loan: loanByCopy.get(c.copy.id) ?? null,
     })),
     tags: tagRows.map((t) => t.name),
