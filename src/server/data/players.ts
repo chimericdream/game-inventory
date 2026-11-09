@@ -1,8 +1,8 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Db } from '../db/client';
-import { playParticipants, players } from '../db/schema';
-import { createdFields, recordAudit } from './audit';
+import { playParticipants, players, users } from '../db/schema';
+import { createdFields, deletedFields, recordAudit, stampUpdate } from './audit';
 import type { DataContext } from './context';
 
 /**
@@ -158,4 +158,192 @@ export async function loadParticipants(db: Db, householdId: string, playIds: str
     map.set(playId, list);
   }
   return map;
+}
+
+// ---------------------------------------------------------------------------
+// Admin operations: rename, delete, link to an account, merge duplicates
+// ---------------------------------------------------------------------------
+
+function assertAdmin(ctx: DataContext) {
+  if (ctx.viewer.role !== 'admin') throw new Error('Only admins can manage players');
+}
+
+async function getPlayer(db: Db, householdId: string, id: string) {
+  const [row] = await db
+    .select()
+    .from(players)
+    .where(and(eq(players.id, id), eq(players.householdId, householdId)));
+  return row ?? null;
+}
+
+async function countPlays(db: Db, playerId: string) {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(playParticipants)
+    .where(eq(playParticipants.playerId, playerId));
+  return row?.n ?? 0;
+}
+
+export async function renamePlayer(ctx: DataContext, id: string, rawName: string) {
+  assertAdmin(ctx);
+  const name = cleanName(rawName);
+  if (!name) throw new Error('A player needs a name');
+  if (name.length > 60) throw new Error('Player names are limited to 60 characters');
+  return ctx.db.transaction(async (tx) => {
+    const before = await getPlayer(tx, ctx.householdId, id);
+    if (!before) return false;
+    if (before.displayName === name) return true;
+    await tx
+      .update(players)
+      .set({ displayName: name, ...stampUpdate(ctx) })
+      .where(eq(players.id, id));
+    await recordAudit(tx, ctx, {
+      entityType: 'player',
+      entityId: id,
+      action: 'update',
+      changes: { displayName: [before.displayName, name] },
+    });
+    return true;
+  });
+}
+
+export type DeletePlayerResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_found' | 'has_plays' | 'is_user'; plays?: number };
+
+/** Only a player with no plays and no account can be deleted. Otherwise merge or keep it. */
+export async function deletePlayer(ctx: DataContext, id: string): Promise<DeletePlayerResult> {
+  assertAdmin(ctx);
+  return ctx.db.transaction(async (tx): Promise<DeletePlayerResult> => {
+    const player = await getPlayer(tx, ctx.householdId, id);
+    if (!player) return { ok: false, reason: 'not_found' };
+    if (player.userId) return { ok: false, reason: 'is_user' };
+    const plays = await countPlays(tx, id);
+    if (plays > 0) return { ok: false, reason: 'has_plays', plays };
+    await tx.delete(players).where(eq(players.id, id));
+    await recordAudit(tx, ctx, {
+      entityType: 'player',
+      entityId: id,
+      action: 'delete',
+      changes: deletedFields({ displayName: player.displayName }),
+    });
+    return { ok: true };
+  });
+}
+
+export type MergePlayersResult =
+  | { ok: true; survivorId: string; moved: number }
+  | { ok: false; reason: 'not_found' | 'same_player' | 'both_linked' };
+
+/**
+ * Moves every play of `fromId` onto `intoId` and deletes `fromId`. If exactly one of the two is
+ * linked to an account, that one survives whichever way round they were passed, so an account is
+ * never orphaned. A session both took part in keeps a single row.
+ */
+export async function mergePlayers(
+  ctx: DataContext,
+  fromId: string,
+  intoId: string,
+): Promise<MergePlayersResult> {
+  assertAdmin(ctx);
+  if (fromId === intoId) return { ok: false, reason: 'same_player' };
+  return ctx.db.transaction(async (tx): Promise<MergePlayersResult> => {
+    const [a, b] = await Promise.all([
+      getPlayer(tx, ctx.householdId, fromId),
+      getPlayer(tx, ctx.householdId, intoId),
+    ]);
+    if (!a || !b) return { ok: false, reason: 'not_found' };
+    if (a.userId && b.userId) return { ok: false, reason: 'both_linked' };
+    const [gone, survivor] = a.userId ? [b, a] : [a, b];
+
+    const moved = await countPlays(tx, gone.id);
+    await tx.execute(sql`
+      insert into play_participants (household_id, play_id, player_id)
+      select household_id, play_id, ${survivor.id}::uuid
+      from play_participants where player_id = ${gone.id}::uuid
+      on conflict do nothing`);
+    await tx.delete(players).where(eq(players.id, gone.id)); // cascades its old participant rows
+    await tx
+      .update(players)
+      .set({ ...stampUpdate(ctx) })
+      .where(eq(players.id, survivor.id));
+    await recordAudit(tx, ctx, {
+      entityType: 'player',
+      entityId: survivor.id,
+      action: 'update',
+      changes: { merged: [null, { id: gone.id, displayName: gone.displayName, plays: moved }] },
+    });
+    await recordAudit(tx, ctx, {
+      entityType: 'player',
+      entityId: gone.id,
+      action: 'delete',
+      changes: { displayName: [gone.displayName, null], mergedInto: [null, survivor.id] },
+    });
+    return { ok: true, survivorId: survivor.id, moved };
+  });
+}
+
+export type LinkPlayerResult =
+  | { ok: true; playerId: string; moved: number }
+  | { ok: false; reason: 'not_found' | 'already_linked' };
+
+/**
+ * Says that a non-user player (say, a visiting friend named John) is the same person as an
+ * account. If the account already has its own player (every account does), the history is merged
+ * into it; the account's player survives and keeps the account's name.
+ */
+export async function linkPlayerToUser(
+  ctx: DataContext,
+  playerId: string,
+  userId: string,
+): Promise<LinkPlayerResult> {
+  assertAdmin(ctx);
+  return ctx.db.transaction(async (tx): Promise<LinkPlayerResult> => {
+    const player = await getPlayer(tx, ctx.householdId, playerId);
+    if (!player) return { ok: false, reason: 'not_found' };
+    if (player.userId) return { ok: false, reason: 'already_linked' };
+    const [user] = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.householdId, ctx.householdId)));
+    if (!user) return { ok: false, reason: 'not_found' };
+
+    const [accountPlayer] = await tx.select().from(players).where(eq(players.userId, userId));
+    if (!accountPlayer) {
+      await tx
+        .update(players)
+        .set({ userId, ...stampUpdate(ctx) })
+        .where(eq(players.id, playerId));
+      await recordAudit(tx, ctx, {
+        entityType: 'player',
+        entityId: playerId,
+        action: 'update',
+        changes: { userId: [null, userId] },
+      });
+      return { ok: true, playerId, moved: await countPlays(tx, playerId) };
+    }
+
+    const moved = await countPlays(tx, playerId);
+    await tx.execute(sql`
+      insert into play_participants (household_id, play_id, player_id)
+      select household_id, play_id, ${accountPlayer.id}::uuid
+      from play_participants where player_id = ${playerId}::uuid
+      on conflict do nothing`);
+    await tx.delete(players).where(eq(players.id, playerId));
+    await recordAudit(tx, ctx, {
+      entityType: 'player',
+      entityId: accountPlayer.id,
+      action: 'update',
+      changes: {
+        linked: [null, { id: playerId, displayName: player.displayName, plays: moved }],
+      },
+    });
+    await recordAudit(tx, ctx, {
+      entityType: 'player',
+      entityId: playerId,
+      action: 'delete',
+      changes: { displayName: [player.displayName, null], linkedTo: [null, accountPlayer.id] },
+    });
+    return { ok: true, playerId: accountPlayer.id, moved };
+  });
 }
