@@ -65,6 +65,9 @@ export async function resetCatalog(): Promise<void> {
   await sql`delete from households where id <> ${hh}`;
   await sql`delete from users where household_id = ${hh} and email <> all(${roleEmails})`;
   await sql`truncate games, tags, locations, share_links, wishlist_items restart identity cascade`;
+  // Players who are not users belong to the test that created them, and so does the audit trail.
+  await sql`delete from players where household_id = ${hh} and user_id is null`;
+  await sql`truncate audit_log`;
 }
 
 export async function seedLocation(name: string, parentId: string | null = null): Promise<string> {
