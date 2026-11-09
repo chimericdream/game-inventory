@@ -21,7 +21,7 @@ test('COPY-01 add a copy with every detail and see it on the game @smoke', async
   const row = page.getByRole('row').filter({ hasText: 'Hall closet' });
   await expect(row).toContainText('physical');
   await expect(row).toContainText('Tabletop');
-  await expect(row).toContainText('worn');
+  await expect(row).toContainText('Worn');
   await expect(row).toContainText(MEMBER.name);
   await expect(row).toContainText('Hall closet');
   await expect(row).toContainText('$29.99');
@@ -35,7 +35,7 @@ test('COPY-02 two copies with different owners and locations both list', async (
     title: 'Two Copies',
     copies: [
       { ownerEmail: 'member@e2e.test', locationId: hall, priceCents: 1000 },
-      { ownerEmail: 'admin@e2e.test', locationId: attic, priceCents: 2000, condition: 'new' },
+      { ownerEmail: 'admin@e2e.test', locationId: attic, priceCents: 2000, condition: 'unopened' },
     ],
   });
   await page.goto(`/games/${id}`);

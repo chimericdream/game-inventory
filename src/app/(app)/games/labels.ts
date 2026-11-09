@@ -18,9 +18,18 @@ export const VISIBILITY_OPTIONS = [
   { value: 'hidden_restricted', label: 'Hide entirely from restricted profiles' },
 ];
 
-export const CONDITION_OPTIONS = ['new', 'good', 'worn', 'damaged', 'incomplete'].map((c) => ({
-  value: c,
-  label: c.charAt(0).toUpperCase() + c.slice(1),
+export const CONDITION_LABELS: Record<string, string> = {
+  unopened: 'Unopened',
+  like_new: 'Like new',
+  good: 'Good',
+  worn: 'Worn',
+  damaged: 'Damaged',
+  incomplete: 'Incomplete',
+};
+
+export const CONDITION_OPTIONS = Object.entries(CONDITION_LABELS).map(([value, label]) => ({
+  value,
+  label,
 }));
 
 export function playersLabel(min?: number | null, max?: number | null) {

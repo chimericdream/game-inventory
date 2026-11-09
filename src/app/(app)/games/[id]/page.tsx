@@ -108,6 +108,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 format: c.format,
                 platform: c.platform,
                 condition: c.condition,
+                conditionNotes: c.conditionNotes,
                 ownerName: c.ownerUserId ? (memberName.get(c.ownerUserId) ?? null) : null,
                 locationName: c.locationName,
                 priceCents: c.priceCents,

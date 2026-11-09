@@ -7,7 +7,10 @@ import type { DataContext } from './context';
 export const copyInput = z.object({
   format: z.enum(['physical', 'digital']).default('physical'),
   platform: z.string().trim().max(100).nullable().optional(),
-  condition: z.enum(['new', 'good', 'worn', 'damaged', 'incomplete']).default('good'),
+  condition: z
+    .enum(['unopened', 'like_new', 'good', 'worn', 'damaged', 'incomplete'])
+    .default('good'),
+  conditionNotes: z.string().trim().max(500).nullable().optional(),
   ownerUserId: z.string().uuid().nullable().optional(),
   locationId: z.string().uuid().nullable().optional(),
   acquiredOn: z.string().date().nullable().optional(),
@@ -55,6 +58,7 @@ export async function addCopy(ctx: DataContext, gameId: string, raw: CopyInput) 
       format: input.format,
       platform: input.platform ?? null,
       condition: input.condition,
+      conditionNotes: input.conditionNotes ?? null,
       ownerUserId: input.ownerUserId ?? null,
       locationId: input.locationId ?? null,
       acquiredOn: input.acquiredOn ?? null,
@@ -75,6 +79,7 @@ export async function updateCopy(ctx: DataContext, copyId: string, raw: CopyInpu
       format: input.format,
       platform: input.platform ?? null,
       condition: input.condition,
+      conditionNotes: input.conditionNotes ?? null,
       ownerUserId: input.ownerUserId ?? null,
       locationId: input.locationId ?? null,
       acquiredOn: input.acquiredOn ?? null,

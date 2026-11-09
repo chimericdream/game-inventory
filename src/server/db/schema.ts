@@ -5,6 +5,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -60,6 +61,17 @@ export const sessions = pgTable(
   (t) => [index('sessions_user_idx').on(t.userId)],
 );
 
+/** Who created or last changed a row. Nullable so deleting a user never deletes history. */
+const authorship = () => ({
+  createdByUserId: uuid('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  updatedByUserId: uuid('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+});
+
+const stamps = () => ({
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ---------------------------------------------------------------------------
 // Catalog
 // ---------------------------------------------------------------------------
@@ -79,7 +91,8 @@ export const gameVisibility = pgEnum('game_visibility', [
 ]);
 
 export const copyCondition = pgEnum('copy_condition', [
-  'new',
+  'unopened',
+  'like_new',
   'good',
   'worn',
   'damaged',
@@ -106,8 +119,8 @@ export const games = pgTable(
     notes: text('notes'),
     /** External IDs for metadata lookup (phase 4). */
     bggId: integer('bgg_id'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...authorship(),
+    ...stamps(),
   },
   (t) => [index('games_household_title_idx').on(t.householdId, t.title)],
 );
@@ -141,6 +154,16 @@ export const rpgDetails = pgTable('rpg_details', {
   bookKind: text('book_kind'),
 });
 
+export const puzzleDetails = pgTable('puzzle_details', {
+  gameId: uuid('game_id')
+    .primaryKey()
+    .references(() => games.id, { onDelete: 'cascade' }),
+  householdId: uuid('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  pieceCount: integer('piece_count'),
+});
+
 export const locations = pgTable(
   'locations',
   {
@@ -152,6 +175,8 @@ export const locations = pgTable(
     parentId: uuid('parent_id').references((): AnyPgColumn => locations.id, {
       onDelete: 'set null',
     }),
+    ...authorship(),
+    ...stamps(),
   },
   (t) => [index('locations_household_idx').on(t.householdId)],
 );
@@ -173,9 +198,13 @@ export const copies = pgTable(
     /** Console/platform for video games, e.g. "Switch". */
     platform: text('platform'),
     condition: copyCondition('condition').notNull().default('good'),
+    /** Optional detail about the condition, e.g. "worn box corner". */
+    conditionNotes: text('condition_notes'),
     acquiredOn: date('acquired_on'),
     priceCents: integer('price_cents'),
     notes: text('notes'),
+    ...authorship(),
+    ...stamps(),
   },
   (t) => [index('copies_game_idx').on(t.gameId), index('copies_household_idx').on(t.householdId)],
 );
@@ -266,6 +295,8 @@ export const loans = pgTable(
     dueOn: date('due_on'),
     returnedOn: date('returned_on'),
     notes: text('notes'),
+    ...authorship(),
+    ...stamps(),
   },
   (t) => [index('loans_household_idx').on(t.householdId), index('loans_copy_idx').on(t.copyId)],
 );
@@ -285,9 +316,33 @@ export const wishlistItems = pgTable(
     requestedByUserId: uuid('requested_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    ...authorship(),
+    ...stamps(),
   },
   (t) => [index('wishlist_household_idx').on(t.householdId)],
+);
+
+/**
+ * Someone who can appear in a play. A player may or may not have an account: friends and relatives
+ * who visit are players with `userId = null`. Every user has exactly one linked player. An admin can
+ * link a player to a user later (or merge duplicates); play history follows because plays point at
+ * the player, not at a name. A player holds only a display name.
+ */
+export const players = pgTable(
+  'players',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    displayName: text('display_name').notNull(),
+    userId: uuid('user_id')
+      .unique()
+      .references(() => users.id, { onDelete: 'set null' }),
+    ...authorship(),
+    ...stamps(),
+  },
+  (t) => [index('players_household_idx').on(t.householdId)],
 );
 
 export const playSessions = pgTable(
@@ -302,15 +357,81 @@ export const playSessions = pgTable(
       .references(() => games.id, { onDelete: 'cascade' }),
     playedOn: date('played_on').notNull(),
     durationMinutes: integer('duration_minutes'),
-    playerNames: text('player_names')
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
-    winner: text('winner'),
     notes: text('notes'),
+    ...authorship(),
+    ...stamps(),
   },
   (t) => [
     index('plays_household_played_idx').on(t.householdId, t.playedOn),
     index('plays_game_idx').on(t.gameId),
+  ],
+);
+
+export const playParticipants = pgTable(
+  'play_participants',
+  {
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    playId: uuid('play_id')
+      .notNull()
+      .references(() => playSessions.id, { onDelete: 'cascade' }),
+    playerId: uuid('player_id')
+      .notNull()
+      .references(() => players.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.playId, t.playerId] }),
+    index('participants_player_idx').on(t.playerId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Ratings and audit trail
+// ---------------------------------------------------------------------------
+
+/** One rating per (user, game). Never exposed to guests or restricted profiles. */
+export const ratings = pgTable(
+  'ratings',
+  {
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    gameId: uuid('game_id')
+      .notNull()
+      .references(() => games.id, { onDelete: 'cascade' }),
+    /** 1 (disliked) to 5 (loved). */
+    score: integer('score').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.gameId] }), index('ratings_game_idx').on(t.gameId)],
+);
+
+export const auditAction = pgEnum('audit_action', ['create', 'update', 'delete']);
+
+/**
+ * Who changed what, and when. Written in the same transaction as the change. `changes` maps a field
+ * name to `[before, after]`; it never contains secrets such as password hashes.
+ */
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    actorUserId: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+    entityType: text('entity_type').notNull(),
+    entityId: uuid('entity_id').notNull(),
+    action: auditAction('action').notNull(),
+    changes: jsonb('changes').$type<Record<string, [unknown, unknown]>>().notNull().default({}),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('audit_entity_idx').on(t.householdId, t.entityType, t.entityId, t.at),
+    index('audit_household_at_idx').on(t.householdId, t.at),
   ],
 );

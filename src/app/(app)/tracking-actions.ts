@@ -8,6 +8,7 @@ import { requireContext } from '@/server/auth/current';
 import { GAME_TYPES, type GameType } from '@/server/data/games';
 import { lendCopy, returnLoan } from '@/server/data/loans';
 import { deletePlay, logPlay } from '@/server/data/plays';
+import { resolvePlayerNames } from '@/server/data/players';
 import { addWishlistItem, markAcquired, removeWishlistItem } from '@/server/data/wishlist';
 
 export interface TrackState {
@@ -90,11 +91,10 @@ export async function logPlayAction(_prev: TrackState, fd: FormData): Promise<Tr
       gameId: text(fd, 'gameId') ?? '',
       playedOn: text(fd, 'playedOn') ?? undefined,
       durationMinutes: Number.isInteger(minutes) && minutes > 0 ? minutes : null,
-      playerNames: (text(fd, 'players') ?? '')
-        .split(',')
-        .map((n) => n.trim())
-        .filter(Boolean),
-      winner: text(fd, 'winner'),
+      playerIds: await resolvePlayerNames(
+        ctx,
+        (text(fd, 'players') ?? '').split(',').map((n) => n.trim()),
+      ),
       notes: text(fd, 'notes'),
     });
   } catch (e) {

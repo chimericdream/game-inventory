@@ -108,6 +108,7 @@ export async function addCopyAction(
       format: (text(fd, 'format') ?? 'physical') as 'physical' | 'digital',
       platform: text(fd, 'platform'),
       condition: (text(fd, 'condition') ?? 'good') as 'good',
+      conditionNotes: text(fd, 'conditionNotes'),
       ownerUserId: text(fd, 'ownerUserId'),
       locationId: text(fd, 'locationId'),
       acquiredOn: text(fd, 'acquiredOn'),

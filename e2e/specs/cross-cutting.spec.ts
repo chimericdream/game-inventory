@@ -265,7 +265,7 @@ test('X-06b Escape closes an open dropdown without changing the choice', async (
 
 test('X-08 the app migrated an empty database on start', async ({ db }) => {
   const rows = await db.sql`select count(*)::int as n from drizzle.__drizzle_migrations`;
-  expect(rows[0]!.n).toBeGreaterThanOrEqual(4);
+  expect(rows[0]!.n).toBeGreaterThanOrEqual(1);
   expect(await db.count('households')).toBeGreaterThanOrEqual(1);
 });
 

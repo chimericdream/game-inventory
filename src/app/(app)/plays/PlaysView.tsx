@@ -30,7 +30,6 @@ export interface PlayRow {
   playedOn: string;
   durationMinutes: number | null;
   playerNames: string[];
-  winner: string | null;
 }
 
 interface Props {
@@ -66,10 +65,7 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
                   <TextInput name="playedOn" type="date" label="Date" />
                   <NumberInput name="durationMinutes" label="Minutes" min={1} hideControls />
                 </Group>
-                <Group grow align="flex-start">
-                  <TextInput name="players" label="Players" description="Comma separated" />
-                  <TextInput name="winner" label="Winner" />
-                </Group>
+                <TextInput name="players" label="Players" description="Comma separated" />
                 <TextInput name="notes" label="Notes" />
                 <Group>
                   <Button type="submit" loading={pending}>
@@ -96,7 +92,6 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
                         {p.playedOn}
                         {p.durationMinutes ? ` · ${p.durationMinutes} min` : ''}
                         {p.playerNames.length ? ` · ${p.playerNames.join(', ')}` : ''}
-                        {p.winner ? ` · won by ${p.winner}` : ''}
                       </Text>
                     </div>
                     <form action={deletePlayAction.bind(null, p.id)}>

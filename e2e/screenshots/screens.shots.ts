@@ -559,7 +559,6 @@ test.describe('08-plays', () => {
     await form.getByLabel('Date').fill('2026-03-14');
     await form.getByLabel('Minutes').fill('45');
     await form.getByLabel('Players').fill('Ann, Bob, Cy');
-    await form.getByLabel('Winner').fill('Cy');
     await form.getByLabel('Notes').fill('Close finish');
     await shot(page, F, '03-log-form-filled', 'Log-a-play form completely filled in.');
 

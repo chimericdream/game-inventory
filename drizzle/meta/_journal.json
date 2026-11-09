@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1794167732863,
-      "tag": "0000_legal_lord_hawal",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1794168047819,
-      "tag": "0001_black_dark_beast",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1794169315279,
-      "tag": "0002_opposite_wallow",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1794169455457,
-      "tag": "0003_abnormal_vermin",
+      "when": 1794236933943,
+      "tag": "0000_absent_mastermind",
       "breakpoints": true
     }
   ]

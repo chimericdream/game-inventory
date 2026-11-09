@@ -22,15 +22,18 @@ test('PLAY-01 log a play with every detail and see it in the history @smoke', as
   await form.getByLabel('Date').fill('2026-03-14');
   await form.getByLabel('Minutes').fill('75');
   await form.getByLabel('Players').fill('Ann, Bob ,, Cy');
-  await form.getByLabel('Winner').fill('Ann');
   await form.getByLabel('Notes').fill('Close game');
   await form.getByRole('button', { name: LOG }).click();
 
   const row = page.locator('.mantine-Paper-root', { hasText: 'Catan' });
-  await expect(row).toContainText('2026-03-14 · 75 min · Ann, Bob, Cy · won by Ann');
-  const [play] = await db.sql`select player_names, notes from play_sessions`;
-  expect(play!.player_names).toEqual(['Ann', 'Bob', 'Cy']);
+  await expect(row).toContainText('2026-03-14 · 75 min · Ann, Bob, Cy');
+  const [play] = await db.sql`select notes from play_sessions`;
   expect(play!.notes).toBe('Close game');
+  const who = await db.sql`
+    select p.display_name, p.user_id from play_participants pp
+    join players p on p.id = pp.player_id order by p.display_name`;
+  expect(who.map((r) => r.display_name)).toEqual(['Ann', 'Bob', 'Cy']);
+  expect(who.every((r) => r.user_id === null)).toBe(true);
 });
 
 test('PLAY-02 a blank date means today', async ({ page, db }) => {
@@ -84,12 +87,12 @@ test('PLAY-04 not-played-in-a-year lists unplayed and stale games and drops one 
 
 test('PLAY-05 plays are listed newest first', async ({ page, db }) => {
   const id = await db.seedGame({ title: 'Ordered' });
-  await db.seedPlay(id, { playedOn: '2025-01-01', winner: 'Old' });
-  await db.seedPlay(id, { playedOn: '2026-02-02', winner: 'New' });
+  await db.seedPlay(id, { playedOn: '2025-01-01', players: ['Old'] });
+  await db.seedPlay(id, { playedOn: '2026-02-02', players: ['New'] });
   await page.goto('/plays');
   const rows = page.locator('.mantine-Paper-root', { hasText: 'Ordered' });
-  await expect(rows.first()).toContainText('won by New');
-  await expect(rows.last()).toContainText('won by Old');
+  await expect(rows.first()).toContainText('New');
+  await expect(rows.last()).toContainText('Old');
 });
 
 test('PLAY-06 delete a play', async ({ page, db }) => {

@@ -266,7 +266,7 @@ export async function seedDemo(db: DbApi): Promise<DemoIds> {
         {
           platform: isVideo ? g.platform : null,
           format: isVideo && i % 2 === 0 ? 'digital' : 'physical',
-          condition: (['good', 'new', 'worn', 'good', 'incomplete'] as const)[i % 5],
+          condition: (['good', 'unopened', 'worn', 'like_new', 'incomplete'] as const)[i % 5],
           priceCents: 1999 + i * 650,
           ownerEmail: i % 3 === 0 ? MEMBER.email : null,
           locationId: isVideo ? den : places[i % places.length],
@@ -297,28 +297,24 @@ export async function seedDemo(db: DbApi): Promise<DemoIds> {
     playedOn: ago(3),
     minutes: 95,
     players: ['Ann', 'Bob', 'Cy'],
-    winner: 'Ann',
   });
   await db.seedPlay(ids.Catan!, {
     playedOn: ago(40),
     minutes: 80,
     players: ['Ann', 'Bob'],
-    winner: 'Bob',
   });
   await db.seedPlay(ids.Catan!, { playedOn: ago(90), players: ['Ann', 'Cy', 'Dee'] });
   await db.seedPlay(ids.Wingspan!, {
     playedOn: ago(7),
     minutes: 60,
     players: ['Ann', 'Dee'],
-    winner: 'Dee',
   });
   await db.seedPlay(ids['Mario Kart 8 Deluxe']!, {
     playedOn: ago(1),
     minutes: 30,
     players: ['Kit', 'Mo', 'Ada'],
-    winner: 'Kit',
   });
-  await db.seedPlay(ids.Carcassonne!, { playedOn: ago(600), players: ['Ann'], winner: 'Ann' });
+  await db.seedPlay(ids.Carcassonne!, { playedOn: ago(600), players: ['Ann'] });
 
   await db.seedWish('Gloomhaven', 'board');
   await db.seedWish("Baldur's Gate 3", 'video');

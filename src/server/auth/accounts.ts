@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import type { Db } from '../db/client';
 import { households, users } from '../db/schema';
+import { ensurePlayerForUser } from '../data/players';
 import { hashPassword, verifyPassword } from './password';
 
 export const credentialsInput = z.object({
@@ -41,6 +42,7 @@ export async function setupHousehold(db: Db, raw: z.input<typeof setupInput>) {
         role: 'admin',
       })
       .returning();
+    await ensurePlayerForUser(tx, user!);
     return user!;
   });
 }
@@ -65,15 +67,19 @@ export const newUserInput = credentialsInput.extend({
 
 export async function createUser(db: Db, householdId: string, raw: z.input<typeof newUserInput>) {
   const input = newUserInput.parse(raw);
-  const [user] = await db
-    .insert(users)
-    .values({
-      householdId,
-      name: input.name,
-      email: input.email,
-      passwordHash: await hashPassword(input.password),
-      role: input.role,
-    })
-    .returning();
-  return user!;
+  const passwordHash = await hashPassword(input.password);
+  return db.transaction(async (tx) => {
+    const [user] = await tx
+      .insert(users)
+      .values({
+        householdId,
+        name: input.name,
+        email: input.email,
+        passwordHash,
+        role: input.role,
+      })
+      .returning();
+    await ensurePlayerForUser(tx, user!);
+    return user!;
+  });
 }

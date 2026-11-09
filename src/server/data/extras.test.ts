@@ -105,8 +105,7 @@ describe('play log', () => {
     await logPlay(admin, {
       gameId: catan.id,
       playedOn: '2020-01-01',
-      playerNames: ['Ada', 'Bo'],
-      winner: 'Ada',
+      newPlayers: ['Ada Guest', 'Bo'],
     });
     await logPlay(admin, { gameId: uno.id });
     await logPlay(admin, { gameId: uno.id });

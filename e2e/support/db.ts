@@ -17,7 +17,7 @@ export type GameType = 'board' | 'card' | 'rpg' | 'video' | 'puzzle' | 'other';
 export interface SeedCopy {
   platform?: string | null;
   format?: 'physical' | 'digital';
-  condition?: 'new' | 'good' | 'worn' | 'damaged' | 'incomplete';
+  condition?: 'unopened' | 'like_new' | 'good' | 'worn' | 'damaged' | 'incomplete';
   priceCents?: number | null;
   ownerEmail?: string | null;
   locationId?: string | null;
@@ -185,16 +185,29 @@ export async function seedPlay(
   gameId: string,
   p: {
     playedOn?: string;
+    /** Player names; players that do not exist yet are created as non-user players. */
     players?: string[];
-    winner?: string | null;
     minutes?: number | null;
   } = {},
 ): Promise<void> {
   const hh = await householdId();
-  await sql`
-    insert into play_sessions (household_id, game_id, played_on, duration_minutes, player_names, winner)
-    values (${hh}, ${gameId}, ${p.playedOn ?? today()}, ${p.minutes ?? null},
-            ${p.players ?? []}, ${p.winner ?? null})`;
+  const [play] = await sql`
+    insert into play_sessions (household_id, game_id, played_on, duration_minutes)
+    values (${hh}, ${gameId}, ${p.playedOn ?? today()}, ${p.minutes ?? null})
+    returning id`;
+  for (const name of p.players ?? []) {
+    const [found] = await sql`
+      select id from players where household_id = ${hh} and lower(display_name) = ${name.toLowerCase()}
+      order by created_at limit 1`;
+    const playerId =
+      found?.id ??
+      (
+        await sql`insert into players (household_id, display_name) values (${hh}, ${name}) returning id`
+      )[0]!.id;
+    await sql`
+      insert into play_participants (household_id, play_id, player_id)
+      values (${hh}, ${play!.id}, ${playerId}) on conflict do nothing`;
+  }
 }
 
 export async function seedWish(title: string, type: GameType = 'board'): Promise<string> {

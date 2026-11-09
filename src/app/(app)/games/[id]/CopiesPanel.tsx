@@ -20,7 +20,7 @@ import {
 import { IconTrash } from '@tabler/icons-react';
 
 import { addCopyAction, deleteCopyAction, type ActionState } from '../actions';
-import { CONDITION_OPTIONS } from '../labels';
+import { CONDITION_LABELS, CONDITION_OPTIONS } from '../labels';
 import classes from './CopiesPanel.module.css';
 
 interface CopyRow {
@@ -28,6 +28,7 @@ interface CopyRow {
   format: string;
   platform: string | null;
   condition: string;
+  conditionNotes: string | null;
   ownerName: string | null;
   locationName: string | null;
   priceCents: number | null;
@@ -75,7 +76,12 @@ export function CopiesPanel({ gameId, copies, members, locations, canEdit }: Pro
                     </Group>
                   </Table.Td>
                   <Table.Td className={`${classes.cell} ${classes.condition}`}>
-                    {c.condition}
+                    {CONDITION_LABELS[c.condition] ?? c.condition}
+                    {c.conditionNotes && (
+                      <Text size="xs" c="dimmed">
+                        {c.conditionNotes}
+                      </Text>
+                    )}
                   </Table.Td>
                   <Table.Td className={classes.cell}>{c.ownerName ?? <Dash />}</Table.Td>
                   <Table.Td className={classes.cell}>{c.locationName ?? <Dash />}</Table.Td>
@@ -130,6 +136,11 @@ export function CopiesPanel({ gameId, copies, members, locations, canEdit }: Pro
                   data={CONDITION_OPTIONS}
                   defaultValue="good"
                   allowDeselect={false}
+                />
+                <TextInput
+                  name="conditionNotes"
+                  label="Condition details"
+                  placeholder="Worn box corner…"
                 />
                 <Select name="ownerUserId" label="Owner" data={members} clearable />
                 <Select name="locationId" label="Location" data={locations} clearable />
