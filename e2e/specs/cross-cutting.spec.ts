@@ -223,15 +223,18 @@ test('X-05 key pages have no serious or critical accessibility violations', asyn
   expect(problems).toEqual([]);
 });
 
-// Known gap: Mantine's default blue accents and dimmed text fall below WCAG AA contrast in places.
-// Fixing it means choosing a darker primary shade and dimmed color in the theme.
-test.fixme('X-05b key pages meet WCAG AA color contrast', async ({ page, db }) => {
+test('X-05b key pages meet WCAG AA color contrast', async ({ page, db }) => {
   const id = await db.seedGame({ title: 'Contrast Game', copies: [{}] });
   const problems: string[] = [];
   for (const route of ['/games', `/games/${id}`, '/games/new', '/settings', '/import']) {
     await page.goto(route);
     const { violations } = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
-    for (const v of violations) problems.push(`${route}: ${v.nodes.length}x`);
+    for (const v of violations) {
+      for (const node of v.nodes) {
+        const detail = node.any[0]?.message ?? '';
+        problems.push(`${route}: ${node.target.join(' ')} ${detail}`);
+      }
+    }
   }
   expect(problems).toEqual([]);
 });

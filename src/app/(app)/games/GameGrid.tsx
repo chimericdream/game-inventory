@@ -55,7 +55,7 @@ export function GameGrid({
             <Card.Section pos="relative">
               {g.onLoan && (
                 <Badge
-                  color="amber"
+                  color="berry"
                   variant="filled"
                   size="sm"
                   pos="absolute"

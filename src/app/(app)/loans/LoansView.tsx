@@ -52,7 +52,10 @@ export function LoansView({ loans, copies }: Props) {
                   <Text fw={600}>{l.title}</Text>
                   {l.platform && <Badge variant="default">{l.platform}</Badge>}
                   {l.dueStatus && (
-                    <Badge color={l.dueStatus.tone === 'overdue' ? 'red' : 'amber'} variant="light">
+                    <Badge
+                      color={l.dueStatus.tone === 'overdue' ? 'berry' : 'berry'}
+                      variant="light"
+                    >
                       {l.dueStatus.label}
                     </Badge>
                   )}

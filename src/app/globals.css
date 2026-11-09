@@ -1,21 +1,21 @@
-/* Page ground sits one step off white; cards and inputs stay white (light) / raised (dark). */
+/* Page ground sits one step off the card surface. Cards and inputs use the surface colour. */
 body {
   background: var(--app-ground);
+  color: var(--app-ink);
+  font-size: 16px;
+  line-height: 1.5;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Flat surfaces: a 1px edge, never a shadow. */
+/* Flat surfaces: a soft edge, never a shadow. */
 .mantine-Paper-root,
 .mantine-Card-root {
   border-color: var(--app-border);
 }
 
-/*
- * Dark mode inverts the primary: a near-white fill needs a near-black label. Mantine sets the label
- * colour inline (from the fill's luminance at theme-build time), so this has to win with !important.
- */
-:root[data-mantine-color-scheme='dark']
-  .mantine-Button-root:where(:not([data-variant]), [data-variant='filled']) {
-  --button-color: #0a0a0a !important;
+/* A visible, consistent keyboard focus ring in the accent colour. */
+:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
 }

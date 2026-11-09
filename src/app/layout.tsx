@@ -3,8 +3,7 @@ import '@mantine/notifications/styles.css';
 import './globals.css';
 
 import type { Metadata } from 'next';
-import { GeistMono } from 'geist/font/mono';
-import { GeistSans } from 'geist/font/sans';
+import { figtree, fraunces } from '@/fonts';
 import { mantineHtmlProps } from '@mantine/core';
 
 import { Providers } from './Providers';
@@ -27,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} {...mantineHtmlProps}>
+    <html lang="en" className={`${figtree.variable} ${fraunces.variable}`} {...mantineHtmlProps}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_SCRIPT }} />
       </head>
