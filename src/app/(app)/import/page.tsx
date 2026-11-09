@@ -25,9 +25,10 @@ export default async function ImportPage() {
             <Text size="sm" c="dimmed">
               Upload a CSV with a header row. Only <Code>title</Code> is required. Other recognized
               columns: <Code>type</Code>, <Code>min_players</Code>, <Code>max_players</Code>,{' '}
-              <Code>minutes</Code>, <Code>complexity</Code>, <Code>tags</Code> (separate with ;),{' '}
-              <Code>platform</Code>, <Code>location</Code>, <Code>notes</Code>. Games already in the
-              library (same title and type) are skipped, so re-importing is safe.
+              <Code>minutes</Code>, <Code>complexity</Code>, <Code>pieces</Code> (for puzzles),{' '}
+              <Code>tags</Code> (separate with ;), <Code>platform</Code>, <Code>location</Code>,{' '}
+              <Code>notes</Code>. Games already in the library (same title and type) are skipped, so
+              re-importing is safe.
             </Text>
           </Stack>
         </Paper>

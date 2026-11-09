@@ -182,3 +182,28 @@ test('IMP-09 members can import; restricted profiles are turned away', async ({
   await kidPage.goto('/import');
   await expect(kidPage).toHaveURL(/\/games$/);
 });
+
+test('IMP-08 columns the importer does not know are listed, and puzzle pieces are read', async ({
+  page,
+  db,
+}) => {
+  await upload(page, csv('title,type,pieces,Colour,Shelf Code\nAlpine Lake,puzzle,1000,blue,A1'));
+  await expect(result(page)).toContainText('Imported 1 game');
+  await expect(page.locator('[data-unused-columns]')).toContainText('Not used: Colour, Shelf Code');
+  const [row] = await db.sql`select p.piece_count from puzzle_details p`;
+  expect(row!.piece_count).toBe(1000);
+});
+
+test('IMP-09 the rows that failed can be downloaded, fixed and imported again', async ({
+  page,
+  db,
+}) => {
+  await upload(page, csv('title,type\nGood Game,board\n,board\nBad Type,spaceship'));
+  await expect(result(page)).toContainText('Imported 1 game');
+  const link = page.getByRole('link', { name: 'Download the rows that failed' });
+  await expect(link).toHaveAttribute('download', 'rows-to-fix.csv');
+  const href = (await link.getAttribute('href'))!;
+  const text = await page.evaluate(async (url) => (await fetch(url)).text(), href);
+  expect(text).toBe('title,type\r\n,board\r\nBad Type,spaceship\r\n');
+  expect(await db.count('games')).toBe(1);
+});
