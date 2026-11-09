@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-import { and, asc, desc, eq, gt, ilike, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 
 import type { Db } from '../db/client';
@@ -14,6 +14,7 @@ import {
   tags,
 } from '../db/schema';
 import { createdFields, recordAudit } from './audit';
+import { maxMinutesCondition, playersCondition, searchCondition } from './catalogFilters';
 import type { DataContext } from './context';
 import { GAME_TYPES } from './games';
 import { isUuid } from './ids';
@@ -200,13 +201,18 @@ async function hydrate(db: Db, link: ShareLink, ids: string[]) {
 export async function guestCatalog(
   db: Db,
   link: ShareLink,
-  filters: { search?: string; type?: string } = {},
+  filters: { search?: string; type?: string; players?: number; maxMinutes?: number } = {},
   onlyId?: string,
 ): Promise<GuestGame[]> {
   if (onlyId !== undefined && !isUuid(onlyId)) return [];
   const conds = guestConditions(link);
-  const search = filters.search?.trim();
-  if (search) conds.push(ilike(games.title, `%${search.replace(/[%_\\]/g, '\\$&')}%`));
+  for (const shared of [
+    searchCondition(filters.search),
+    playersCondition(filters.players),
+    maxMinutesCondition(filters.maxMinutes),
+  ]) {
+    if (shared) conds.push(shared);
+  }
   if (filters.type) conds.push(eq(games.type, filters.type as never));
   if (onlyId) conds.push(eq(games.id, onlyId));
 

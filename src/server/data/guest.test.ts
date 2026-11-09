@@ -191,6 +191,35 @@ describe('guest catalog', () => {
     expect(games[0]?.coverImage).toBeNull();
   });
 
+  it('filters by players and time with the same rules as the household catalog', async () => {
+    await seed();
+    await createGame(admin, {
+      title: 'Quick Party',
+      type: 'card',
+      shareable: true,
+      board: { minPlayers: 2, maxPlayers: 8, playTimeMinutes: 15 },
+    });
+    await createGame(admin, {
+      title: 'Secret Party',
+      type: 'card',
+      shareable: true,
+      visibility: 'hidden_restricted',
+      board: { minPlayers: 2, maxPlayers: 8, playTimeMinutes: 15 },
+    });
+    const { token } = await createShareLink(admin, { label: 'g' });
+    const link = (await resolveShareLink(db, token))!;
+    const titles = async (f: Parameters<typeof guestCatalog>[2]) =>
+      (await guestCatalog(db, link, f)).map((g) => g.title);
+
+    expect(await titles({ players: 4 })).toEqual(['Catan', 'Quick Party']);
+    expect(await titles({ players: 6 })).toEqual(['Quick Party']);
+    expect(await titles({ maxMinutes: 30 })).toEqual(['Quick Party']);
+    expect(await titles({ players: 4, maxMinutes: 30 })).toEqual(['Quick Party']);
+    // The filters never widen what a guest can see.
+    expect(await titles({ players: 4 })).not.toContain('Secret Party');
+    expect(await titles({ players: 4 })).not.toContain('Not Shared');
+  });
+
   it('never returns games from another household', async () => {
     await seed();
     await createGame(other, { title: 'Other House Game', type: 'board', shareable: true });
