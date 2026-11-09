@@ -15,16 +15,21 @@ import {
   Title,
 } from '@mantine/core';
 
+import { CoverThumb } from '@/components/CoverThumb';
+import type { DueStatus } from '@/components/dueStatus';
+
 import { lendAction, returnLoanAction } from '../tracking-actions';
 
 export interface LoanRow {
   id: string;
   title: string;
+  gameId: string;
+  hasCover: boolean;
   platform: string | null;
   borrower: string;
   lentOn: string;
   dueOn: string | null;
-  overdue: boolean;
+  dueStatus: DueStatus | null;
 }
 
 interface Props {
@@ -40,19 +45,20 @@ export function LoansView({ loans, copies }: Props) {
         {loans.length === 0 && <Text c="dimmed">Nothing is out on loan.</Text>}
         {loans.map((l) => (
           <Paper key={l.id} withBorder p="sm">
-            <Group justify="space-between" wrap="nowrap">
-              <div>
+            <Group justify="space-between" wrap="nowrap" align="center">
+              <CoverThumb gameId={l.gameId} hasCover={l.hasCover} />
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <Group gap="xs">
                   <Text fw={600}>{l.title}</Text>
                   {l.platform && <Badge variant="default">{l.platform}</Badge>}
-                  {l.overdue && (
-                    <Badge color="red" variant="light">
-                      Overdue
+                  {l.dueStatus && (
+                    <Badge color={l.dueStatus.tone === 'overdue' ? 'red' : 'amber'} variant="light">
+                      {l.dueStatus.label}
                     </Badge>
                   )}
                 </Group>
                 <Text size="sm" c="dimmed">
-                  With {l.borrower} since {l.lentOn}
+                  With <b>{l.borrower}</b> since {l.lentOn}
                   {l.dueOn ? ` · due ${l.dueOn}` : ''}
                 </Text>
               </div>

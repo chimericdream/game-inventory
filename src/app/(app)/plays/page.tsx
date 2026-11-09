@@ -24,8 +24,10 @@ export default async function PlaysPage() {
       </Title>
       <PlaysView
         games={catalog.map((g) => ({ value: g.id, label: g.title }))}
-        plays={plays.map(({ play, title }) => ({
+        plays={plays.map(({ play, title, coverImage }) => ({
           id: play.id,
+          gameId: play.gameId,
+          hasCover: coverImage !== null,
           title,
           playedOn: play.playedOn,
           durationMinutes: play.durationMinutes,

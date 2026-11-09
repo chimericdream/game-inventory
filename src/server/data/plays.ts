@@ -56,7 +56,7 @@ export async function deletePlay(ctx: DataContext, id: string): Promise<boolean>
 export async function recentPlays(ctx: DataContext, limit = 25) {
   assertCanEdit(ctx);
   return ctx.db
-    .select({ play: playSessions, title: games.title })
+    .select({ play: playSessions, title: games.title, coverImage: games.coverImage })
     .from(playSessions)
     .innerJoin(games, eq(games.id, playSessions.gameId))
     .where(and(eq(playSessions.householdId, ctx.householdId), gameVisibilityCondition(ctx)))

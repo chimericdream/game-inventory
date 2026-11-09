@@ -88,7 +88,7 @@ export function CopiesPanel({ gameId, copies, members, locations, canEdit }: Pro
                         <ActionIcon
                           type="submit"
                           variant="subtle"
-                          color="red"
+                          color="gray"
                           aria-label="Delete copy"
                         >
                           <IconTrash size={16} />

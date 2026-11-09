@@ -99,6 +99,7 @@ test('LOAN-06 a blank borrower is rejected', async ({ page, db }) => {
   await page.goto('/loans');
   await lend(page, 'Anon', '   ');
   await expect(page.locator('.mantine-Alert-root')).toContainText(/who is borrowing/i);
+  await expect(page.locator('.mantine-Alert-root')).not.toContainText('"code"');
   expect(await db.count('loans')).toBe(0);
 });
 
@@ -143,4 +144,22 @@ test('LOAN-09 members can lend; the loans page is closed to restricted profiles'
   await expect(memberPage.getByText('With Friend')).toBeVisible();
   await kidPage.goto('/loans');
   await expect(kidPage).toHaveURL(/\/games$/);
+});
+
+test('LOAN-05 the catalog marks a lent-out game and the loan shows how soon it is due', async ({
+  page,
+  db,
+}) => {
+  const out = await db.seedGame({ title: 'Lent Out', copies: [{}] });
+  await db.seedGame({ title: 'On The Shelf', copies: [{}] });
+  const [copy] = await db.sql`select id from copies where game_id = ${out}`;
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  await db.seedLoan(copy!.id as string, { borrower: 'Pat', dueOn: tomorrow });
+
+  await page.goto('/games');
+  await expect(page.getByText('On loan')).toHaveCount(1);
+  await expect(page.getByRole('link', { name: /Lent Out/ }).getByText('On loan')).toBeVisible();
+
+  await page.goto('/loans');
+  await expect(page.getByText('Due tomorrow')).toBeVisible();
 });

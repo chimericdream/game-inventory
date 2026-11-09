@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { ZodError } from 'zod';
 
 import { requireContext } from '@/server/auth/current';
 import { GAME_TYPES, type GameType } from '@/server/data/games';
@@ -19,7 +20,12 @@ const text = (fd: FormData, key: string) => {
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 };
 const fail = (e: unknown, fallback: string): TrackState => ({
-  error: e instanceof Error ? e.message : fallback,
+  error:
+    e instanceof ZodError
+      ? (e.issues[0]?.message ?? fallback)
+      : e instanceof Error
+        ? e.message
+        : fallback,
 });
 
 export async function lendAction(_prev: TrackState, fd: FormData): Promise<TrackState> {

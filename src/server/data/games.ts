@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ilike, inArray, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, gte, ilike, inArray, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
@@ -7,6 +7,7 @@ import {
   gameTags,
   games,
   locations,
+  loans,
   rpgDetails,
   tags,
 } from '../db/schema';
@@ -122,7 +123,8 @@ export async function listCatalog(ctx: DataContext, filters: CatalogFilters = {}
   const ids = visible.map((r) => r.game.id);
   if (ids.length === 0) return [];
 
-  const [copyRows, tagRows] = await Promise.all([
+  const canSeeLoans = ctx.viewer.role !== 'restricted';
+  const [copyRows, tagRows, loanRows] = await Promise.all([
     ctx.db
       .select({ gameId: copies.gameId, platform: copies.platform })
       .from(copies)
@@ -132,11 +134,26 @@ export async function listCatalog(ctx: DataContext, filters: CatalogFilters = {}
       .from(gameTags)
       .innerJoin(tags, eq(tags.id, gameTags.tagId))
       .where(and(eq(gameTags.householdId, ctx.householdId), inArray(gameTags.gameId, ids))),
+    canSeeLoans
+      ? ctx.db
+          .select({ gameId: copies.gameId })
+          .from(loans)
+          .innerJoin(copies, eq(copies.id, loans.copyId))
+          .where(
+            and(
+              eq(loans.householdId, ctx.householdId),
+              isNull(loans.returnedOn),
+              inArray(copies.gameId, ids),
+            ),
+          )
+      : Promise.resolve([] as { gameId: string }[]),
   ]);
+  const lentOut = new Set(loanRows.map((l) => l.gameId));
 
   return visible.map(({ game, board }) => ({
     ...game,
     board,
+    onLoan: lentOut.has(game.id),
     copyCount: copyRows.filter((c) => c.gameId === game.id).length,
     platforms: [
       ...new Set(

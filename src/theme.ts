@@ -29,11 +29,25 @@ const ink: MantineColorsTuple = [
   '#000000',
 ];
 
+/** The one warm accent, reserved for status that needs a glance: on loan, due soon. */
+const amber: MantineColorsTuple = [
+  '#fff6e5',
+  '#fde9c2',
+  '#fbd488',
+  '#f6b94a',
+  '#ee9d1c',
+  '#d57f0c',
+  '#b24d09',
+  '#923f08',
+  '#743207',
+  '#5a2606',
+];
+
 export const theme = createTheme({
   primaryColor: 'ink',
   primaryShade: 6,
   autoContrast: true,
-  colors: { ink },
+  colors: { ink, amber },
   fontFamily: 'var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif',
   fontFamilyMonospace: 'var(--font-geist-mono), ui-monospace, "Cascadia Mono", monospace',
   headings: {

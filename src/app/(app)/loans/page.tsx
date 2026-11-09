@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import { requireContext } from '@/server/auth/current';
 import { listLendableCopies, listLoans } from '@/server/data/loans';
 
+import { dueStatus } from '@/components/dueStatus';
+
 import { LoansView } from './LoansView';
 
 export const dynamic = 'force-dynamic';
@@ -21,11 +23,13 @@ export default async function LoansPage() {
         loans={loans.map((l) => ({
           id: l.id,
           title: l.title,
+          hasCover: l.coverImage !== null,
+          gameId: l.gameId,
           platform: l.platform,
           borrower: l.borrower,
           lentOn: l.lentOn,
           dueOn: l.dueOn,
-          overdue: l.overdue,
+          dueStatus: dueStatus(l.dueOn, new Date().toISOString().slice(0, 10)),
         }))}
         copies={copies.map((c) => ({
           value: c.id,

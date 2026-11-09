@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import {
   ActionIcon,
   Alert,
@@ -18,10 +18,14 @@ import {
 } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
 
+import { CoverThumb } from '@/components/CoverThumb';
+
 import { deletePlayAction, logPlayAction } from '../tracking-actions';
 
 export interface PlayRow {
   id: string;
+  gameId: string;
+  hasCover: boolean;
   title: string;
   playedOn: string;
   durationMinutes: number | null;
@@ -36,8 +40,12 @@ interface Props {
   neglected: { gameId: string; title: string; lastPlayed: string | null }[];
 }
 
+const NEGLECT_PREVIEW = 5;
+
 export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
   const [state, action, pending] = useActionState(logPlayAction, {});
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? neglected : neglected.slice(0, NEGLECT_PREVIEW);
   return (
     <Grid gap="lg">
       <Grid.Col span={{ base: 12, md: 7 }}>
@@ -80,8 +88,9 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
             <Stack gap="xs">
               {plays.map((p) => (
                 <Paper key={p.id} withBorder p="sm">
-                  <Group justify="space-between" wrap="nowrap">
-                    <div>
+                  <Group justify="space-between" wrap="nowrap" align="center">
+                    <CoverThumb gameId={p.gameId} hasCover={p.hasCover} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <Text fw={600}>{p.title}</Text>
                       <Text size="sm" c="dimmed">
                         {p.playedOn}
@@ -94,7 +103,7 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
                       <ActionIcon
                         type="submit"
                         variant="subtle"
-                        color="red"
+                        color="gray"
                         aria-label="Delete play"
                       >
                         <IconTrash size={16} />
@@ -131,7 +140,7 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
               Not played in a year
             </Title>
             <List>
-              {neglected.slice(0, 25).map((g) => (
+              {shown.map((g) => (
                 <List.Item key={g.gameId}>
                   {g.title}
                   <Text span size="sm" c="dimmed">
@@ -140,10 +149,16 @@ export function PlaysView({ games, plays, mostPlayed, neglected }: Props) {
                 </List.Item>
               ))}
             </List>
-            {neglected.length > 25 && (
-              <Text size="sm" c="dimmed" mt="xs">
-                and {neglected.length - 25} more
-              </Text>
+            {neglected.length > NEGLECT_PREVIEW && (
+              <Button
+                variant="subtle"
+                size="compact-sm"
+                mt="xs"
+                aria-expanded={showAll}
+                onClick={() => setShowAll((v) => !v)}
+              >
+                {showAll ? 'Show fewer' : `Show all ${neglected.length}`}
+              </Button>
             )}
           </div>
         </Stack>

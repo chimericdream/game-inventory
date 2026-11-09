@@ -68,6 +68,7 @@ export async function listLoans(ctx: DataContext, opts: { includeReturned?: bool
       loan: loans,
       gameId: games.id,
       title: games.title,
+      coverImage: games.coverImage,
       platform: copies.platform,
     })
     .from(loans)
@@ -86,6 +87,7 @@ export async function listLoans(ctx: DataContext, opts: { includeReturned?: bool
     ...r.loan,
     gameId: r.gameId,
     title: r.title,
+    coverImage: r.coverImage,
     platform: r.platform,
     overdue: !r.loan.returnedOn && r.loan.dueOn !== null && r.loan.dueOn < now,
   }));

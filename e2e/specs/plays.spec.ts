@@ -129,3 +129,13 @@ test('PLAY-08 members can log plays; restricted profiles cannot see the page', a
   await kidPage.goto('/plays');
   await expect(kidPage).toHaveURL(/\/games$/);
 });
+
+test('PLAY-06 a long not-played list shows five and expands on request', async ({ page, db }) => {
+  for (let i = 1; i <= 8; i++) await db.seedGame({ title: `Dusty ${i}` });
+  await page.goto('/plays');
+  await expect(neglected(page)).toHaveCount(5);
+  await page.getByRole('button', { name: 'Show all 8' }).click();
+  await expect(neglected(page)).toHaveCount(8);
+  await page.getByRole('button', { name: 'Show fewer' }).click();
+  await expect(neglected(page)).toHaveCount(5);
+});

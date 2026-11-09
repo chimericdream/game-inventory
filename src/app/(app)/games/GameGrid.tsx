@@ -12,6 +12,8 @@ export interface GridGame {
   type: string;
   coverImage: string | null;
   platforms: string[];
+  /** Out on loan right now. Only set for household members, never on guest links. */
+  onLoan?: boolean;
   board: {
     minPlayers: number | null;
     maxPlayers: number | null;
@@ -50,7 +52,20 @@ export function GameGrid({
             padding="sm"
             radius="md"
           >
-            <Card.Section>
+            <Card.Section pos="relative">
+              {g.onLoan && (
+                <Badge
+                  color="amber"
+                  variant="filled"
+                  size="sm"
+                  pos="absolute"
+                  top={8}
+                  left={8}
+                  style={{ zIndex: 1 }}
+                >
+                  On loan
+                </Badge>
+              )}
               {g.coverImage ? (
                 <Image src={`${coverPrefix}${g.id}${coverSuffix}`} alt="" h={150} fit="cover" />
               ) : (
