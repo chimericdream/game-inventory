@@ -3,14 +3,15 @@ import '@mantine/notifications/styles.css';
 import './globals.css';
 
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { figtree, fraunces } from '@/fonts';
 import { mantineHtmlProps } from '@mantine/core';
 
 import { Providers } from './Providers';
 
 /**
- * Same logic as Mantine's <ColorSchemeScript />, rendered from this server component. The Mantine
- * component is a client component, and React 19 warns when a client component renders a <script>.
+ * Same logic as Mantine's <ColorSchemeScript />, loaded through next/script so React 19 does not
+ * warn about a raw <script> tag in the component tree.
  */
 const COLOR_SCHEME_SCRIPT = `try {
   var stored = window.localStorage.getItem("mantine-color-scheme-value");
@@ -27,10 +28,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${figtree.variable} ${fraunces.variable}`} {...mantineHtmlProps}>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_SCRIPT }} />
-      </head>
       <body>
+        <Script id="color-scheme" strategy="beforeInteractive">
+          {COLOR_SCHEME_SCRIPT}
+        </Script>
         <Providers>{children}</Providers>
       </body>
     </html>
