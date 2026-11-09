@@ -1,5 +1,5 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "singleQuote": true,
-  "ignorePatterns": [".next", "node_modules", "pnpm-lock.yaml", ".idea"]
+  "ignorePatterns": [".next", "node_modules", "pnpm-lock.yaml", ".idea", "docs/design"]
 }

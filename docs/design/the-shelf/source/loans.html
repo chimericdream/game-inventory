@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Loans · The Shelf</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.wrap{display:grid;grid-template-columns:1fr 380px;gap:48px;padding:12px var(--pad) 90px;align-items:start}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+.sum2{margin-top:10px;font-size:18px;color:var(--muted);max-width:640px}
+.sum2 b{color:var(--ink)}
+.sum2 .o{color:var(--loan);font-weight:700}
+
+/* the rope: next days on a line, loans hang from their due date */
+.rope{margin:34px 0 8px;background:var(--surface);border-radius:20px;padding:20px 28px 18px;position:relative}
+.rope h2{font:600 14px var(--sans);color:var(--muted);margin-bottom:6px}
+.track{position:relative;height:132px;margin:0 8px}
+.line{position:absolute;left:0;right:0;top:20px;height:4px;background:var(--sunk);border-radius:2px}
+.line .late{position:absolute;left:0;top:0;bottom:0;width:23.5%;background:var(--loan);border-radius:2px 0 0 2px}
+.tick{position:absolute;top:30px;width:1px;height:6px;background:var(--muted);opacity:.5}
+.tl{position:absolute;top:40px;font-size:13px;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+.today{position:absolute;top:0;width:2px;height:60px;background:var(--ink);transform:translateX(-1px)}
+.today span{position:absolute;top:-1px;left:8px;white-space:nowrap;font:700 13px var(--sans);background:var(--ink);color:var(--bg);padding:2px 9px;border-radius:999px;transform:translateY(-100%);margin-top:-2px}
+.hang{position:absolute;top:20px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;width:84px}
+.hang::before{content:"";width:2px;height:24px;background:var(--muted);opacity:.5;margin-top:0}
+.hang .cover{width:44px;border-radius:3px}
+.hang .cover .ct{display:none}
+.hang small{font-size:12px;font-weight:700;margin-top:6px;white-space:nowrap;color:var(--ink)}
+.hang.late small{color:var(--loan)}
+.hang.late .cover{outline:3px solid var(--loan);outline-offset:1px}
+.hang::before{margin-top:-0px}
+.hang.z{top:44px}
+
+.grp{margin-top:44px}
+.grp h2{font:700 26px var(--serif);letter-spacing:-.02em;display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.grp h2 .n{font:700 14px var(--sans);min-width:26px;height:26px;border-radius:13px;display:inline-grid;place-items:center;padding:0 8px;background:var(--sunk);color:var(--ink);letter-spacing:0}
+.grp.late h2{color:var(--loan)}
+.grp.late h2 .n{background:var(--loan);color:var(--bg)}
+.loan{display:grid;grid-template-columns:64px 1fr auto;gap:20px;align-items:center;background:var(--surface);border-radius:18px;padding:14px 18px 14px 14px;margin-bottom:10px;position:relative}
+.loan.late{border-left:6px solid var(--loan)}
+.loan .cover{width:64px;border-radius:3px}
+.loan .cover .ct{display:none}
+.loan h3{font:600 20px/1.15 var(--serif)}
+.loan .who{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:16px}
+.loan .who .av{width:30px;height:30px;font-size:13px}
+.loan .who span.d{color:var(--muted)}
+.loan .meta{margin-top:5px;font-size:14px;color:var(--muted)}
+.right{display:flex;align-items:center;gap:18px}
+.due{text-align:right;line-height:1.25}
+.due b{display:block;font:700 18px var(--serif)}
+.due span{font-size:14px;color:var(--muted)}
+.late .due b,.late .due span{color:var(--loan)}
+.late .due span{font-weight:600}
+.loan .btn{height:42px}
+.loan .btn.ret{background:var(--accent);color:var(--accent-ink)}
+.loan .btn.rem{background:transparent;padding:0 12px;color:var(--muted)}
+.hist .loan{background:transparent;padding:10px 0;grid-template-columns:44px 1fr auto;border-top:2px solid var(--surface);border-radius:0;margin:0}
+.hist .loan .cover{width:44px}
+.hist .loan h3{font-size:17px}
+.hist .loan .who{margin-top:3px;font-size:15px}
+.hist .loan .who .av{width:22px;height:22px;font-size:11px}
+.hist .due b{font:600 15px var(--sans)}
+
+/* lend panel */
+.lend{position:sticky;top:84px;background:var(--surface);border-radius:22px;padding:24px}
+.lend h2{font:700 26px var(--serif);letter-spacing:-.02em}
+.lend p.hint{color:var(--muted);font-size:15px;margin-top:4px}
+.lend label,.lend .lab{display:block;font:600 14px var(--sans);color:var(--muted);margin:20px 0 8px}
+.field{display:flex;align-items:center;gap:10px;height:50px;border-radius:14px;background:var(--bg);padding:0 14px;font-size:17px;font-weight:500}
+.field .ic{color:var(--muted);width:18px;height:18px}
+.field input{flex:1;border:0;background:none;font:inherit;color:var(--ink);outline:0;min-width:0}
+.field input::placeholder{color:var(--muted)}
+.sug{margin-top:6px;border-radius:14px;background:var(--bg);overflow:hidden}
+.sug a{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:8px 12px;font-size:16px}
+.sug a:hover,.sug a.on{background:var(--tint)}
+.sug .cover{width:34px;border-radius:2px}
+.sug .cover .ct{display:none}
+.sug small{color:var(--muted);font-size:13px;display:block}
+.sug em{font-style:normal;font-size:13px;font-weight:700;color:var(--accent)}
+.sug em.x{color:var(--loan)}
+.people{display:flex;flex-wrap:wrap;gap:8px}
+.person{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 14px 0 6px;border-radius:999px;background:var(--bg);font-weight:600;font-size:15px;border:0;cursor:pointer}
+.person[aria-pressed=true]{background:var(--tint);outline:2px solid var(--accent)}
+.person .av{width:30px;height:30px;font-size:13px}
+.person.new{padding:0 14px;color:var(--muted)}
+.when{display:flex;gap:8px;flex-wrap:wrap}
+.when .chip{height:42px;padding:0 16px;font-size:15px}
+.lend .go{width:100%;justify-content:center;height:54px;margin-top:24px;font-size:17px}
+.lend .fine{margin-top:12px;text-align:center;color:var(--muted);font-size:14px}
+.mobhead,.chipsum{display:none}
+.msheetbtn{display:none}
+
+@media (max-width:980px){
+  .wrap{display:block;padding:0 var(--pad) 130px}
+  .rope{display:none}
+  .head{display:block}
+  .head .btn{display:none}
+  .sum2{font-size:16px}
+  .chipsum{display:flex;gap:8px;margin:18px 0 0;overflow-x:auto}
+  .chipsum span{flex:none;height:36px;display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;background:var(--surface);font-weight:600;font-size:14px}
+  .chipsum span.l{background:var(--loan);color:var(--bg)}
+  .grp{margin-top:30px}
+  .grp h2{font-size:23px}
+  .loan{grid-template-columns:56px 1fr;gap:14px;padding:14px;align-items:start}
+  .loan .cover{width:56px}
+  .loan .right{grid-column:1/-1;justify-content:space-between;margin-top:2px;gap:10px}
+  .loan .due{text-align:left;display:flex;align-items:baseline;gap:8px}
+  .loan .due b{font-size:16px;display:inline}
+  .loan .btns{display:flex;gap:6px}
+  .loan .btn{height:44px}
+  .hist .loan{grid-template-columns:44px 1fr auto}
+  .hist .loan .due{display:block;text-align:right}.hist .loan .due b{display:block;font-size:15px}.loan .due b,.loan .due span{white-space:nowrap}.loan.late .right{flex-wrap:wrap}.loan.late .due{width:100%}
+  .lend{position:static;display:none}
+  .sheet-on .lend{display:block;position:fixed;left:0;right:0;bottom:0;z-index:21;border-radius:22px 22px 0 0;max-height:92vh;overflow:auto;padding:12px 18px 22px}
+  .sheet-on .scrim{display:block;position:fixed;inset:0;background:rgba(10,14,12,.5);z-index:20}
+  .lend .grab{display:block;width:40px;height:4px;border-radius:2px;background:var(--sunk);margin:0 auto 14px}
+}
+.lend .grab{display:none}
+.scrim{display:none}
+@media (max-width:980px){.fab{display:inline-flex}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="data.js"></script>
+<script>
+const qs=new URLSearchParams(location.search);
+const day=d=>d; // Nov day-of-month
+const left=d=>d-9; // days from today (Nov 9)
+const dueText=l=>l.due<9?`${9-l.due} days late`:l.due===9?'Due today':`in ${left(l.due)} days`;
+const pct=d=>((d-5)/17*100);
+
+const late=LOANS.filter(l=>l.due<9), week=LOANS.filter(l=>l.due>=9&&l.due<=16), later=LOANS.filter(l=>l.due>16);
+function loanRow(l){
+  const isLate=l.due<9;
+  return `<article class="loan ${isLate?'late':''}"><div class="cvw">${cover(l.g)}</div>
+   <div><h3>${l.g.t}</h3><div class="who">${person(l.who)}<span><b>${l.who}</b> <span class="d">since ${l.since}</span></span></div><p class="meta">${l.copy}${l.g.id==='catan'?' · the other copy is on the shelf':''}</p></div>
+   <div class="right"><div class="due"><b>Nov ${l.due}</b><span>${dueText(l)}</span></div><div class="btns" style="display:flex;gap:6px">${isLate?'<a class="btn rem" href="#">Remind</a>':''}<a class="btn ret" href="#"><i class="ic">${I.back}</i>Returned</a></div></div></article>`;
+}
+function grp(title,arr,cls){return arr.length?`<section class="grp ${cls||''}"><h2>${title} <span class="n">${arr.length}</span></h2>${arr.map(loanRow).join('')}</section>`:''}
+
+const dayTicks=Array.from({length:18},(_,i)=>5+i).map(d=>`<i class="tick" style="left:${pct(d)}%"></i>`).join('');
+const labels=[5,9,12,16,19,22].map(d=>`<span class="tl" style="left:${pct(d)}%;${d===9?'opacity:0':''}">Nov ${d}</span>`).join('');
+const hangs=LOANS.map(l=>`<div class="hang ${l.due<9?'late':''}" style="left:${pct(l.due)}%">${cover(l.g)}<small>${l.due<9?'4 days late':'Due '+l.due}</small></div>`).join('');
+const suggestions=[['Catan','Mia’s copy out · Sam’s on the shelf',false,'catan'],['Carcassonne','On the shelf · Basement',true,'carc'],['Cascadia','On the shelf · Living room',true,'cascadia']].map(([t,s,ok,id],i)=>{const g=GAMES.find(x=>x.id===id);return `<a href="#" class="${i===1?'on':''}">${cover(g)}<span>${t}<small>${s}</small></span><em class="${ok?'':'x'}">${ok?'Free':'1 of 2 free'}</em></a>`}).join('');
+
+const lendPanel=`<aside class="lend" aria-label="Lend a game"><div class="grab"></div><h2>Lend a game</h2><p class="hint">Pick the copy that’s leaving the shelf.</p>
+ <label for="g">Game</label><div class="field"><i class="ic">${I.search}</i><input id="g" value="ca" aria-label="Game"></div>
+ <div class="sug">${suggestions}</div>
+ <div class="lab">Who’s borrowing</div><div class="people">${['Priya','Uncle Ray','Aunt Dana','Jonas'].map((n,i)=>`<button class="person" aria-pressed="${i===3}">${person(n)}${n}</button>`).join('')}<button class="person new"><i class="ic" style="width:16px;height:16px">${I.plus}</i>Someone new</button></div>
+ <div class="lab">Back by</div><div class="when"><button class="chip" aria-pressed="false">1 week</button><button class="chip" aria-pressed="true">2 weeks · Nov 23</button><button class="chip" aria-pressed="false">A month</button><button class="chip" aria-pressed="false">Pick a date</button></div>
+ <a class="btn primary go" href="#"><i class="ic">${I.loan}</i>Lend Carcassonne to Jonas</a><p class="fine">Jonas has borrowed 1 game before and returned it on time.</p></aside>`;
+
+document.getElementById('app').innerHTML=`${header('Loans')}
+<div class="wrap"><main>
+  <div class="head"><div><h1 class="title">Loans</h1>
+  <p class="sum2"><b>4 games are out</b> with 4 people. <span class="o">Betrayal at House on the Hill is 4 days late</span>, and two more are due by Nov 16.</p></div>
+  <a class="btn primary" href="#" onclick="document.body.classList.add('sheet-on');return false"><i class="ic">${I.plus}</i>Lend a game</a></div>
+  <div class="chipsum"><span class="l">1 late</span><span>2 due this week</span><span>1 later</span></div>
+  <section class="rope" aria-label="Due dates"><h2>Coming back, Nov 5 to Nov 22</h2><div class="track"><div class="line"><div class="late"></div></div>${dayTicks}${labels}<div class="today" style="left:${pct(9)}%"><span>Today, Nov 9</span></div>${hangs}</div></section>
+  ${grp('Late',late,'late')}${grp('Due this week',week)}${grp('Later',later)}
+  <section class="grp hist"><h2>Back on the shelf <span class="n">3</span></h2>${RETURNED.map(r=>`<article class="loan"><div>${cover(r.g)}</div><div><h3>${r.g.t}</h3><div class="who">${person(r.who)}<span>${r.who}</span></div></div><div class="due"><b>Back ${r.back}</b><span>kept ${r.kept}</span></div></article>`).join('')}</section>
+</main>${lendPanel}</div>
+<a class="btn primary fab" href="#" onclick="document.body.classList.add('sheet-on');return false"><i class="ic">${I.plus}</i>Lend</a>
+${tabbar('Loans')}<div class="scrim" onclick="document.body.classList.remove('sheet-on')"></div>`;
+if(qs.get('sheet'))document.body.classList.add('sheet-on');
+if(qs.get('theme'))document.documentElement.dataset.theme=qs.get('theme');
+</script>
+</body>
+</html>

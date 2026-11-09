@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Import · The Shelf</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>
+.im{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:48px;align-items:start}
+.steps{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+.steps span{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 8px;border-radius:999px;background:var(--surface);font-weight:600;font-size:14px;color:var(--muted)}
+.steps span i{width:22px;height:22px;border-radius:50%;background:var(--sunk);display:grid;place-items:center;font:700 12px var(--sans);font-style:normal;color:var(--ink)}
+.steps span.on{color:var(--ink)}.steps span.on i{background:var(--accent);color:var(--accent-ink)}
+.steps span.done i{background:var(--tint);color:var(--accent)}
+.dz{display:grid;place-items:center;text-align:center;gap:12px;padding:56px 24px;border:2px dashed color-mix(in srgb,var(--muted) 50%,transparent);border-radius:20px;background:var(--bg)}
+.dz .bx{width:84px;height:100px;position:relative}
+.dz h3{font:700 26px var(--serif);letter-spacing:-.015em}
+.dz p{color:var(--muted);max-width:420px}
+.dz.bad{border-color:var(--loan);background:var(--loan-tint)}
+.file{display:grid;grid-template-columns:48px 1fr auto;gap:14px;align-items:center;background:var(--bg);border-radius:16px;padding:14px 16px}
+.file .fi{width:48px;height:56px;border-radius:4px;background:var(--tint);display:grid;place-items:center;color:var(--accent)}.file .fi .ic{width:26px;height:26px}
+.file b{font-size:18px;display:block}.file small{color:var(--muted);font-size:14px}
+.match{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.match .pill i{font-style:normal;font-size:12px;opacity:.7}
+.pv2{margin-top:20px;border-radius:16px;overflow:hidden;background:var(--bg)}
+.pv2 table{width:100%;border-collapse:collapse;font-size:15px}
+.pv2 th{font:600 13px var(--sans);color:var(--muted);text-align:left;padding:12px 14px 8px;white-space:nowrap}
+.pv2 td{padding:10px 14px;border-top:2px solid var(--surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.pv2 td.n,.pv2 th.n{text-align:right}
+.sumg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.sumg div{background:var(--bg);border-radius:16px;padding:16px 18px}
+.sumg b{display:block;font:700 40px/1 var(--serif);letter-spacing:-.02em}
+.sumg span{font-size:14px;color:var(--muted);display:block;margin-top:6px}
+.sumg .g b{color:var(--accent)}.sumg .y b{color:var(--ink)}.sumg .r b{color:var(--loan)}
+.lines{margin-top:18px}
+.ln{display:grid;grid-template-columns:86px 1fr;gap:14px;padding:12px 0;border-top:2px solid var(--bg);font-size:16px}
+.ln:first-child{border-top:0}
+.ln .no{font-weight:700;font-variant-numeric:tabular-nums}
+.ln.dup .no{color:var(--ink)}.ln.bad .no{color:var(--loan)}
+.ln small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+.ln code{font:600 14px ui-monospace,Menlo,Consolas,monospace;background:var(--bg);padding:2px 6px;border-radius:6px}
+.help h2{font-size:21px}
+.sample{margin:14px 0 0;border-radius:14px;background:var(--bg);overflow:auto;font:500 13px ui-monospace,Menlo,Consolas,monospace;padding:14px;line-height:1.7;white-space:pre;color:var(--ink)}
+.sample b{color:var(--accent)}
+.cols{display:flex;flex-direction:column;gap:8px;margin-top:16px;font-size:15px}
+.cols div{display:flex;gap:10px;justify-content:space-between}
+.cols span{color:var(--muted)}
+@media (max-width:980px){.im{display:flex;flex-direction:column}.im>main,.im>aside{width:100%;min-width:0}.sumg{grid-template-columns:1fr 1fr 1fr;gap:8px}.sumg div{padding:12px}.sumg b{font-size:30px}.dz{padding:36px 16px}.pv2{overflow-x:auto}.file{grid-template-columns:44px 1fr}.file .btn{grid-column:1/-1}}
+</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script>
+<script>
+const s=Q.get('s')||'choose';
+const stepNo={choose:1,chosen:2,success:3,partial:3,refused:1}[s];
+const steps=`<div class="steps">${['Choose a file','Check the columns','Done'].map((l,i)=>`<span class="${i+1===stepNo?'on':''} ${i+1<stepNo?'done':''}"><i>${i+1<stepNo?'✓':i+1}</i>${l}</span>`).join('')}</div>`;
+const boxArt=`<svg class="bx" viewBox="0 0 84 100" aria-hidden="true"><rect x="8" y="30" width="68" height="62" rx="3" fill="var(--tint)" stroke="var(--accent)" stroke-width="2"/><path d="M42 6v34M28 22l14-16 14 16" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="92" width="68" height="5" fill="var(--plank)"/></svg>`;
+const choose=`${steps}<div class="dz">${boxArt}<h3>Drop your collection list here</h3><p>A CSV file from a spreadsheet or another app. Nothing is added until you’ve checked it over.</p><a class="btn primary lg" href="#"><i class="ic">${I.file}</i>Choose a CSV file</a></div>`;
+const rows=[['Catan','Board game','3','4','90','2','10'],['Azul','Board game','2','4','40','2','8'],['Mario Kart 8 Deluxe','Video game','1','4','','','3'],['Keeper Rulebook','RPG book','','','','','14'],['Alpine Lake','Puzzle','','','','','12']];
+const fileBar=(n,sz,r)=>`<div class="file"><span class="fi"><i class="ic">${I.file}</i></span><span><b>${n}</b><small>${sz} · ${r} rows</small></span><a class="btn sm" href="#">Choose another</a></div>`;
+const chosen=`${steps}${fileBar('our-games.csv','14 KB',118)}
+ <div class="match"><span class="pill g"><i class="ic sm" style="width:14px;height:14px">${I.check}</i>title</span><span class="pill g">type</span><span class="pill g">players_min</span><span class="pill g">players_max</span><span class="pill g">minutes</span><span class="pill g">complexity</span><span class="pill g">min_age</span><span class="pill o">notes <i>not used</i></span></div>
+ <div class="pv2" role="region" aria-label="First rows" tabindex="0"><table><thead><tr><th>title</th><th>type</th><th class="n">players_min</th><th class="n">players_max</th><th class="n">minutes</th><th class="n">complexity</th><th class="n">min_age</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td class="n">${r[2]||'–'}</td><td class="n">${r[3]||'–'}</td><td class="n">${r[4]||'–'}</td><td class="n">${r[5]||'–'}</td><td class="n">${r[6]}</td></tr>`).join('')}</tbody></table></div>
+ <p class="muted" style="margin-top:12px;font-size:15px">Showing 5 of 118 rows. Games already in the library are skipped, not changed.</p>
+ <div class="row2" style="margin-top:22px"><a class="btn primary lg" href="#"><i class="ic">${I.upload}</i>Import 118 games</a><a class="btn ghost lg" href="#">Cancel</a></div>`;
+const success=`${steps}<div class="banner ok" style="padding:18px"><i class="ic">${I.check}</i><div><b style="font-size:19px;font-family:var(--serif)">31 games are on the shelf.</b><small>kids-room.csv imported without any problems.</small></div></div>
+ <div class="sumg"><div class="g"><b>31</b><span>added</span></div><div class="y"><b>0</b><span>skipped</span></div><div class="r"><b>0</b><span>with problems</span></div></div>
+ <div class="row2" style="margin-top:24px;flex-wrap:wrap"><a class="btn primary lg" href="catalog.html"><i class="ic">${I.book}</i>See them in the library</a><a class="btn lg" href="#">Import another file</a></div>
+ <p class="muted" style="margin-top:20px;font-size:15px">They have no copies yet. <a href="#" style="color:var(--accent);font-weight:700">Set where they live</a> to lend them out.</p>`;
+const partial=`${steps}<div class="banner" style="padding:18px"><i class="ic" style="color:var(--accent)">${I.warn}</i><div><b style="font-size:19px;font-family:var(--serif)">115 of 118 games imported.</b><small>our-games.csv had 3 rows that didn’t go in. Everything else is on the shelf.</small></div></div>
+ <div class="sumg"><div class="g"><b>115</b><span>added</span></div><div class="y"><b>1</b><span>already here, skipped</span></div><div class="r"><b>2</b><span>couldn’t be read</span></div></div>
+ <div class="lines card" style="background:var(--bg);padding:8px 18px;border-radius:16px"><div class="ln dup"><span class="no">Line 14</span><span><b>Catan</b> is already in the library<small>Skipped. The existing game wasn’t changed.</small></span></div>
+ <div class="ln bad"><span class="no">Line 37</span><span>No title<small>The <code>title</code> column is blank on this row.</small></span></div>
+ <div class="ln bad"><span class="no">Line 92</span><span><b>Wingspan Asia</b><small><code>players_max</code> says “four-ish”. Use a number, or leave it empty.</small></span></div></div>
+ <div class="row2" style="margin-top:24px;flex-wrap:wrap"><a class="btn primary lg" href="catalog.html"><i class="ic">${I.book}</i>See them in the library</a><a class="btn lg" href="#"><i class="ic">${I.upload}</i>Download the 2 rows to fix</a></div>`;
+const refused=`${steps}<div class="banner bad" role="alert" style="padding:18px"><i class="ic">${I.warn}</i><div><b style="font-size:19px;font-family:var(--serif)">We can’t use this file yet.</b><small>There’s no column called <b>title</b>, so we can’t tell which rows are games. Nothing was imported.</small></div></div>
+ ${fileBar('shelf-export.csv','9 KB',64)}
+ <div class="match"><span class="pill b">name <i>found, but needs to be “title”</i></span><span class="pill">format</span><span class="pill">seats</span><span class="pill">where</span></div>
+ <p class="muted" style="margin-top:14px;font-size:15px">Rename the <code class="mono">name</code> column to <code class="mono">title</code> in your spreadsheet and choose the file again.</p>
+ <div class="dz bad" style="margin-top:20px;padding:30px"><a class="btn primary lg" href="#"><i class="ic">${I.file}</i>Choose the fixed file</a></div>`;
+const body={choose,chosen,success,partial,refused}[s];
+const help=`<aside class="card help"><h2>What the file looks like</h2><p class="sub">One row per game. Only <b>title</b> is required.</p>
+ <pre class="sample"><b>title</b>,type,players_min,players_max,minutes,complexity,min_age
+Catan,Board game,3,4,90,2,10
+Mario Kart 8 Deluxe,Video game,1,4,,,3
+Keeper Rulebook,RPG book,,,,,14</pre>
+ <div class="cols"><div><b>title</b><span>required</span></div><div><b>type</b><span>Board game, Card game, RPG book, Video game, Puzzle</span></div><div><b>players, minutes, complexity, min_age</b><span>numbers</span></div></div>
+ <a class="btn block" href="#" style="margin-top:20px"><i class="ic">${I.upload}</i>Download a template</a></aside>`;
+boot('Import',`<div class="pghead"><div><h1 class="title">Import</h1><p class="lead">Already have a list of what you own? Bring it all in <b>at once</b> instead of typing it game by game.</p></div></div><div class="im"><main class="card">${body}</main>${help}</div>`);
+</script></body></html>

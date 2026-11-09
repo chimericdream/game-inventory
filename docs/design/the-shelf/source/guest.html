@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>The Hartwell shelf · shared with you</title>
+<link rel="stylesheet" href="style.css">
+<style>
+body{padding-bottom:40px}
+.gbar{display:flex;align-items:center;justify-content:space-between;gap:16px;height:60px;padding:0 var(--pad);max-width:1200px;margin:0 auto}
+.gbar .brand{font-size:21px}
+.gbar .brand svg{width:26px;height:26px}
+.lock{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px 0 10px;border-radius:999px;background:var(--surface);font-size:14px;font-weight:600}
+.lock .ic{width:16px;height:16px;color:var(--oak)}
+.gwrap{max-width:1200px;margin:0 auto;padding:10px var(--pad) 40px}
+.intro{max-width:760px}
+.intro h1{font:700 clamp(36px,5.2vw,64px)/1 var(--serif);letter-spacing:-.03em}
+.intro p{margin-top:14px;font-size:18px;color:var(--muted);max-width:620px}
+.intro p b{color:var(--ink)}
+.gcols{display:grid;grid-template-columns:340px 1fr;gap:48px;margin-top:34px;align-items:start}
+.picker{position:sticky;top:20px;background:var(--surface);border-radius:22px;padding:22px}
+.picker h2{font:700 22px var(--serif);letter-spacing:-.01em}
+.picker .lab{font:600 14px var(--sans);color:var(--muted);margin:18px 0 8px}
+.count{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.count button{height:44px;border-radius:12px;border:0;background:var(--bg);font:700 17px var(--serif);cursor:pointer}
+.count button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.picker .chips .chip{height:44px;padding:0 16px;font-size:15px;background:var(--bg)}
+.picker .chips .chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.sfield{display:flex;align-items:center;gap:10px;height:50px;border-radius:14px;background:var(--bg);padding:0 14px;margin-top:2px}
+.sfield .ic{color:var(--muted);width:18px;height:18px}
+.sfield input{flex:1;min-width:0;border:0;background:none;font:500 17px var(--sans);color:var(--ink);outline:0}
+.sfield input::placeholder{color:var(--muted)}
+.private{margin-top:20px;display:flex;gap:10px;font-size:14px;color:var(--muted);line-height:1.4}
+.private .ic{width:18px;height:18px;flex:none;margin-top:1px}
+.res h2{font:700 28px/1.1 var(--serif);letter-spacing:-.02em}
+.res .sub{color:var(--muted);margin-top:6px;font-size:15px}
+.rows{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;margin-top:22px}
+.row{display:grid;grid-template-columns:72px 1fr;gap:16px;align-items:center;background:var(--surface);border-radius:18px;padding:12px;cursor:pointer;min-height:104px;transition:transform .12s}
+.row:hover{transform:translateY(-2px)}
+.row .cover{border-radius:3px}
+.row .cover .ct{display:none}
+.row h3{font:600 19px/1.15 var(--serif)}
+.row .m{font-size:15px;color:var(--muted);margin-top:4px}
+.row .m b{color:var(--ink);font-weight:600}
+.row .t2{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.pips{display:inline-flex;gap:3px}
+.pips i{width:12px;height:6px;border-radius:2px;background:var(--sunk)}
+.pips i.on{background:var(--accent)}
+.av2{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:var(--accent)}
+.av2::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.av2.busy{color:var(--loan)}
+.rows .row.nc .cover{outline:none}
+.gfoot{margin-top:40px;color:var(--muted);font-size:14px;text-align:center}
+.gsheet{display:none}
+.open-on .gsheet{display:block}
+.open-on .scrim{display:block;position:fixed;inset:0;background:rgba(10,14,12,.55);z-index:20}
+.gsheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 18px 24px;max-height:90vh;overflow:auto}
+.gsheet .grab{width:40px;height:4px;border-radius:2px;background:var(--sunk);margin:0 auto 14px}
+.gs-top{display:grid;grid-template-columns:128px 1fr;gap:16px;align-items:end}
+.gs-top h2{font:700 32px/1 var(--serif);letter-spacing:-.025em}
+.gs-top p{color:var(--muted);margin-top:6px}
+.gs-facts{display:grid;grid-template-columns:repeat(4,1fr);margin-top:18px;background:var(--bg);border-radius:16px;padding:14px 0}
+.gs-facts div{padding:0 12px;border-left:2px solid var(--surface)}
+.gs-facts div:first-child{border-left:0}
+.gs-facts b{display:block;font:700 24px/1 var(--serif)}
+.gs-facts span{font-size:12px;color:var(--muted)}
+.gsheet p.d{margin-top:16px;font-size:16px;line-height:1.55}
+.gsheet .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.gsheet .tag{height:30px;display:inline-flex;align-items:center;padding:0 12px;background:var(--tint);border-radius:999px;font-weight:600;font-size:14px}
+.gs-av{margin-top:16px;display:flex;align-items:center;justify-content:space-between;background:var(--tint);border-radius:14px;padding:12px 14px;font-weight:600}
+.gs-av small{display:block;font-weight:500;color:var(--muted);font-size:13px}
+.gs-note{margin-top:12px;font-size:13px;color:var(--muted);text-align:center}
+@media (min-width:861px){.gsheet{left:50%;right:auto;width:520px;transform:translateX(-50%)}}
+@media (max-width:860px){
+  .gbar{height:56px}
+  .lock span.long{display:none}
+  .intro h1{font-size:38px}
+  .intro p{font-size:16px;margin-top:10px}
+  .gcols{display:block;margin-top:20px}
+  .picker{position:static;padding:18px 16px}
+  .count{gap:5px}
+  .count button{height:46px}
+  .res{margin-top:28px}
+  .res h2{font-size:24px}
+  .rows{grid-template-columns:1fr;gap:10px}
+  .row{grid-template-columns:64px 1fr;min-height:96px}
+  .gs-top{grid-template-columns:104px 1fr}
+  .gs-top h2{font-size:28px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="data.js"></script>
+<script>
+const qs=new URLSearchParams(location.search);
+const n=+(qs.get('n')||4), t=qs.get('t')||'60', q=(qs.get('q')||'').toLowerCase();
+const HIDDEN=['phb','coc','totk'];
+const shared=GAMES.filter(g=>!HIDDEN.includes(g.id));
+const tm=t==='any'?999:+t;
+const fits=g=>{
+  if(q&&!(g.t+' '+(g.sub||'')+' '+g.tags.join(' ')).toLowerCase().includes(q))return false;
+  if(g.p&&!(g.p[0]<=n&&n<=g.p[1]))return false;
+  if(!g.p&&n>0&&g.ty!=='Puzzle')return false;
+  if(g.ty==='Puzzle')return false;          // puzzles are a solo job, hidden from game-night results
+  if(t!=='any'){ if(!g.m)return false; if(g.m>tm)return false;}
+  return true;
+};
+let list=shared.filter(fits).sort((a,b)=>a.t.localeCompare(b.t));
+const words=['','Very light','Light','Medium','Heavy','Very heavy'];
+const timeWords={15:'a quarter hour',30:'half an hour',60:'an hour',90:'an hour and a half',120:'two hours',any:'any length'};
+const avail=g=>g.loan&&!g.partial?`<span class="av2 busy">Back Nov ${g.loan.due.split(" ")[1]}</span>`:`<span class="av2">${g.partial?'1 of 2 free':'On the shelf'}</span>`;
+const pips=c=>c?`<span class="pips" title="${words[c]}">${[1,2,3,4,5].map(i=>`<i class="${i<=c?'on':''}"></i>`).join('')}</span>${words[c]}`:'';
+const row=g=>`<a class="row" href="?open=${g.id}&n=${n}&t=${t}"><div>${cover(g)}</div><div><h3>${g.t}</h3><p class="m"><b>${g.p[0]==g.p[1]?g.p[0]:g.p[0]+'–'+g.p[1]}</b> players · <b>${g.m}</b> min</p><div class="t2">${pips(g.c)}${avail(g)}</div></div></a>`;
+const lockI='<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>';
+const eyeoff='<svg viewBox="0 0 24 24"><path d="M3 12s3.500-6 9-6 9 6 9 6-3.500 6-9 6-9-6-9-6z"/><path d="M4 4l16 16"/></svg>';
+
+const open=qs.get('open')?GAMES.find(g=>g.id===qs.get('open')):null;
+document.getElementById('app').innerHTML=`
+<header class="gbar"><a class="brand" href="#"><svg viewBox="0 0 32 32"><rect x="3" y="5" width="6" height="22" rx="1" fill="var(--accent)"/><rect x="11" y="9" width="6" height="18" rx="1" fill="var(--oak)"/><rect x="19" y="4" width="6" height="23" rx="1" fill="var(--loan)" transform="rotate(8 22 27)"/><rect x="2" y="27" width="28" height="3" fill="var(--ink)"/></svg><span>The Shelf</span></a><span class="lock"><i class="ic">${lockI}</i><span>Read-only<span class="long"> · link ends Dec 9</span></span></span></header>
+<div class="gwrap">
+ <div class="intro"><h1>The Hartwell family’s shelf</h1><p><b>Sam shared 21 of their games with you.</b> Tell us who is playing and for how long, and we’ll show what fits.</p></div>
+ <div class="gcols">
+  <aside class="picker" aria-label="Game night picker"><h2>Game night</h2>
+   <div class="lab">How many are playing?</div><div class="count">${[1,2,3,4,5,6,7,8].map(i=>`<button aria-pressed="${i===n}">${i}</button>`).join('')}</div>
+   <div class="lab">How long do you have?</div><div class="chips">${[['30','30 min'],['60','1 hour'],['120','2 hours'],['any','Any']].map(([v,l])=>`<button class="chip" aria-pressed="${v===t}">${l}</button>`).join('')}</div>
+   <div class="lab">Or look for a title</div><label class="sfield"><i class="ic">${I.search}</i><input type="search" placeholder="Do they have…?" value="${qs.get('q')||''}"></label>
+   <p class="private"><i class="ic">${eyeoff}</i><span>Ratings, notes, prices and where things live are kept private on shared links.</span></p>
+  </aside>
+  <main class="res"><h2>${list.length} games for ${n} ${n==1?'player':'players'} in ${timeWords[t]||t}</h2><p class="sub">${list.filter(g=>g.loan&&!g.partial).length} of them are out right now. Sorted by title.</p>
+   <div class="rows">${list.map(row).join('')}</div></main>
+ </div>
+ <p class="gfoot">Shared by Sam from The Shelf. This page can’t change anything.</p>
+</div>
+<div class="scrim" onclick="location.search='?n=${n}&t=${t}'"></div>
+${open?`<div class="gsheet" role="dialog" aria-label="${open.t}"><div class="grab"></div>
+ <div class="gs-top"><div>${cover(open)}</div><div><h2>${open.t}</h2><p>${open.ty==='Board'?'Board game':open.ty}</p></div></div>
+ <div class="gs-facts"><div><b>${open.p[0]==open.p[1]?open.p[0]:open.p[0]+'–'+open.p[1]}</b><span>players</span></div><div><b>${open.m}</b><span>minutes</span></div><div><b>${open.c}/5</b><span>${words[open.c].toLowerCase()}</span></div><div><b>${open.a}+</b><span>age</span></div></div>
+ <p class="d">Settle an island. Trade wood, brick, wheat, sheep and ore with whoever is across the table, build roads toward the best harvests, and race to ten points.</p>
+ <div class="tags">${open.tags.map(x=>`<span class="tag">${x}</span>`).join('')}</div>
+ <div class="gs-av"><span>One copy is on the shelf<small>The other is out until Nov 20</small></span><span class="av2" style="font-size:14px">Available</span></div>
+ <p class="gs-note">Read-only. Ask Sam if you’d like to borrow it.</p></div>`:''}`;
+if(open)document.body.classList.add('open-on');
+if(qs.get('theme'))document.documentElement.dataset.theme=qs.get('theme');
+</script>
+</body>
+</html>

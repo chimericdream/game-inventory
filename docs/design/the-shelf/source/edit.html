@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Add a game · The Shelf</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>
+.ed{display:grid;grid-template-columns:minmax(0,900px) 400px;gap:64px;align-items:start}
+.types{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px}
+.types a{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px 12px;border-radius:16px;background:var(--bg);font-weight:600;font-size:14px;border:2px solid transparent;text-align:center}
+.types a i{width:28px;height:36px;border-radius:3px;display:block}
+.types a[aria-current]{border-color:var(--accent);background:var(--tint)}
+.titlebox{position:relative}
+.titlebox .in{display:flex;align-items:center;gap:10px;height:56px;padding:0 16px;background:var(--bg);border-radius:14px;border:2px solid transparent;font-size:19px;font-weight:600}
+.titlebox .in input{flex:1;border:0;background:none;font:inherit;color:var(--ink);outline:0;min-width:0;height:100%}
+.titlebox .in .ic{color:var(--muted);width:20px;height:20px}
+.titlebox .in.on{border-color:var(--accent)}
+.sugs{margin-top:8px;border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+.sugs .hd{display:flex;justify-content:space-between;padding:10px 16px;font-size:13px;color:var(--muted);font-weight:600}
+.sg{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;padding:10px 16px;border-top:2px solid var(--surface)}
+.sg.on{background:var(--tint)}
+.sg .th{width:44px;height:56px;border-radius:3px;background:var(--cbg)}
+.sg b{font-weight:600;font-size:17px}.sg small{display:block;color:var(--muted);font-size:14px;margin-top:1px}
+.pips2{display:flex;gap:6px;margin-top:6px}
+.pips2 button{width:46px;height:44px;border-radius:12px;border:0;background:var(--bg);font:700 17px var(--serif);cursor:pointer}
+.pips2 button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.drop{display:grid;grid-template-columns:96px 1fr;gap:18px;align-items:center;border:2px dashed color-mix(in srgb,var(--muted) 50%,transparent);border-radius:16px;padding:16px}
+.drop.err{border-color:var(--loan);background:var(--loan-tint)}
+.drop .ph{width:96px;aspect-ratio:4/5;border-radius:4px;background:var(--bg);display:grid;place-items:center;color:var(--muted)}
+.drop .ph .ic{width:30px;height:30px}
+.tagbox{display:flex;flex-wrap:wrap;gap:6px;background:var(--bg);border-radius:14px;padding:8px;min-height:50px;align-items:center}
+.tagbox .tag{height:32px;display:inline-flex;align-items:center;gap:6px;padding:0 8px 0 13px;background:var(--tint);border-radius:999px;font-weight:600;font-size:14px}
+.tagbox .tag .ic{width:14px;height:14px;color:var(--muted)}
+.tagbox span.ph{color:var(--muted);padding:0 8px}
+.pv{position:sticky;top:84px}
+.pv .cover{border-radius:4px}
+.pv .plank{height:12px;background:var(--plank);margin:-1px -14px 0;border-radius:2px}
+.pv h3{font:700 26px/1.1 var(--serif);margin-top:20px;letter-spacing:-.02em}
+.pv ul{list-style:none;padding:0;margin-top:14px;display:flex;flex-direction:column;gap:10px;font-size:15px}
+.pv li{display:flex;gap:10px;align-items:flex-start}.pv li .ic{width:18px;height:18px;flex:none;margin-top:2px;color:var(--muted)}
+.savebar{display:flex;gap:12px;align-items:center;margin-top:26px;position:sticky;bottom:0;padding:14px 0 6px;background:var(--bg)}
+.nbs{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+@media (max-width:980px){
+ .ed{display:block}
+ .pv{display:none}
+ .types{grid-template-columns:repeat(5,minmax(64px,1fr));overflow-x:auto}
+ .types a{font-size:12px;padding:10px 4px}
+ .types a i{width:22px;height:28px}
+ .drop{grid-template-columns:72px 1fr}.drop .ph{width:72px}
+ .savebar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);padding:12px 16px calc(12px + env(safe-area-inset-bottom));margin:0;z-index:9}
+ .savebar .btn{flex:1;justify-content:center}
+ .pg{padding-bottom:110px}
+ .tabbar{display:none}
+}
+</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script>
+<script>
+const type=Q.get('type')||'board', st=Q.get('state')||'', mode=Q.get('mode')||'add';
+const isE=mode==='edit';
+const T=[['board','Board game','#c7612b'],['card','Card game','#6a4c93'],['rpg','RPG book','#7a1f2b'],['video','Video game','#d7263d'],['puzzle','Puzzle','#5aa0c8']];
+const tv=st==='lookup'||st==='filled'||st==='fail'||st==='error'||isE||st==='';
+const titleVal=st==='error'?'':(st==='fail'?'Catan':(st==='lookup'?'Cata':(type==='rpg'?'Keeper Rulebook':type==='video'?'Mario Kart 8 Deluxe':type==='puzzle'?'Alpine Lake':'Catan')));
+const sugs=[['Catan','1995','3–4 players · 90 min','#c7612b'],['Catan: Seafarers','1997','3–4 players · 120 min','#2f6f73'],['Catan: Cities & Knights','1998','3–4 players · 135 min','#a63d40']];
+const suggest=st==='lookup'?`<div class="sugs" role="listbox"><div class="hd"><span>Matches from the online game database</span><span>3 of 12</span></div>${sugs.map((s,i)=>`<div class="sg ${i===0?'on':''}"><span class="th" style="--cbg:${s[3]}"></span><span><b>${s[0]}</b><small>${s[1]} · ${s[2]}</small></span><a class="btn sm ${i===0?'primary':''}" href="#">${i===0?'Use this':'Pick'}</a></div>`).join('')}<div class="sg" style="grid-template-columns:1fr"><span class="muted" style="font-size:14px">None of these? Keep typing, or <a href="#" style="color:var(--accent);font-weight:700">fill the form by hand</a>.</span></div></div>`:'';
+const fail=st==='fail'?`<div class="banner bad" role="alert" style="margin-top:12px"><i class="ic">${I.warn}</i><div><b>Couldn’t reach the game database.</b><small>Nothing is lost. Fill the fields by hand, or try the lookup again.</small></div><a class="btn sm" href="#" style="margin-left:auto"><i class="ic">${I.refresh}</i>Retry</a></div>`:'';
+const filled=st==='filled'?`<div class="banner ok" style="margin-top:12px"><i class="ic" style="color:var(--accent)">${I.check}</i><div><b>Filled from “Catan (1995)”.</b><small>Players, play time, complexity and age. Check them over, they’re still yours to change.</small></div></div>`:'';
+const err=st==='error';
+const filledVals=st==='filled'||isE;
+const complexity=filledVals?2:0;
+const specific={
+ board:`<div class="grid2">${field('Players, fewest',`<input type="number" value="${filledVals?3:''}" placeholder="2">`)}${field('Players, most',`<input type="number" value="${filledVals?4:''}" placeholder="4">`)}</div>
+  <div class="grid2">${field('Play time, minutes',`<input type="number" value="${filledVals?90:''}" placeholder="45">`)}${field('Minimum age',`<input type="number" value="${filledVals?10:''}" placeholder="8">`)}</div>
+  <div class="f"><span class="l">Complexity <em>1 light, 5 heavy</em></span><div class="pips2">${[1,2,3,4,5].map(i=>`<button aria-pressed="${i===complexity}">${i}</button>`).join('')}</div></div>`,
+ rpg:`<div class="grid2">${field('Game system',`<select><option>Call of Cthulhu 7e</option></select>`)}${field('Kind of book',`<select><option>Rulebook</option></select>`)}</div><p class="msg" style="margin-top:8px;display:block;color:var(--muted);font-size:14px">Players and play time aren’t asked for books.</p>`,
+ video:`<div class="grid2">${field('Platform',`<select><option>Nintendo Switch</option></select>`)}${field('Players, most',`<input type="number" value="4">`)}</div>`,
+ puzzle:`<div class="grid2">${field('Pieces',`<input type="number" value="1000">`)}${field('Minimum age',`<input type="number" value="12">`)}</div>`
+};
+const left=`
+ <div class="card"><h2>What kind of game?</h2><div class="types">${T.map(([k,l,c])=>`<a href="?type=${k}" ${k===type?'aria-current="page"':''}><i style="background:${c}"></i>${l}</a>`).join('')}</div>
+  <div class="f"><span class="l">Title</span><div class="titlebox"><div class="in ${st==='lookup'?'on':''} ${err?'err':''}"><i class="ic">${I.search}</i><input value="${titleVal}" placeholder="Start typing to look it up" aria-label="Title"><span class="kbd">Look up</span></div>${suggest}</div>${err?`<span class="msg" style="color:var(--loan);font-weight:600;display:flex;gap:8px;margin-top:7px;font-size:14px"><i class="ic sm">${I.warn}</i>Give the game a title.</span>`:''}</div>${fail}${filled}</div>
+ <div class="card"><h2>The details</h2>${specific[type]}
+  ${field('Description',`<textarea placeholder="A line or two about what it is and why we own it.">${filledVals&&type==='board'?'Settle an island. Trade wood, brick, wheat, sheep and ore with whoever is across the table, and race to ten points.':''}</textarea>`,{opt:1})}
+  <div class="f"><span class="l">Tags <em>press enter to add</em></span><div class="tagbox">${filledVals&&type==='board'?['strategy','trading','family'].map(t=>`<span class="tag">${t}<i class="ic">${I.close}</i></span>`).join(''):'<span class="ph">family, co-op, party…</span>'}<span class="ph">add a tag</span></div></div></div>
+ <div class="card"><h2>Cover</h2><p class="sub">JPEG, PNG or WebP, up to 5 MB.</p>
+  <div class="f"><div class="drop ${err?'err':''}"><div class="ph">${err?`<i class="ic" style="color:var(--loan)">${I.warn}</i>`:`<i class="ic">${I.image}</i>`}</div><div>${err?`<b style="color:var(--loan)">catan-box.gif can’t be used.</b><p class="muted" style="font-size:14px;margin:2px 0 10px">GIF isn’t supported. Choose a JPEG, PNG or WebP file.</p>`:`<b>Drop a photo of the box here</b><p class="muted" style="font-size:14px;margin:2px 0 10px">or take one with your phone.</p>`}<div class="row2" style="gap:8px"><a class="btn sm" href="#"><i class="ic sm">${I.upload}</i>Choose file</a>${err?'':`<span class="muted" style="font-size:14px">No cover yet is fine. The shelf will draw a placeholder.</span>`}</div></div></div></div></div>
+ <div class="card"><h2>Who can see it</h2>
+  <div class="f" style="margin-top:6px"><span class="l">In the family library</span><div class="rad" role="radiogroup">
+   <label aria-checked="true"><i></i><span><b>Everyone</b><span>Shown normally to every profile.</span></span></label>
+   <label aria-checked="false"><i></i><span><b>Hide the cover for restricted profiles</b><span>The title and details stay. The cover is replaced by a plain placeholder.</span></span></label>
+   <label aria-checked="false"><i></i><span><b>Hide completely from restricted profiles</b><span>It won’t appear at all, in lists, search or by link.</span></span></label></div></div>
+  <div class="switch" style="margin-top:12px"><span><b>Show on guest links</b><span class="d">Guests with a link can see this game, subject to what each link hides.</span></span>${sw(true,'Show on guest links')}</div></div>
+ <div class="savebar"><a class="btn primary lg" href="#"><i class="ic">${I.check}</i>${isE?'Save changes':'Add to the shelf'}</a><a class="btn lg ghost" href="catalog.html">Cancel</a></div>`;
+const gobj=type==='rpg'?gm('coc'):type==='video'?gm('mk8'):type==='puzzle'?gm('alpine'):gm('catan');
+const right=`<aside class="pv card" aria-label="Preview"><div class="muted" style="font:600 14px var(--sans);margin-bottom:12px">How it will look</div>${err?'<div class="cover nocover" style="aspect-ratio:4/5"><span class="ph-l">?</span><span class="ph-t">Untitled</span><span class="ph-n">No cover yet</span></div>':(st===''&&!isE&&type==='board'?cover(gobj):cover(gobj))}<div class="plank"></div>
+ <h3>${err?'Untitled':gobj.t}</h3><ul><li><i class="ic">${I.eye}</i>Visible to everyone</li><li><i class="ic">${I.globe}</i>Shown on guest links</li><li><i class="ic">${I.pin}</i>No copies yet. Add one after saving.</li></ul></aside>`;
+boot('Library',`<a class="backlink" href="catalog.html"><i class="ic">${I.back}</i>${isE?'Catan':'Library'}</a><div class="pghead"><div><h1 class="title">${isE?'Edit Catan':'Add a game'}</h1><p class="lead">${isE?'Changes show up on the shelf straight away.':'Type a title and we’ll look it up. You can always change what it fills in.'}</p></div></div><div class="ed"><main>${left}</main>${right}</div>`);
+</script></body></html>

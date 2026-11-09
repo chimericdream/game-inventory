@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Plays · The Shelf</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>
+.wrap{display:grid;grid-template-columns:1fr 380px;gap:48px;align-items:start}
+.people-f{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:30px}
+.people-f .chip{height:38px}
+.blk{margin-top:44px}
+.blk h2{font:700 26px var(--serif);letter-spacing:-.02em;display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.blk h2 span{font:500 15px var(--sans);color:var(--muted);letter-spacing:0}
+.play2{display:grid;grid-template-columns:64px 52px 1fr auto;gap:18px;align-items:center;background:var(--surface);border-radius:18px;padding:12px 18px 12px 12px;margin-bottom:10px}
+.play2 .cover{width:52px;border-radius:3px}.play2 .cover .ct{display:none}
+.play2 .dt{font:700 17px/1.1 var(--serif)}.play2 .dt small{display:block;font:500 13px var(--sans);color:var(--muted);margin-top:2px}
+.play2 h3{font:600 19px/1.15 var(--serif)}
+.play2 p{font-size:15px;color:var(--muted);margin-top:3px}
+.play2 p b{color:var(--ink);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.rank{display:flex;flex-direction:column}
+.rk{display:grid;grid-template-columns:26px 40px 1fr 30px;gap:12px;align-items:center;padding:9px 0}
+.rk .n{font:700 18px var(--serif);color:var(--muted);text-align:center}
+.rk .cover{width:40px;border-radius:2px}.rk .cover .ct{display:none}
+.rk b{font-weight:600;font-size:16px;display:block}
+.rk .bar{height:6px;border-radius:3px;background:var(--sunk);margin-top:6px}.rk .bar i{display:block;height:100%;border-radius:3px;background:var(--accent)}
+.rk .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.dust{background:var(--surface);border-radius:20px;padding:18px 18px 8px}
+.dust .dr{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;padding:9px 0;border-top:2px solid var(--bg)}
+.dust .dr:first-of-type{border-top:0}
+.dust .cover{width:40px;border-radius:2px}.dust .cover .ct{display:none}
+.dust b{display:block;font-weight:600}.dust small{color:var(--muted);font-size:14px}
+.dust .btn{height:34px;font-size:14px;padding:0 12px}
+.dustnote{color:var(--muted);font-size:15px;margin:-6px 0 12px}
+.logp{position:sticky;top:84px}
+.logp .gsel{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;background:var(--bg);border-radius:14px;padding:8px 12px}
+.logp .gsel .cover{width:44px;border-radius:2px}.logp .gsel .cover .ct{display:none}
+.logp .gsel small{display:block;color:var(--muted);font-size:13px}
+.pc{display:flex;gap:8px;flex-wrap:wrap}
+.pc .person{height:42px;padding:0 14px 0 6px;border-radius:999px;background:var(--bg);font-weight:600;font-size:15px;border:0;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.pc .person .av{width:30px;height:30px;font-size:13px}
+.pc .person[aria-pressed=true]{background:var(--tint);outline:2px solid var(--accent);outline-offset:-2px}
+.pc .person.win[aria-pressed=true]{outline:2px solid var(--oak);outline-offset:-2px;background:color-mix(in srgb,var(--oak) 22%,var(--surface))}
+.logp .rep{display:flex;gap:10px;align-items:center;background:var(--tint);border-radius:14px;padding:10px 14px;font-size:14px;font-weight:600;margin-top:18px}
+.logp .rep .ic{width:18px;height:18px;color:var(--accent)}
+.logp .lab{font:600 14px var(--sans);color:var(--muted);margin:18px 0 8px}
+.logp .go{width:100%;justify-content:center;height:54px;margin-top:22px;font-size:17px}
+.emptybox{background:var(--surface);border-radius:22px;padding:30px 20px}
+.mlog{display:none}
+@media (max-width:980px){
+ .wrap{display:block}
+ .logp{display:none}
+ .sheet-on .logp{display:block;position:fixed;left:0;right:0;bottom:0;z-index:21;border-radius:22px 22px 0 0;max-height:92vh;overflow:auto;padding:12px 18px 22px;top:auto}
+ .play2{grid-template-columns:48px 1fr;padding:12px;gap:12px}
+ .play2 .dt{grid-column:2;grid-row:1;display:flex;gap:8px;align-items:baseline}.play2 .dt small{display:inline;margin:0}
+ .play2 .cover{width:48px;grid-row:1/3}
+ .play2>div:nth-child(3){grid-column:2}
+ .play2 .stk{grid-column:2}
+ .play2>:first-child{display:none}
+ .two{grid-template-columns:1fr;gap:20px}
+ .blk{margin-top:34px}.blk h2{font-size:23px}
+ .people-f{flex-wrap:nowrap;overflow-x:auto;margin-right:calc(var(--pad)*-1);padding-right:var(--pad)}.people-f .chip{flex:none}
+}
+</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script>
+<script>
+const empty=Q.get('empty');
+const P=[
+ ['Nov 7','Saturday','pandemic','We won',['Sam','Mia','Dad'],'We won'],
+ ['Nov 2','Monday','catan','Sam won',['Sam','Mia','Dad','Aunt Dana'],'Sam'],
+ ['Nov 1','Sunday','sushi','Mia won',['Mia','Sam','Dad','Leo'],'Mia'],
+ ['Oct 30','Friday','azul','Dad won',['Dad','Sam'],'Dad'],
+ ['Oct 26','Monday','ttr','Aunt Dana won',['Aunt Dana','Mia','Sam','Dad'],'Aunt Dana'],
+ ['Oct 18','Sunday','catan','Mia won',['Sam','Mia','Dad'],'Mia']
+];
+const mp=[['catan',11],['codenames',9],['ttr',8],['sushi',7],['azul',6],['pandemic',5]];
+const dust=[['gloomhaven','Jan 2025','22 months'],['root','Feb 2025','21 months'],['scythe','Aug 2025','15 months'],['7w','Sep 2025','14 months'],['tm','Oct 2025','13 months']];
+const playRow=p=>{const g=gm(p[2]);return `<article class="play2"><div class="dt">${p[0]}<small>${p[1]}</small></div><div>${cover(g)}</div><div><h3>${g.t}</h3><p><b>${p[3]}</b> · ${p[4].length} players</p></div>${stackAv(p[4],p[5])}</article>`};
+const logPanel=`<aside class="card logp" aria-label="Log a play"><div class="row2"><h2>Log a play</h2><span class="sp"></span><button class="btn ghost sm" style="display:none"></button></div><p class="sub">Takes about ten seconds.</p>
+ <div class="lab">Game</div>${empty?`<div class="in" style="display:flex;align-items:center;gap:10px;height:50px;padding:0 14px;background:var(--bg);border-radius:14px;color:var(--muted)"><i class="ic">${I.search}</i>Find a game…</div>`:`<div class="gsel">${cover(gm('azul'))}<span><b>Azul</b><small>2–4 players · 40 min</small></span><a class="btn sm" href="#">Change</a></div>`}
+ <div class="lab">When</div><div class="chips"><button class="chip" aria-pressed="true">Today</button><button class="chip" aria-pressed="false">Yesterday</button><button class="chip" aria-pressed="false">Pick a date</button></div>
+ ${empty?'':`<div class="rep"><i class="ic">${I.refresh}</i>Same group as last time: Sam, Dad</div>`}
+ <div class="lab">Who played</div><div class="pc">${['Sam','Mia','Dad','Aunt Dana','Leo'].map(n=>`<button class="person" aria-pressed="${n==='Sam'||n==='Dad'}">${person(n)}${n}</button>`).join('')}</div>
+ <div class="lab">Who won</div><div class="pc">${['Sam','Dad'].map(n=>`<button class="person win" aria-pressed="${n==='Dad'}">${person(n)}${n}</button>`).join('')}<button class="person" aria-pressed="false">No winner</button></div>
+ <label class="f"><span class="l">Notes <em>optional</em></span><textarea placeholder="${empty?'Anything worth remembering?':'Dad went all-in on the red tiles.'}"></textarea></label>
+ <a class="btn primary go" href="#"><i class="ic">${I.check}</i>Save play</a></aside>`;
+const left=empty?`
+ <div class="people-f"><button class="chip" aria-pressed="true">Everyone</button></div>
+ <div class="emptybox empty">${shelfArt(5)}<h3>Nothing logged yet</h3><p>After your next game night, log the result here. The shelf will start to show what the family really plays, and what is gathering dust.</p><a class="btn primary lg" href="#" onclick="document.body.classList.add('sheet-on');return false"><i class="ic">${I.dice}</i>Log your first play</a></div>`:`
+ <div class="people-f">${['Everyone','Sam','Mia','Dad','Aunt Dana'].map((n,i)=>`<button class="chip" aria-pressed="${i===0}">${n}</button>`).join('')}</div>
+ <section aria-label="Recent plays"><h2 style="font:700 26px var(--serif);letter-spacing:-.02em;margin-bottom:14px">Recent plays <span style="font:500 15px var(--sans);color:var(--muted);margin-left:8px">62 this year</span></h2>${P.map(playRow).join('')}<p class="muted" style="margin-top:12px"><a class="btn" href="#">Show older plays</a></p></section>
+ <div class="two blk"><section><h2>Most played <span>this year</span></h2><div class="rank">${mp.map(([id,n],i)=>`<div class="rk"><span class="n">${i+1}</span>${cover(gm(id))}<span><b>${gm(id).t}</b><div class="bar"><i style="width:${n/11*100}%"></i></div></span><span class="v">${n}</span></div>`).join('')}</div></section>
+ <section><h2>Not played in a year <span>18 games</span></h2><p class="dustnote">Worth a rediscovery. Pick one for Friday.</p><div class="dust">${dust.map(([id,d,m])=>`<div class="dr">${cover(gm(id))}<span><b>${gm(id).t}</b><small>Last played ${d}, ${m} ago</small></span><a class="btn" href="#">Log a play</a></div>`).join('')}<p style="padding:12px 0;font-weight:600"><a href="#">Show all 18</a></p></div></section></div>`;
+boot('Plays',`<div class="pghead"><div><h1 class="title">Plays</h1><p class="lead">${empty?'No plays yet. Start the history.':'<b>62 games played this year.</b> Catan leads with 11, and 18 games on the shelf haven’t been opened in over a year.'}</p></div><a class="btn primary lg" href="#" onclick="document.body.classList.add('sheet-on');return false"><i class="ic">${I.plus}</i>Log a play</a></div><div class="wrap"><main>${left}</main>${logPanel}</div>`,{after:'<div class="scrim" onclick="document.body.classList.remove(\'sheet-on\')"></div>'});
+if(Q.get('sheet'))document.body.classList.add('sheet-on');
+</script></body></html>

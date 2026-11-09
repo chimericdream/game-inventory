@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Sign in · The Shelf</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>
+body{min-height:100vh}
+.door{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(420px,.85fr);min-height:100vh}
+.wall{background:#16201c;position:relative;overflow:hidden;padding:56px 0 0;display:flex;flex-direction:column;justify-content:center;gap:30px}
+.sh{display:flex;gap:18px;align-items:flex-end;padding:0 0 12px;position:relative;margin:0 -40px;width:calc(100% + 120px)}
+.sh::after{content:"";position:absolute;left:0;right:0;bottom:0;height:12px;background:#9b6f43}
+.sh .cover{width:132px;flex:none;border-radius:3px}
+.sh .cover .ct{font-size:13cqw}
+.sh .cover.nocover{display:none}
+.sh.o1{padding-left:24px}.sh.o2{padding-left:112px}.sh.o3{padding-left:60px}
+.sh .gap{width:60px;flex:none}
+.wall .cap{position:absolute;left:48px;bottom:44px;color:#e9eee8}
+.wall .cap b{display:block;font:700 15px var(--sans);opacity:.8}
+.form{display:flex;flex-direction:column;justify-content:center;padding:48px clamp(32px,6vw,96px);max-width:640px;width:100%;margin:0 auto}
+.form .brand{font-size:28px;margin-bottom:40px}.form .brand svg{width:36px;height:36px}
+.form h1{font:700 clamp(36px,3.6vw,48px)/1.02 var(--serif);letter-spacing:-.03em}
+.form .lead{color:var(--muted);font-size:18px;margin-top:12px}
+.form .f{margin-top:20px}
+.form .btn.go{margin-top:26px}
+.form .f input{background:var(--surface)!important}.alt{margin-top:22px;color:var(--muted);font-size:15px}
+.alt a{color:var(--accent);font-weight:700}
+.dest{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:center;background:var(--tint);border-radius:16px;padding:12px 14px;margin-top:22px}
+.dest .cover{width:44px;border-radius:2px}.dest .cover .ct{display:none}
+.dest b{display:block;font:600 17px var(--serif)}.dest span{font-size:14px;color:var(--muted)}
+.setup .stepper{display:flex;gap:8px;margin-top:20px;font-size:14px;color:var(--muted);font-weight:600}
+.pw{display:flex;gap:6px;margin-top:8px}.pw i{flex:1;height:5px;border-radius:3px;background:var(--sunk)}.pw i.on{background:var(--accent)}
+.foot{margin-top:40px;color:var(--muted);font-size:13px}
+@media (max-width:860px){
+ .door{display:block}
+ .wall{height:220px;padding:0;justify-content:flex-end;gap:0}
+ .wall .sh:not(.o1){display:none}
+ .wall .sh.o1{padding-left:16px;margin:0;width:calc(100% + 100px);gap:12px}
+ .sh .cover{width:104px}
+ .wall .cap{display:none}
+ .form{padding:28px 20px 60px;max-width:none;justify-content:flex-start}
+ .form .brand{margin-bottom:22px;font-size:24px}
+ .form h1{font-size:34px}
+ .form .lead{font-size:16px}
+}
+</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script>
+<script>
+const m=Q.get('m')||'signin';
+const shelf=(ids,cls)=>`<div class="sh ${cls}">${ids.map(i=>i==='_'?'<span class="gap"></span>':cover(gm(i))).join('')}</div>`;
+const wall=`<aside class="wall" aria-hidden="true">${shelf(['catan','pandemic','wingspan','ttr','carc','azul','codenames'],'o1')}${shelf(['dominion','mk8','_','totk','smash','splendor','7w','sushi'],'o2')}${shelf(['root','cascadia','tm','scythe','_','kingdomino','kittens'],'o3')}<div class="cap"><b>The Hartwell family library</b></div></aside>`;
+const brand=`<a class="brand" href="#"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="5" width="6" height="22" rx="1" fill="var(--accent)"/><rect x="11" y="9" width="6" height="18" rx="1" fill="var(--oak)"/><rect x="19" y="4" width="6" height="23" rx="1" fill="var(--loan)" transform="rotate(8 22 27)"/><rect x="2" y="27" width="28" height="3" fill="var(--ink)"/></svg><span>The Shelf</span></a>`;
+let body;
+if(m==='setup'){
+ body=`${brand}<div class="setup"><h1>Let’s set up your shelf.</h1><p class="lead">You’re the first one here, so this account becomes the admin. You can add the rest of the family afterwards.</p>
+ ${field('Your name',`<input type="text" value="Sam" placeholder="First name is fine">`)}
+ ${field('Name for the library <em>optional</em>',`<input type="text" value="The Hartwell family library" placeholder="Shown on guest links">`)}
+ ${field('Email',`<input type="email" value="sam@hartwell.example">`)}
+ ${field('Password <em>at least 10 characters</em>',`<input type="password" value="correct-horse-staple">`,{msg:'Strong enough. A few words strung together is easiest to remember.'})}
+ <div class="pw"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+ <a class="btn primary lg block go" href="#"><i class="ic">${I.check}</i>Create the library</a>
+ <p class="alt">This page only appears once, while the library is empty.</p></div>`;
+}else{
+ const redirect=m==='redirect', error=m==='error';
+ body=`${brand}<h1>${redirect?'Sign in to keep going.':'Welcome back.'}</h1><p class="lead">${redirect?'That page is for the family. Sign in and we’ll take you straight there.':'Who’s playing tonight?'}</p>
+ ${redirect?`<div class="dest">${cover(gm('catan'))}<span><b>Catan</b><span>You’ll land here after signing in</span></span></div>`:''}
+ ${error?`<div class="banner bad" role="alert" style="margin-top:22px"><i class="ic">${I.warn}</i><div><b>That email and password don’t match.</b><small>Check them and try again.</small></div></div>`:''}
+ ${field('Email',`<input type="email" value="${error?'sam@hartwell.example':''}" placeholder="you@example.com" autocomplete="username">`,{err:error})}
+ ${field('Password',`<input type="password" value="${error?'hunter22':''}" placeholder="Your password" autocomplete="current-password">`,{err:error})}
+ <a class="btn primary lg block go" href="#"><i class="ic">${I.right}</i>Sign in</a>
+ <p class="alt">Forgot your password? Ask Sam or Dad to set a new one.</p><p class="foot">Opened a guest link instead? Use the link itself, no sign-in needed.</p>`;
+}
+boot('',`<div class="door">${wall}<main class="form ${m==='setup'?'':''}">${body}</main></div>`,{header:false,tab:false});
+document.querySelector('.pg').style.cssText='max-width:none;padding:0';
+</script></body></html>

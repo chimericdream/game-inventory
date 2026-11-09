@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Settings · The Shelf</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="forms.css">
+<style>
+.st{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:48px;align-items:start;margin-top:26px}
+.st.one{grid-template-columns:minmax(0,860px)}
+.person-row{display:grid;grid-template-columns:48px 1fr auto auto;gap:16px;align-items:center;padding:14px 0;border-top:2px solid var(--bg)}
+.person-row:first-of-type{border-top:0}
+.person-row b{display:block;font-size:17px}.person-row small{color:var(--muted);font-size:14px}
+.you{font-size:12px;font-weight:700;background:var(--tint);color:var(--accent);padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:2px}
+.roles{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.tree2 .tr{display:grid;grid-template-columns:1fr 150px 100px 150px;gap:14px;align-items:center;padding:0 0 0 0;min-height:52px;border-top:2px solid var(--bg)}
+.tree2 .tr:first-child{border-top:0}
+.tree2 .nm{display:flex;align-items:center;gap:10px;font-size:17px}
+.tree2 .l1 .nm{font-weight:700}
+.tree2 .l2 .nm{padding-left:34px;font-weight:500}
+.tree2 .nm .ic{width:18px;height:18px;color:var(--oak)}
+.tree2 .bar{height:8px;border-radius:4px;background:var(--bg);position:relative}.tree2 .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--oak)}
+.tree2 .ct{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tree2 .tr>span:last-child{display:flex;gap:6px;align-items:center;justify-content:flex-end;min-width:150px}
+.lk-row{display:grid;grid-template-columns:1fr auto;gap:8px 16px;padding:16px 0;border-top:2px solid var(--bg);align-items:center}
+.lk-row:first-of-type{border-top:0}
+.lk-row b{font:600 19px var(--serif)}
+.lk-row .meta{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:8px;align-items:center;color:var(--muted);font-size:14px}
+.lk-row.dead b{color:var(--muted)}
+.once{background:var(--tint);border-radius:20px;padding:22px;margin-bottom:18px}
+.once h2{font-size:22px}
+.url{display:flex;gap:10px;align-items:center;background:var(--surface);border-radius:14px;padding:6px 6px 6px 16px;margin-top:14px}
+.url code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 15px ui-monospace,Menlo,Consolas,monospace}
+.once .warn{display:flex;gap:10px;margin-top:12px;font-size:14px;font-weight:600}
+.once .warn .ic{width:18px;height:18px;flex:none;color:var(--loan)}
+.chk{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.chk button{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 14px;border-radius:12px;border:2px solid transparent;background:var(--bg);font-weight:600;font-size:15px;cursor:pointer}
+.chk button i{width:18px;height:18px;border-radius:5px;border:2px solid var(--muted);display:grid;place-items:center}
+.chk button[aria-pressed=true]{background:var(--tint);border-color:var(--accent)}
+.chk button[aria-pressed=true] i{background:var(--accent);border-color:var(--accent)}
+.chk button[aria-pressed=true] i::after{content:"";width:8px;height:4px;border-left:2px solid var(--accent-ink);border-bottom:2px solid var(--accent-ink);transform:rotate(-45deg) translate(1px,-1px)}
+.readonly{margin-bottom:18px}
+@media (max-width:980px){
+ .st{display:flex;flex-direction:column;gap:18px;margin-top:18px}.st>*{width:100%;min-width:0}
+ .person-row{grid-template-columns:44px 1fr auto}.person-row>:nth-child(4){grid-column:2/-1}
+ .tree2 .tr{grid-template-columns:1fr auto auto}.tree2 .bar{display:none}.tree2 .tr>span:last-child{min-width:0}
+ .tree2 .l2 .nm{padding-left:22px}
+ .lk-row{grid-template-columns:1fr}
+}
+</style></head><body><div id="app"></div>
+<script src="data.js"></script><script src="ui.js"></script>
+<script>
+const tab=Q.get('tab')||'people', role=Q.get('role')||'admin', err=Q.get('err'), created=Q.get('created');
+const ro=role!=='admin';
+const rp={admin:['Admin','g'],member:['Member',''],restricted:['Restricted','o']};
+const users=[['Sam','sam@hartwell.example','admin',1],['Dad','dad@hartwell.example','admin'],['Mia','mia@hartwell.example','member'],['Leo','leo@hartwell.example','restricted']];
+const roleBlurb={admin:'Everything, including people, places and share links.',member:'Add and edit games, lend, log plays. Can’t change people or settings.',restricted:'Browses a trimmed library. Hidden games and covers stay hidden.'};
+const sub=`<nav class="subnav" aria-label="Settings">${[['people','People'],['locations','Locations'],['links','Guest links']].map(([k,l])=>`<a href="?tab=${k}${ro?'&role='+role:''}" ${tab===k?'aria-current="page"':''}>${l}</a>`).join('')}</nav>`;
+const roBanner=ro?`<div class="banner readonly"><i class="ic">${I.lock}</i><div><b>You can look, but only admins can change this.</b><small>Ask Sam or Dad if someone needs adding, a shelf needs renaming, or a link should be switched off.</small></div></div>`:'';
+
+/* PEOPLE */
+const peopleList=`<section class="card"><h2>People <span class="muted" style="font:500 16px var(--sans)">${users.length} in the household</span></h2>${roBanner?'':''}<div style="margin-top:10px">${users.map(u=>`<div class="person-row">${person(u[0],48)}<span><b>${u[0]}${u[3]?'<span class="you">you</span>':''}</b><small>${u[1]}</small></span><span class="pill ${rp[u[2]][1]}">${rp[u[2]][0]}</span>${ro?'<span></span>':`<span style="display:flex;gap:6px"><a class="btn sm" href="#">Edit</a>${u[3]?'':'<a class="btn sm ghost danger" href="#">Remove</a>'}</span>`}</div>`).join('')}</div></section>`;
+const e1=err==='dup', e2=err==='short';
+const addP=`<aside class="card" aria-label="Add a person"><h2>Add a person</h2><p class="sub">They’ll sign in with their own email and password.</p>
+ ${field('Name',`<input type="text" value="${err?'Aunt Dana':''}" placeholder="First name is fine">`)}
+ ${field('Email',`<input type="email" value="${err?(e1?'mia@hartwell.example':'dana@hartwell.example'):''}" placeholder="name@example.com">`,{err:e1,msg:e1?'Mia already has an account with this email.':''})}
+ ${field('Password <em>at least 10 characters</em>',`<input type="password" value="${err?(e2?'dana42':'longenough-1234'):''}" placeholder="Make it a good one">`,{err:e2,msg:e2?'That’s 6 characters. Use at least 10, a few words strung together works well.':''})}
+ <div class="f"><span class="l">Profile</span><div class="rad">${['admin','member','restricted'].map((r,i)=>`<label aria-checked="${r==='member'}"><i></i><span><b>${rp[r][0]}</b><span>${roleBlurb[r]}</span></span></label>`).join('')}</div></div>
+ <a class="btn primary lg block" href="#" style="margin-top:22px"><i class="ic">${I.plus}</i>Add person</a></aside>`;
+
+/* LOCATIONS */
+const locs=[[1,'Basement',142],[2,'Shelf 1',31],[2,'Shelf 2',28],[2,'Shelf 3',34],[2,'Shelf 4',26],[2,'Games closet',23],[1,'Living room',96],[2,'Cabinet',60],[2,'Window seat',36],[1,'Kids’ room',31],[1,'Garage',18]];
+const locList=`<section class="card tree2"><h2>Where things live <span class="muted" style="font:500 16px var(--sans)">9 places to put a game</span></h2><p class="sub">Copies are assigned to a place. A place with copies can’t be deleted until they move.</p><div style="margin-top:12px">${locs.map(([l,n,c])=>`<div class="tr l${l}"><span class="nm"><i class="ic">${l===1?I.tree:I.pin}</i>${n}</span><span class="bar"><i style="width:${c/142*100}%"></i></span><span class="ct">${c} ${c===1?'copy':'copies'}</span>${ro?'':`<span><a class="btn sm ghost" href="#">Rename</a>${l===1?'':'<a class="btn sm ghost" href="#">Move</a>'}</span>`}</div>`).join('').replace(/<span class="ct">/g,'<span class="ct">')}</div></section>`;
+const addL=`<aside class="card" aria-label="Add a place"><h2>Add a place</h2><p class="sub">A shelf, a room, a box in the garage.</p>
+ ${field('Name',`<input type="text" value="Shelf 5">`)}
+ ${field('Inside',`<select><option>Basement</option></select>`,{msg:'Leave on “Nothing” to make a top-level room.'})}
+ <div class="f"><span class="l">It will appear as</span><span class="pill g" style="height:34px;font-size:15px"><i class="ic sm">${I.pin}</i>Basement › Shelf 5</span></div>
+ <a class="btn primary lg block" href="#" style="margin-top:22px"><i class="ic">${I.plus}</i>Add place</a></aside>`;
+
+/* LINKS */
+const links=[['Hartwell game night','Active','g','Ends Dec 9','Hides RPG books and “adventure”','Notes hidden','Locations hidden'],['Priya’s flat share','Active','g','Ends Jan 15','Hides nothing','Notes hidden','Locations hidden'],['Summer cabin','Expired','','Ended Sep 1','Hides RPG books','Notes hidden','Locations hidden'],['Test link','Revoked','b','Revoked Oct 3','Hides nothing','Notes shown','Locations shown']];
+const linkList=`<section class="card"><h2>Guest links <span class="muted" style="font:500 16px var(--sans)">2 active</span></h2><p class="sub">Read-only views of the library for people without an account.</p><div style="margin-top:10px">${links.map(l=>`<div class="lk-row ${l[1]!=='Active'?'dead':''}"><div><b>${l[0]}</b><div class="meta"><span class="pill ${l[2]}">${l[1]}</span><span>${l[3]}</span><span>·</span><span>${l[4]}</span><span>·</span><span>${l[5]}, ${l[6].toLowerCase()}</span></div></div>${ro||l[1]!=='Active'?'':'<a class="btn sm danger" href="#" style="background:var(--loan-tint)">Revoke</a>'}</div>`).join('')}</div></section>`;
+const onceBox=created?`<div class="once" role="status"><h2>“Hartwell game night” is ready.</h2><p class="sub" style="color:var(--ink)">Send this link to your guest. It works until Dec 9.</p><div class="url"><code>https://shelf.hartwell.example/g/k7Qm2x9Rt4vLpN8aYwE3sZ</code><a class="btn primary copybtn" href="#"><i class="ic sm">${I.copy}</i>Copy link</a></div><p class="warn"><i class="ic">${I.warn}</i>This is the only time the whole link is shown. If you lose it, revoke it and make a new one.</p></div>`:'';
+const addK=`<aside class="card" aria-label="Create a guest link"><h2>New guest link</h2><p class="sub">Choose what the guest can and can’t see.</p>
+ ${field('Name it',`<input type="text" value="${created?'':'Grandma’s visit'}" placeholder="Who is it for?">`)}
+ <div class="f"><span class="l">Stops working</span><div class="chips"><button class="chip" aria-pressed="false">In a week</button><button class="chip" aria-pressed="true">In a month</button><button class="chip" aria-pressed="false">3 months</button><button class="chip" aria-pressed="false">Pick a date</button></div></div>
+ <div class="f"><span class="l">Hide these kinds</span><div class="chk"><button aria-pressed="true"><i></i>RPG books</button><button aria-pressed="false"><i></i>Video games</button><button aria-pressed="false"><i></i>Puzzles</button></div></div>
+ <div class="f"><span class="l">Hide games tagged <em>optional</em></span><div class="tagbox" style="display:flex;gap:6px;background:var(--bg);border-radius:14px;padding:8px;min-height:50px;align-items:center"><span class="tag" style="height:32px;display:inline-flex;align-items:center;padding:0 13px;background:var(--tint);border-radius:999px;font-weight:600;font-size:14px">horror</span><span class="muted" style="padding:0 8px">add a tag</span></div></div>
+ <div style="margin-top:8px"><div class="switch"><span><b>Show our notes</b><span class="d">Off keeps comments like “Mia always takes the ports” private.</span></span>${sw(false,'Show notes')}</div><div class="switch"><span><b>Show where things live</b><span class="d">Off hides shelves and rooms.</span></span>${sw(false,'Show locations')}</div></div>
+ <a class="btn primary lg block" href="#" style="margin-top:14px"><i class="ic">${I.link}</i>Create link</a></aside>`;
+
+const views={people:[peopleList,ro?'':addP],locations:[locList,ro?'':addL],links:[linkList,ro?'':addK]};
+const [main,side]=views[tab];
+const lead={people:'Who lives here, and what each person can do.',locations:'The shelves and rooms the family keeps games in.',links:'Share the library with someone outside the house, read-only.'}[tab];
+boot('Settings',`<div class="pghead" style="margin-bottom:0"><div><h1 class="title">Settings</h1><p class="lead">${lead}</p></div></div>${sub}${ro?roBanner.replace('class="banner readonly"','class="banner readonly" style="margin-top:20px;margin-bottom:0"'):''}<div class="st ${side?'':'one'}"><main>${tab==='links'?onceBox:''}${main}</main>${side?`<div>${side}</div>`:''}</div>`);
+if(ro){const m=document.querySelector('.mename');if(m)m.textContent=role==='member'?'Mia':'Leo';const a=document.querySelector('.me .av');if(a)a.textContent=m.textContent[0];}
+</script></body></html>

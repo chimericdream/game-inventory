@@ -26,42 +26,42 @@ Status: draft for review. Nothing here is built yet.
 
 ## Decisions already made
 
-| Topic | Decision |
-|---|---|
-| Cover art | Generated SVG covers are mockup-only, except the decorative shelf on the sign-in page. Real covers are uploaded or looked-up images. |
-| Sign-in page | Keep the shelf look as a static, abstract shelf of generated covers with **no game names, no household name and no library data**. |
-| Notifications | No email, SMS or "Remind" in v1 (possibly never). |
-| Ratings | New table, one rating per `(user, game)`, with a visibility rule. |
-| Winners | Not tracked. Plays record only who played. |
+| Topic            | Decision                                                                                                                                                                                                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cover art        | Generated SVG covers are mockup-only, except the decorative shelf on the sign-in page. Real covers are uploaded or looked-up images.                                                                                                                                             |
+| Sign-in page     | Keep the shelf look as a static, abstract shelf of generated covers with **no game names, no household name and no library data**.                                                                                                                                               |
+| Notifications    | No email, SMS or "Remind" in v1 (possibly never).                                                                                                                                                                                                                                |
+| Ratings          | New table, one rating per `(user, game)`, with a visibility rule.                                                                                                                                                                                                                |
+| Winners          | Not tracked. Plays record only who played.                                                                                                                                                                                                                                       |
 | Players vs users | Plays record **players**, and a player does not need an account. Any member can add a non-user player while logging a play. An admin can later link a player to a user, or merge duplicate players, and the history follows with no rewrite. A player holds only a display name. |
-| User data | No birthdays or other extra user fields. |
-| Puzzles | New piece-count field. |
-| Audit | `created_by` on every entity where it makes sense, plus an audit trail so "who edited this last" is easy. |
-| Condition | `unopened`, `like new`, `good`, `worn`, `damaged`, `incomplete`, plus an optional details field. |
-| Loans | No due date is the default and the main case. Guests never see loan or due-date information. |
-| Catalog | Server-side pagination, sorting and filtering. The full list never reaches the client. |
-| Guest picker | Players/time filter shares its logic with the catalog filter. |
-| Locations | Deleting a location that has copies is blocked, with tests. |
-| Import | Add "download failed rows" and "columns not used". |
-| Fonts | Self-host Fraunces and Figtree with `next/font`. |
-| Phone panels | Drawers or bottom sheets with real focus handling, not CSS-only panels. |
-| Guest dead ends | One generic page for expired, revoked and unknown links. |
-| Kid profile | Never reveal the total including hidden games. |
+| User data        | No birthdays or other extra user fields.                                                                                                                                                                                                                                         |
+| Puzzles          | New piece-count field.                                                                                                                                                                                                                                                           |
+| Audit            | `created_by` on every entity where it makes sense, plus an audit trail so "who edited this last" is easy.                                                                                                                                                                        |
+| Condition        | `unopened`, `like new`, `good`, `worn`, `damaged`, `incomplete`, plus an optional details field.                                                                                                                                                                                 |
+| Loans            | No due date is the default and the main case. Guests never see loan or due-date information.                                                                                                                                                                                     |
+| Catalog          | Server-side pagination, sorting and filtering. The full list never reaches the client.                                                                                                                                                                                           |
+| Guest picker     | Players/time filter shares its logic with the catalog filter.                                                                                                                                                                                                                    |
+| Locations        | Deleting a location that has copies is blocked, with tests.                                                                                                                                                                                                                      |
+| Import           | Add "download failed rows" and "columns not used".                                                                                                                                                                                                                               |
+| Fonts            | Self-host Fraunces and Figtree with `next/font`.                                                                                                                                                                                                                                 |
+| Phone panels     | Drawers or bottom sheets with real focus handling, not CSS-only panels.                                                                                                                                                                                                          |
+| Guest dead ends  | One generic page for expired, revoked and unknown links.                                                                                                                                                                                                                         |
+| Kid profile      | Never reveal the total including hidden games.                                                                                                                                                                                                                                   |
 
 ## Phase overview
 
-| # | Phase | Output | Size |
-|---|---|---|---|
-| 0 | Prep | Mockups preserved, baseline green | S |
-| 1 | Schema and data layer | New schema, audit, ratings, paged catalog, guards. Minimal UI edits so the app still builds | L |
-| 2 | Design foundation | Fonts, theme, shared components, new shell and navigation | M |
-| 3 | Catalog and game detail | Shelf catalog, facets, paging, detail page | L |
-| 4 | Write screens | Add/edit game, add copy, import | M |
-| 5 | Loans, plays, wishlist | The three tracking screens | M |
-| 6 | Settings | People, locations, guest links, activity | M |
-| 7 | Sign-in and first run | Front door | S |
-| 8 | Restricted profile and guest view | The two privacy-sensitive audiences | M |
-| 9 | Polish and optional features | Shelf grouping, dated-loan timeline, docs, screenshots | M |
+| #   | Phase                             | Output                                                                                      | Size |
+| --- | --------------------------------- | ------------------------------------------------------------------------------------------- | ---- |
+| 0   | Prep                              | Mockups preserved, baseline green                                                           | S    |
+| 1   | Schema and data layer             | New schema, audit, ratings, paged catalog, guards. Minimal UI edits so the app still builds | L    |
+| 2   | Design foundation                 | Fonts, theme, shared components, new shell and navigation                                   | M    |
+| 3   | Catalog and game detail           | Shelf catalog, facets, paging, detail page                                                  | L    |
+| 4   | Write screens                     | Add/edit game, add copy, import                                                             | M    |
+| 5   | Loans, plays, wishlist            | The three tracking screens                                                                  | M    |
+| 6   | Settings                          | People, locations, guest links, activity                                                    | M    |
+| 7   | Sign-in and first run             | Front door                                                                                  | S    |
+| 8   | Restricted profile and guest view | The two privacy-sensitive audiences                                                         | M    |
+| 9   | Polish and optional features      | Shelf grouping, dated-loan timeline, docs, screenshots                                      | M    |
 
 Phases 3 to 8 depend on 1 and 2. Phase 7 is cheap and has no data dependencies, so it can move earlier if
 you want a visible win. Phase 8 goes last on purpose: it is where a leak matters most, and by then every
@@ -89,6 +89,7 @@ No visible redesign yet. Touch existing UI only as much as needed to keep it com
 (for example, remove the winner field from the play form).
 
 ### 1.1 Reset migrations
+
 Delete `drizzle/` and regenerate one baseline after the schema edits below. Update `e2e/start-app.mjs` and
 `src/server/db/test-db.ts` only if they assume migration names.
 
@@ -120,6 +121,7 @@ Delete `drizzle/` and regenerate one baseline after the schema edits below. Upda
 - **Households.** `households.name` already exists; Phase 7 makes first-run collect it.
 
 ### 1.3 Audit helper (`src/server/data/audit.ts`)
+
 - `withAudit(ctx, {entityType, entityId, action, changes}, tx)` writes inside the same transaction as the
   mutation. Convert every mutation in `games.ts`, `copies.ts`, `loans.ts`, `plays.ts`, `wishlist.ts`,
   `lookups.ts` (locations, tags), `guest.ts` (links) and `import.ts` (one `create` entry per game, grouped
@@ -131,6 +133,7 @@ Delete `drizzle/` and regenerate one baseline after the schema edits below. Upda
   none (transaction rollback); restricted viewers cannot read; password hashes never appear in `changes`.
 
 ### 1.4 Ratings (`src/server/data/ratings.ts`)
+
 - `setRating`, `clearRating`, `myRating(gameId)`, `ratingSummary(gameId)` (average and count across
   household users).
 - Rules: `restricted` cannot rate and never receives other people's ratings; guests never receive any
@@ -138,6 +141,7 @@ Delete `drizzle/` and regenerate one baseline after the schema edits below. Upda
 - Tests in `visibility.test.ts` style: ratings absent from restricted and guest responses.
 
 ### 1.5 Catalog query: paging, sorting, facets
+
 - Replace `listCatalog` with `listCatalogPage(ctx, filters, sort, page)` returning
   `{ rows, total, hasMore }`. Page size is a constant (suggest 48). Offset paging is fine at this scale.
 - Filters (zod-validated, one shared parser for URL search params): `q`, `type`, `tag`, `location`
@@ -155,11 +159,13 @@ Delete `drizzle/` and regenerate one baseline after the schema edits below. Upda
   for restricted and guest viewers; malformed filter values return an empty page, never a 500.
 
 ### 1.6 Location delete guard
+
 `deleteLocation(ctx, id)` returns `{ ok: false, reason: 'has_copies' | 'has_children', count }` instead of
 nulling out copies. Counts include descendants. Tests cover direct copies, copies in a child location, and
 the success case. The UI wording lands in Phase 6.
 
 ### 1.7 Loans and plays helpers
+
 - `listLoans` returns `daysOut` and groups: `late` (due date passed), `dueSoon` (due within 7 days),
   `noDueDate`, `returned`. `previousBorrowers(ctx)` returns distinct earlier borrower names for the lend
   picker. No reminder logic.
@@ -171,6 +177,7 @@ the success case. The UI wording lands in Phase 6.
   and adds plays per player for the filter and "Who plays this".
 
 ### 1.7b Players: link and merge (`src/server/data/players.ts`)
+
 - `listPlayers(ctx)` returns players with play counts and linked-user info. `searchPlayers(ctx, q)` backs
   the type-ahead in the log panel (admin and member only).
 - `createPlayer(ctx, name)` for the inline "add someone" flow. Any `admin` or `member` may call it.
@@ -192,10 +199,12 @@ the success case. The UI wording lands in Phase 6.
   restricted responses.
 
 ### 1.8 Import
+
 `parseImport` also returns `unusedColumns`, a `pieces` alias for the new puzzle field, and the raw failed
 rows so the UI can offer them as a CSV download. Keep the existing duplicate and error behaviour.
 
 ### 1.9 Guest resolution
+
 `resolveShareLink` keeps returning `null` for unknown, revoked and expired links, and the route renders one
 generic page (Phase 8). Make sure no code or response (status, headers, timing-obvious work) distinguishes the
 three. Update `guest.spec.ts` expectations.
@@ -208,11 +217,13 @@ removed, condition labels updated, new enum values selectable); `pnpm typecheck`
 ## Phase 2: Design foundation
 
 ### 2.1 Fonts
+
 Self-host Fraunces (variable) and Figtree (variable) through `next/font/local`, using files from
 `@fontsource-variable/*` packages or committed font files, so builds make no network calls. Replace Geist
 (`geist` dependency, `layout.tsx`, `theme.ts`, `globals.css`). Keep tabular numerals on counts and dates.
 
 ### 2.2 Theme (`src/theme.ts`)
+
 Replace the "achromatic ledger" system with the Shelf tokens from the mockups' `style.css`: warm stone
 ground, forest-green primary, berry for loans and errors, plank brown. Define them as Mantine colour tuples
 plus CSS variables through the existing variables resolver, for both light and dark (Mantine colour scheme
@@ -222,7 +233,9 @@ Close CAT-07c/X-05b: run axe on the new palette and fix contrast at the token le
 `test.fixme` on X-05b.
 
 ### 2.3 Shared components (`src/components/`)
+
 Build once, reuse everywhere:
+
 - `CoverTile`: real image (object-fit cover, fixed aspect ratio) or a generated no-cover tile (tinted by
   type, large initial). A third `hiddenImage` variant for restricted profiles. All three must be legible in
   light and dark (the mockup's near-invisible dark Gloomhaven thumbnail is a bug to avoid).
@@ -237,6 +250,7 @@ Build once, reuse everywhere:
   (message names the fix). Fixed save bar on phones.
 
 ### 2.4 Shell and navigation (`src/app/(app)/Shell.tsx`)
+
 - Desktop: pill nav (Library, Loans, Plays, Wishlist, Import, Settings), "Add game", user menu.
 - Phone: bottom tab bar (Library, Loans, Plays, Wishlist, More) and a More page (Import, Settings, guest
   links, sign out).
@@ -252,6 +266,7 @@ are acceptable at this point), axe passes, X-05b passes.
 ## Phase 3: Catalog and game detail
 
 ### 3.1 Catalog (`(app)/games/`)
+
 - Server component reading validated `searchParams`; the URL is the single source of filter, sort and page
   state. No client-side filtering or sorting.
 - Header: the sentence summary built server-side ("287 games on 9 shelves. 4 are out on loan"), the large
@@ -267,6 +282,7 @@ are acceptable at this point), axe passes, X-05b passes.
 - Empty states (empty library, no results) and a loading skeleton.
 
 ### 3.2 Game detail (`(app)/games/[id]/`)
+
 - Cover on a plank, large serif title, facts as numerals (players, time, complexity bar, age; piece count
   for puzzles; system and book kind for RPG books; platform for video games).
 - Description, tags, owner notes (hidden from restricted), rating card (your rating plus family average,
@@ -371,12 +387,14 @@ titles or household name.
 ## Phase 8: Restricted profile and guest view
 
 ### 8.1 Restricted profile
+
 - Library with hidden games absent, counts that exclude them, trimmed navigation (unchanged from today's
   rules unless you decide otherwise, see open question 3), the `hiddenImage` tile for "hide images" games,
   read-only detail (no edit, no delete, no notes, no copies form, no ratings).
 - A hidden game and an unknown id render the same 404.
 
 ### 8.2 Guest view (`/g/[token]`)
+
 - No app chrome. "Game night" picker (players, time) using the shared filter module, a headline that answers
   it, and a list of the shareable games. No availability, borrower or due-date information of any kind. No
   ratings, prices or owners; notes and locations only if the link opts in.
@@ -402,36 +420,36 @@ search params) leaks hidden games, ratings, loan details, audit data or the hous
 
 ## Differences from the mockups
 
-| Mockup | Build |
-|---|---|
-| Hand-drawn SVG covers per game | Real images or the generated no-cover tile; SVG art only on the sign-in shelf |
-| Real game names and household name on sign-in | Abstract shelf, no names |
-| "Remind" on late loans | Removed |
-| Rope timeline as the main Loans view | "Out now" list by days out; timeline only for dated loans (Phase 9) |
-| "Late / Due this week / Later" | Late, Due soon, **No due date** (default), History |
-| Win tally on Catan and "Sam won" on plays | "Who plays this"; plays show only who played |
-| Birthday banner on wishlist | Removed |
-| Guest "Back Nov 16" | No availability on guest pages |
-| Distinct expired, revoked and unknown pages | One generic page |
-| Condition "Very good" | `unopened / like new / good / worn / damaged / incomplete` plus details |
-| Restricted profile with Plays and Wishlist in nav | Keep today's restrictions unless you change them |
-| Restricted view showing the borrower on loan tags | Restricted sees "Out" only |
+| Mockup                                            | Build                                                                         |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Hand-drawn SVG covers per game                    | Real images or the generated no-cover tile; SVG art only on the sign-in shelf |
+| Real game names and household name on sign-in     | Abstract shelf, no names                                                      |
+| "Remind" on late loans                            | Removed                                                                       |
+| Rope timeline as the main Loans view              | "Out now" list by days out; timeline only for dated loans (Phase 9)           |
+| "Late / Due this week / Later"                    | Late, Due soon, **No due date** (default), History                            |
+| Win tally on Catan and "Sam won" on plays         | "Who plays this"; plays show only who played                                  |
+| Birthday banner on wishlist                       | Removed                                                                       |
+| Guest "Back Nov 16"                               | No availability on guest pages                                                |
+| Distinct expired, revoked and unknown pages       | One generic page                                                              |
+| Condition "Very good"                             | `unopened / like new / good / worn / damaged / incomplete` plus details       |
+| Restricted profile with Plays and Wishlist in nav | Keep today's restrictions unless you change them                              |
+| Restricted view showing the borrower on loan tags | Restricted sees "Out" only                                                    |
 
 ## Risks
 
-| Risk | Mitigation |
-|---|---|
-| Bespoke look fights Mantine defaults | Build the shared components in Phase 2 before any screen; override through theme tokens and CSS modules, not per-page hacks |
-| Planks per grid row at any column count | Per-item plank segment technique (Phase 2.3), tested at all breakpoints |
-| Real BGG covers have mixed aspect ratios | Fixed-ratio frame with object-fit cover; check against real lookups early |
-| Server-side paging changes how sidebar counts work | Facets come from one server function sharing the row query's conditions |
-| Visibility regressions in new read paths (facets, totals, audit, ratings) | Tests written with each read path; Phase 8 is a dedicated audit |
-| Audit writes slow or lose consistency | Written in the same transaction as the mutation; one table, indexed |
-| Duplicate non-user players ("John", "Jon", "John S.") fragment history | Type-ahead with "is this John?" before creating; admin merge; case-insensitive match check in the data layer |
-| Link or merge goes wrong and cannot be undone | Both are single transactions with audit entries recording the ids moved, confirmation text states the consequence, and merges refuse to combine two user-linked players |
-| Non-user players are personal data about people who never signed up | Store a display name only, never expose it to guests or restricted profiles, and let an admin rename or delete a player with no plays |
-| Large e2e rewrite | Update specs in the same phase as the screen they cover; never leave e2e red across a phase boundary |
-| Next.js 16 behaviour differs from memory | Read `node_modules/next/dist/docs/` before each new routing, caching or server-action pattern |
+| Risk                                                                      | Mitigation                                                                                                                                                              |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bespoke look fights Mantine defaults                                      | Build the shared components in Phase 2 before any screen; override through theme tokens and CSS modules, not per-page hacks                                             |
+| Planks per grid row at any column count                                   | Per-item plank segment technique (Phase 2.3), tested at all breakpoints                                                                                                 |
+| Real BGG covers have mixed aspect ratios                                  | Fixed-ratio frame with object-fit cover; check against real lookups early                                                                                               |
+| Server-side paging changes how sidebar counts work                        | Facets come from one server function sharing the row query's conditions                                                                                                 |
+| Visibility regressions in new read paths (facets, totals, audit, ratings) | Tests written with each read path; Phase 8 is a dedicated audit                                                                                                         |
+| Audit writes slow or lose consistency                                     | Written in the same transaction as the mutation; one table, indexed                                                                                                     |
+| Duplicate non-user players ("John", "Jon", "John S.") fragment history    | Type-ahead with "is this John?" before creating; admin merge; case-insensitive match check in the data layer                                                            |
+| Link or merge goes wrong and cannot be undone                             | Both are single transactions with audit entries recording the ids moved, confirmation text states the consequence, and merges refuse to combine two user-linked players |
+| Non-user players are personal data about people who never signed up       | Store a display name only, never expose it to guests or restricted profiles, and let an admin rename or delete a player with no plays                                   |
+| Large e2e rewrite                                                         | Update specs in the same phase as the screen they cover; never leave e2e red across a phase boundary                                                                    |
+| Next.js 16 behaviour differs from memory                                  | Read `node_modules/next/dist/docs/` before each new routing, caching or server-action pattern                                                                           |
 
 ## Open questions
 
