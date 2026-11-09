@@ -13,6 +13,7 @@ import {
   shareLinks,
   tags,
 } from '../db/schema';
+import { createdFields, recordAudit } from './audit';
 import type { DataContext } from './context';
 import { GAME_TYPES } from './games';
 import { isUuid } from './ids';
@@ -43,23 +44,38 @@ export async function createShareLink(ctx: DataContext, raw: ShareLinkInput) {
   assertAdmin(ctx);
   const input = shareLinkInput.parse(raw);
   const token = randomBytes(24).toString('base64url');
-  const [link] = await ctx.db
-    .insert(shareLinks)
-    .values({
-      householdId: ctx.householdId,
-      createdByUserId: ctx.viewer.userId,
-      label: input.label,
-      tokenHash: hashToken(token),
-      expiresAt: input.expiresInDays
-        ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
-        : null,
-      hideTypes: input.hideTypes,
-      hideTags: input.hideTags,
-      showNotes: input.showNotes,
-      showLocations: input.showLocations,
-    })
-    .returning();
-  return { link: link!, token };
+  return ctx.db.transaction(async (tx) => {
+    const [link] = await tx
+      .insert(shareLinks)
+      .values({
+        householdId: ctx.householdId,
+        createdByUserId: ctx.viewer.userId,
+        label: input.label,
+        tokenHash: hashToken(token),
+        expiresAt: input.expiresInDays
+          ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
+          : null,
+        hideTypes: input.hideTypes,
+        hideTags: input.hideTags,
+        showNotes: input.showNotes,
+        showLocations: input.showLocations,
+      })
+      .returning();
+    await recordAudit(tx, ctx, {
+      entityType: 'share_link',
+      entityId: link!.id,
+      action: 'create',
+      changes: createdFields({
+        label: link!.label,
+        expiresAt: link!.expiresAt,
+        hideTypes: link!.hideTypes.length ? link!.hideTypes : null,
+        hideTags: link!.hideTags.length ? link!.hideTags : null,
+        showNotes: link!.showNotes,
+        showLocations: link!.showLocations,
+      }),
+    });
+    return { link: link!, token };
+  });
 }
 
 export async function listShareLinks(ctx: DataContext) {
@@ -73,12 +89,28 @@ export async function listShareLinks(ctx: DataContext) {
 
 export async function revokeShareLink(ctx: DataContext, id: string): Promise<boolean> {
   assertAdmin(ctx);
-  const rows = await ctx.db
-    .update(shareLinks)
-    .set({ revokedAt: new Date() })
-    .where(and(eq(shareLinks.id, id), eq(shareLinks.householdId, ctx.householdId)))
-    .returning({ id: shareLinks.id });
-  return rows.length > 0;
+  return ctx.db.transaction(async (tx) => {
+    const now = new Date();
+    const rows = await tx
+      .update(shareLinks)
+      .set({ revokedAt: now })
+      .where(
+        and(
+          eq(shareLinks.id, id),
+          eq(shareLinks.householdId, ctx.householdId),
+          isNull(shareLinks.revokedAt),
+        ),
+      )
+      .returning({ id: shareLinks.id });
+    if (rows.length === 0) return false;
+    await recordAudit(tx, ctx, {
+      entityType: 'share_link',
+      entityId: id,
+      action: 'update',
+      changes: { revokedAt: [null, now.toISOString()] },
+    });
+    return true;
+  });
 }
 
 export type ShareLink = typeof shareLinks.$inferSelect;

@@ -428,7 +428,10 @@ export const auditLog = pgTable(
     entityId: uuid('entity_id').notNull(),
     action: auditAction('action').notNull(),
     changes: jsonb('changes').$type<Record<string, [unknown, unknown]>>().notNull().default({}),
-    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    // clock_timestamp(), not now(): entries in one transaction still get distinct, ordered times.
+    at: timestamp('at', { withTimezone: true })
+      .notNull()
+      .default(sql`clock_timestamp()`),
   },
   (t) => [
     index('audit_entity_idx').on(t.householdId, t.entityType, t.entityId, t.at),

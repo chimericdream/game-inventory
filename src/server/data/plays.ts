@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, inArray, max } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { games, playParticipants, playSessions, players } from '../db/schema';
+import { createdFields, deletedFields, recordAudit, stampCreate } from './audit';
 import type { DataContext } from './context';
 import { createPlayerIn, loadParticipants } from './players';
 import { gameVisibilityCondition } from './visibility';
@@ -59,6 +60,7 @@ export async function logPlay(ctx: DataContext, raw: PlayInput) {
         playedOn: input.playedOn ?? today(),
         durationMinutes: input.durationMinutes ?? null,
         notes: input.notes ?? null,
+        ...stampCreate(ctx),
       })
       .returning();
     if (playerIds.length) {
@@ -70,17 +72,39 @@ export async function logPlay(ctx: DataContext, raw: PlayInput) {
         })),
       );
     }
+    await recordAudit(tx, ctx, {
+      entityType: 'play',
+      entityId: play!.id,
+      action: 'create',
+      changes: {
+        ...createdFields({
+          gameId: play!.gameId,
+          playedOn: play!.playedOn,
+          durationMinutes: play!.durationMinutes,
+        }),
+        players: [null, new Set(playerIds).size],
+      },
+    });
     return play!;
   });
 }
 
 export async function deletePlay(ctx: DataContext, id: string): Promise<boolean> {
   assertCanEdit(ctx);
-  const rows = await ctx.db
-    .delete(playSessions)
-    .where(and(eq(playSessions.id, id), eq(playSessions.householdId, ctx.householdId)))
-    .returning({ id: playSessions.id });
-  return rows.length > 0;
+  return ctx.db.transaction(async (tx) => {
+    const [row] = await tx
+      .delete(playSessions)
+      .where(and(eq(playSessions.id, id), eq(playSessions.householdId, ctx.householdId)))
+      .returning();
+    if (!row) return false;
+    await recordAudit(tx, ctx, {
+      entityType: 'play',
+      entityId: id,
+      action: 'delete',
+      changes: deletedFields({ gameId: row.gameId, playedOn: row.playedOn }),
+    });
+    return true;
+  });
 }
 
 export async function recentPlays(ctx: DataContext, limit = 25) {

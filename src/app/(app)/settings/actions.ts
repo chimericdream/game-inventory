@@ -22,7 +22,7 @@ export async function addMemberAction(_prev: SettingsState, fd: FormData): Promi
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Check the form.' };
   try {
-    await createUser(ctx.db, ctx.householdId, parsed.data);
+    await createUser(ctx.db, ctx.householdId, parsed.data, ctx.viewer.userId);
   } catch {
     return { error: 'Could not add that person (is the email already used?).' };
   }

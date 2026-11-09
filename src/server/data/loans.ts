@@ -2,6 +2,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { copies, games, loans } from '../db/schema';
+import { createdFields, recordAudit, stampCreate, stampUpdate } from './audit';
 import type { DataContext } from './context';
 import { gameVisibilityCondition } from './visibility';
 
@@ -35,30 +36,53 @@ export async function lendCopy(ctx: DataContext, raw: LoanInput) {
     .where(and(eq(loans.copyId, input.copyId), isNull(loans.returnedOn)));
   if (open) throw new Error('That copy is already out on loan');
 
-  const [loan] = await ctx.db
-    .insert(loans)
-    .values({
-      householdId: ctx.householdId,
-      copyId: input.copyId,
-      borrower: input.borrower,
-      lentOn: input.lentOn ?? today(),
-      dueOn: input.dueOn ?? null,
-      notes: input.notes ?? null,
-    })
-    .returning();
-  return loan!;
+  return ctx.db.transaction(async (tx) => {
+    const [loan] = await tx
+      .insert(loans)
+      .values({
+        householdId: ctx.householdId,
+        copyId: input.copyId,
+        borrower: input.borrower,
+        lentOn: input.lentOn ?? today(),
+        dueOn: input.dueOn ?? null,
+        notes: input.notes ?? null,
+        ...stampCreate(ctx),
+      })
+      .returning();
+    await recordAudit(tx, ctx, {
+      entityType: 'loan',
+      entityId: loan!.id,
+      action: 'create',
+      changes: createdFields({
+        copyId: loan!.copyId,
+        borrower: loan!.borrower,
+        lentOn: loan!.lentOn,
+        dueOn: loan!.dueOn,
+      }),
+    });
+    return loan!;
+  });
 }
 
 export async function returnLoan(ctx: DataContext, loanId: string, on: string = today()) {
   assertCanEdit(ctx);
-  const [loan] = await ctx.db
-    .update(loans)
-    .set({ returnedOn: on })
-    .where(
-      and(eq(loans.id, loanId), eq(loans.householdId, ctx.householdId), isNull(loans.returnedOn)),
-    )
-    .returning();
-  return loan ?? null;
+  return ctx.db.transaction(async (tx) => {
+    const [loan] = await tx
+      .update(loans)
+      .set({ returnedOn: on, ...stampUpdate(ctx) })
+      .where(
+        and(eq(loans.id, loanId), eq(loans.householdId, ctx.householdId), isNull(loans.returnedOn)),
+      )
+      .returning();
+    if (!loan) return null;
+    await recordAudit(tx, ctx, {
+      entityType: 'loan',
+      entityId: loanId,
+      action: 'update',
+      changes: { returnedOn: [null, on] },
+    });
+    return loan;
+  });
 }
 
 export async function listLoans(ctx: DataContext, opts: { includeReturned?: boolean } = {}) {

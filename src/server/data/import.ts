@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { games, locations } from '../db/schema';
 import type { ImportRow } from '../import/csv';
 import { addCopy } from './copies';
+import { createdFields, recordAudit, stampCreate } from './audit';
 import type { DataContext } from './context';
 import { createGame } from './games';
 
@@ -29,11 +30,20 @@ export async function importGames(ctx: DataContext, rows: ImportRow[]): Promise<
       );
     let id = existing?.id;
     if (!id) {
-      const [created] = await ctx.db
-        .insert(locations)
-        .values({ householdId: ctx.householdId, name })
-        .returning({ id: locations.id });
-      id = created!.id;
+      const created = await ctx.db.transaction(async (tx) => {
+        const [row] = await tx
+          .insert(locations)
+          .values({ householdId: ctx.householdId, name, ...stampCreate(ctx) })
+          .returning({ id: locations.id });
+        await recordAudit(tx, ctx, {
+          entityType: 'location',
+          entityId: row!.id,
+          action: 'create',
+          changes: createdFields({ name }),
+        });
+        return row!;
+      });
+      id = created.id;
     }
     locationIds.set(key, id);
     return id;

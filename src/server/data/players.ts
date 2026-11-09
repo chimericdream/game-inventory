@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Db } from '../db/client';
 import { playParticipants, players } from '../db/schema';
+import { createdFields, recordAudit } from './audit';
 import type { DataContext } from './context';
 
 /**
@@ -87,6 +88,12 @@ export async function createPlayerIn(
       updatedByUserId: ctx.viewer.userId,
     })
     .returning({ id: players.id, displayName: players.displayName, userId: players.userId });
+  await recordAudit(db, ctx, {
+    entityType: 'player',
+    entityId: row!.id,
+    action: 'create',
+    changes: createdFields({ displayName: row!.displayName }),
+  });
   return row!;
 }
 

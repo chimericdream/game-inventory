@@ -2,6 +2,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { wishlistItems } from '../db/schema';
+import { createdFields, deletedFields, recordAudit, stampCreate } from './audit';
 import type { DataContext } from './context';
 import { createGame, GAME_TYPES } from './games';
 
@@ -37,28 +38,46 @@ export async function listWishlist(ctx: DataContext) {
 export async function addWishlistItem(ctx: DataContext, raw: WishlistInput) {
   assertCanEdit(ctx);
   const input = wishlistInput.parse(raw);
-  const [item] = await ctx.db
-    .insert(wishlistItems)
-    .values({
-      householdId: ctx.householdId,
-      title: input.title,
-      type: input.type,
-      url: input.url ?? null,
-      priceCents: input.priceCents ?? null,
-      notes: input.notes ?? null,
-      requestedByUserId: ctx.viewer.userId,
-    })
-    .returning();
-  return item!;
+  return ctx.db.transaction(async (tx) => {
+    const [item] = await tx
+      .insert(wishlistItems)
+      .values({
+        householdId: ctx.householdId,
+        title: input.title,
+        type: input.type,
+        url: input.url ?? null,
+        priceCents: input.priceCents ?? null,
+        notes: input.notes ?? null,
+        requestedByUserId: ctx.viewer.userId,
+        ...stampCreate(ctx),
+      })
+      .returning();
+    await recordAudit(tx, ctx, {
+      entityType: 'wishlist_item',
+      entityId: item!.id,
+      action: 'create',
+      changes: createdFields({ title: item!.title, type: item!.type, url: item!.url }),
+    });
+    return item!;
+  });
 }
 
 export async function removeWishlistItem(ctx: DataContext, id: string): Promise<boolean> {
   assertCanEdit(ctx);
-  const rows = await ctx.db
-    .delete(wishlistItems)
-    .where(and(eq(wishlistItems.id, id), eq(wishlistItems.householdId, ctx.householdId)))
-    .returning({ id: wishlistItems.id });
-  return rows.length > 0;
+  return ctx.db.transaction(async (tx) => {
+    const [row] = await tx
+      .delete(wishlistItems)
+      .where(and(eq(wishlistItems.id, id), eq(wishlistItems.householdId, ctx.householdId)))
+      .returning();
+    if (!row) return false;
+    await recordAudit(tx, ctx, {
+      entityType: 'wishlist_item',
+      entityId: id,
+      action: 'delete',
+      changes: deletedFields({ title: row.title, type: row.type }),
+    });
+    return true;
+  });
 }
 
 /** Moves a wishlist item into the catalog and returns the new game. */

@@ -12,6 +12,14 @@ import {
   rpgDetails,
   tags,
 } from '../db/schema';
+import {
+  createdFields,
+  deletedFields,
+  diffFields,
+  recordAudit,
+  stampCreate,
+  stampUpdate,
+} from './audit';
 import type { DataContext } from './context';
 import { isUuid } from './ids';
 import { gameVisibilityCondition, redactGame } from './visibility';
@@ -280,19 +288,79 @@ export async function createGame(ctx: DataContext, raw: GameInput) {
         notes: input.notes ?? null,
         visibility: input.visibility,
         shareable: input.shareable,
+        ...stampCreate(ctx),
       })
       .returning();
     if (!game) throw new Error('Failed to create game');
     await writeDetails(ctx, tx, game.id, input);
     if (input.tags) await syncTags(ctx, tx, game.id, input.tags);
+    await recordAudit(tx, ctx, {
+      entityType: 'game',
+      entityId: game.id,
+      action: 'create',
+      changes: createdFields({
+        title: game.title,
+        type: game.type,
+        visibility: game.visibility,
+        shareable: game.shareable,
+      }),
+    });
     return game;
   });
+}
+
+const GAME_AUDIT_FIELDS = [
+  'title',
+  'type',
+  'description',
+  'notes',
+  'visibility',
+  'shareable',
+  'coverImage',
+] as const;
+
+const auditable = (g: typeof games.$inferSelect) =>
+  Object.fromEntries(GAME_AUDIT_FIELDS.map((k) => [k, g[k]]));
+
+async function tagNames(tx: DataContext['db'], gameId: string) {
+  const rows = await tx
+    .select({ name: tags.name })
+    .from(gameTags)
+    .innerJoin(tags, eq(tags.id, gameTags.tagId))
+    .where(eq(gameTags.gameId, gameId));
+  return rows.map((r) => r.name).toSorted((a, b) => a.localeCompare(b));
+}
+
+const strip = <T extends { gameId: string; householdId: string } | undefined>(row: T) => {
+  if (!row) return null;
+  const { gameId: _g, householdId: _h, ...rest } = row;
+  return rest;
+};
+
+/** Type-specific details without their key columns, for comparing before and after an edit. */
+async function detailsSnapshot(tx: DataContext['db'], gameId: string) {
+  const [[board], [rpg], [puzzle]] = await Promise.all([
+    tx.select().from(boardGameDetails).where(eq(boardGameDetails.gameId, gameId)),
+    tx.select().from(rpgDetails).where(eq(rpgDetails.gameId, gameId)),
+    tx.select().from(puzzleDetails).where(eq(puzzleDetails.gameId, gameId)),
+  ]);
+  return { board: strip(board), rpg: strip(rpg), puzzle: strip(puzzle) };
 }
 
 export async function updateGame(ctx: DataContext, id: string, raw: GameInput) {
   assertCanEdit(ctx);
   const input = gameInput.parse(raw);
   return ctx.db.transaction(async (tx) => {
+    const [before] = await tx
+      .select()
+      .from(games)
+      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)));
+    if (!before) return null;
+    const [tagsBefore, detailsBefore] = await Promise.all([
+      tagNames(tx, id),
+      detailsSnapshot(tx, id),
+    ]);
+
     const [game] = await tx
       .update(games)
       .set({
@@ -302,32 +370,66 @@ export async function updateGame(ctx: DataContext, id: string, raw: GameInput) {
         notes: input.notes ?? null,
         visibility: input.visibility,
         shareable: input.shareable,
-        updatedAt: new Date(),
+        ...stampUpdate(ctx),
       })
       .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)))
       .returning();
     if (!game) return null;
     await writeDetails(ctx, tx, id, input);
     if (input.tags) await syncTags(ctx, tx, id, input.tags);
+
+    const [tagsAfter, detailsAfter] = await Promise.all([
+      tagNames(tx, id),
+      detailsSnapshot(tx, id),
+    ]);
+    const changes = {
+      ...diffFields(auditable(before), auditable(game)),
+      ...diffFields({ tags: tagsBefore, ...detailsBefore }, { tags: tagsAfter, ...detailsAfter }),
+    };
+    if (Object.keys(changes).length) {
+      await recordAudit(tx, ctx, { entityType: 'game', entityId: id, action: 'update', changes });
+    }
     return game;
   });
 }
 
 export async function setCoverImage(ctx: DataContext, id: string, path: string | null) {
   assertCanEdit(ctx);
-  const [game] = await ctx.db
-    .update(games)
-    .set({ coverImage: path, updatedAt: new Date() })
-    .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)))
-    .returning({ id: games.id });
-  return Boolean(game);
+  return ctx.db.transaction(async (tx) => {
+    const [before] = await tx
+      .select({ coverImage: games.coverImage })
+      .from(games)
+      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)));
+    if (!before) return false;
+    await tx
+      .update(games)
+      .set({ coverImage: path, ...stampUpdate(ctx) })
+      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)));
+    await recordAudit(tx, ctx, {
+      entityType: 'game',
+      entityId: id,
+      action: 'update',
+      changes: { coverImage: [before.coverImage, path] },
+    });
+    return true;
+  });
 }
 
 export async function deleteGame(ctx: DataContext, id: string): Promise<boolean> {
   assertCanEdit(ctx);
-  const deleted = await ctx.db
-    .delete(games)
-    .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)))
-    .returning({ id: games.id });
-  return deleted.length > 0;
+  return ctx.db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(games)
+      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)))
+      .returning({ id: games.id, title: games.title, type: games.type });
+    const [row] = deleted;
+    if (!row) return false;
+    await recordAudit(tx, ctx, {
+      entityType: 'game',
+      entityId: id,
+      action: 'delete',
+      changes: deletedFields({ title: row.title, type: row.type }),
+    });
+    return true;
+  });
 }

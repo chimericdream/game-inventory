@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import type { Db } from '../db/client';
 import { households, users } from '../db/schema';
+import { createdFields, recordAudit } from '../data/audit';
 import { ensurePlayerForUser } from '../data/players';
 import { hashPassword, verifyPassword } from './password';
 
@@ -43,6 +44,16 @@ export async function setupHousehold(db: Db, raw: z.input<typeof setupInput>) {
       })
       .returning();
     await ensurePlayerForUser(tx, user!);
+    await recordAudit(
+      tx,
+      { householdId: household!.id, viewer: { userId: user!.id } },
+      {
+        entityType: 'user',
+        entityId: user!.id,
+        action: 'create',
+        changes: createdFields({ name: user!.name, email: user!.email, role: user!.role }),
+      },
+    );
     return user!;
   });
 }
@@ -65,7 +76,13 @@ export const newUserInput = credentialsInput.extend({
   role: z.enum(['admin', 'member', 'restricted']),
 });
 
-export async function createUser(db: Db, householdId: string, raw: z.input<typeof newUserInput>) {
+/** `actorUserId` is the admin adding the account, for the audit trail. */
+export async function createUser(
+  db: Db,
+  householdId: string,
+  raw: z.input<typeof newUserInput>,
+  actorUserId: string | null = null,
+) {
   const input = newUserInput.parse(raw);
   const passwordHash = await hashPassword(input.password);
   return db.transaction(async (tx) => {
@@ -80,6 +97,18 @@ export async function createUser(db: Db, householdId: string, raw: z.input<typeo
       })
       .returning();
     await ensurePlayerForUser(tx, user!);
+    if (actorUserId) {
+      await recordAudit(
+        tx,
+        { householdId, viewer: { userId: actorUserId } },
+        {
+          entityType: 'user',
+          entityId: user!.id,
+          action: 'create',
+          changes: createdFields({ name: user!.name, email: user!.email, role: user!.role }),
+        },
+      );
+    }
     return user!;
   });
 }

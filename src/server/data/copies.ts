@@ -2,6 +2,14 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { copies, games, locations, users } from '../db/schema';
+import {
+  createdFields,
+  deletedFields,
+  diffFields,
+  recordAudit,
+  stampCreate,
+  stampUpdate,
+} from './audit';
 import type { DataContext } from './context';
 
 export const copyInput = z.object({
@@ -41,6 +49,21 @@ async function assertRefs(ctx: DataContext, input: z.output<typeof copyInput>) {
   }
 }
 
+const COPY_FIELDS = [
+  'format',
+  'platform',
+  'condition',
+  'conditionNotes',
+  'ownerUserId',
+  'locationId',
+  'acquiredOn',
+  'priceCents',
+  'notes',
+] as const;
+
+const auditable = (c: typeof copies.$inferSelect) =>
+  Object.fromEntries(COPY_FIELDS.map((k) => [k, c[k]]));
+
 export async function addCopy(ctx: DataContext, gameId: string, raw: CopyInput) {
   assertCanEdit(ctx);
   const input = copyInput.parse(raw);
@@ -50,52 +73,87 @@ export async function addCopy(ctx: DataContext, gameId: string, raw: CopyInput) 
     .where(and(eq(games.id, gameId), eq(games.householdId, ctx.householdId)));
   if (!game) throw new Error('Game not found');
   await assertRefs(ctx, input);
-  const [copy] = await ctx.db
-    .insert(copies)
-    .values({
-      householdId: ctx.householdId,
-      gameId,
-      format: input.format,
-      platform: input.platform ?? null,
-      condition: input.condition,
-      conditionNotes: input.conditionNotes ?? null,
-      ownerUserId: input.ownerUserId ?? null,
-      locationId: input.locationId ?? null,
-      acquiredOn: input.acquiredOn ?? null,
-      priceCents: input.priceCents ?? null,
-      notes: input.notes ?? null,
-    })
-    .returning();
-  return copy!;
+  return ctx.db.transaction(async (tx) => {
+    const [copy] = await tx
+      .insert(copies)
+      .values({
+        householdId: ctx.householdId,
+        gameId,
+        format: input.format,
+        platform: input.platform ?? null,
+        condition: input.condition,
+        conditionNotes: input.conditionNotes ?? null,
+        ownerUserId: input.ownerUserId ?? null,
+        locationId: input.locationId ?? null,
+        acquiredOn: input.acquiredOn ?? null,
+        priceCents: input.priceCents ?? null,
+        notes: input.notes ?? null,
+        ...stampCreate(ctx),
+      })
+      .returning();
+    await recordAudit(tx, ctx, {
+      entityType: 'copy',
+      entityId: copy!.id,
+      action: 'create',
+      changes: { gameId: [null, gameId], ...createdFields(auditable(copy!)) },
+    });
+    return copy!;
+  });
 }
 
 export async function updateCopy(ctx: DataContext, copyId: string, raw: CopyInput) {
   assertCanEdit(ctx);
   const input = copyInput.parse(raw);
   await assertRefs(ctx, input);
-  const [copy] = await ctx.db
-    .update(copies)
-    .set({
-      format: input.format,
-      platform: input.platform ?? null,
-      condition: input.condition,
-      conditionNotes: input.conditionNotes ?? null,
-      ownerUserId: input.ownerUserId ?? null,
-      locationId: input.locationId ?? null,
-      acquiredOn: input.acquiredOn ?? null,
-      priceCents: input.priceCents ?? null,
-      notes: input.notes ?? null,
-    })
-    .where(and(eq(copies.id, copyId), eq(copies.householdId, ctx.householdId)))
-    .returning();
-  return copy ?? null;
+  return ctx.db.transaction(async (tx) => {
+    const [before] = await tx
+      .select()
+      .from(copies)
+      .where(and(eq(copies.id, copyId), eq(copies.householdId, ctx.householdId)));
+    if (!before) return null;
+    const [copy] = await tx
+      .update(copies)
+      .set({
+        format: input.format,
+        platform: input.platform ?? null,
+        condition: input.condition,
+        conditionNotes: input.conditionNotes ?? null,
+        ownerUserId: input.ownerUserId ?? null,
+        locationId: input.locationId ?? null,
+        acquiredOn: input.acquiredOn ?? null,
+        priceCents: input.priceCents ?? null,
+        notes: input.notes ?? null,
+        ...stampUpdate(ctx),
+      })
+      .where(and(eq(copies.id, copyId), eq(copies.householdId, ctx.householdId)))
+      .returning();
+    const changes = diffFields(auditable(before), auditable(copy!));
+    if (Object.keys(changes).length) {
+      await recordAudit(tx, ctx, {
+        entityType: 'copy',
+        entityId: copyId,
+        action: 'update',
+        changes,
+      });
+    }
+    return copy ?? null;
+  });
 }
 
 export async function deleteCopy(ctx: DataContext, copyId: string): Promise<boolean> {
   assertCanEdit(ctx);
-  const rows = await ctx.db
-    .delete(copies)
-    .where(and(eq(copies.id, copyId), eq(copies.householdId, ctx.householdId)))
-    .returning({ id: copies.id });
-  return rows.length > 0;
+  return ctx.db.transaction(async (tx) => {
+    const [row] = await tx
+      .delete(copies)
+      .where(and(eq(copies.id, copyId), eq(copies.householdId, ctx.householdId)))
+      .returning();
+    if (!row) return false;
+    await recordAudit(tx, ctx, {
+      entityType: 'copy',
+      entityId: copyId,
+      action: 'delete',
+      changes: { gameId: [row.gameId, null], ...deletedFields(auditable(row)) },
+    });
+    return true;
+  });
 }

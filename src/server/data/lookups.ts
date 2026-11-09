@@ -2,6 +2,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { locations, tags, users } from '../db/schema';
+import { createdFields, recordAudit, stampCreate } from './audit';
 import type { DataContext } from './context';
 
 export async function listLocations(ctx: DataContext) {
@@ -16,11 +17,24 @@ export async function createLocation(ctx: DataContext, name: string, parentId?: 
   if (ctx.viewer.role === 'restricted')
     throw new Error('Restricted profiles cannot edit locations');
   const parsed = z.string().trim().min(1).max(100).parse(name);
-  const [row] = await ctx.db
-    .insert(locations)
-    .values({ householdId: ctx.householdId, name: parsed, parentId: parentId ?? null })
-    .returning();
-  return row!;
+  return ctx.db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(locations)
+      .values({
+        householdId: ctx.householdId,
+        name: parsed,
+        parentId: parentId ?? null,
+        ...stampCreate(ctx),
+      })
+      .returning();
+    await recordAudit(tx, ctx, {
+      entityType: 'location',
+      entityId: row!.id,
+      action: 'create',
+      changes: createdFields({ name: row!.name, parentId: row!.parentId }),
+    });
+    return row!;
+  });
 }
 
 export async function listTags(ctx: DataContext) {

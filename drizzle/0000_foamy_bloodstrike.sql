@@ -12,7 +12,7 @@ CREATE TABLE "audit_log" (
 	"entity_id" uuid NOT NULL,
 	"action" "audit_action" NOT NULL,
 	"changes" jsonb DEFAULT '{}'::jsonb NOT NULL,
-	"at" timestamp with time zone DEFAULT now() NOT NULL
+	"at" timestamp with time zone DEFAULT clock_timestamp() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "board_game_details" (
