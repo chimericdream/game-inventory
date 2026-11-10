@@ -62,7 +62,9 @@ self-hosters later. Not a SaaS.
 
 - Strict TypeScript. Validate external input with zod.
 - Keep commits small and conventional (`feat:`, `fix:`, `chore:`).
-- **Work directly on `main` until there is a usable v1.** No feature branches or PRs for now.
+- **Work from branches.** Every change goes on a branch (`feat/...`, `fix/...`, `chore/...`) and lands on
+  `main` through a PR once CI passes. A push to `main` publishes the image and the Proxmox host
+  deploys it within minutes, so never push to `main` directly.
 - Do not commit secrets or `.env` files; update `.env.example` when adding variables.
 
 ## Out of scope (for now)
