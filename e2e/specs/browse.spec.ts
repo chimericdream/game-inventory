@@ -256,3 +256,28 @@ test('BRW-08 a card opens its game, and back returns to the same filtered list',
   await expect(page).toHaveURL(/q=pandemic/);
   await expect(gameCards(page)).toHaveCount(1);
 });
+
+test('BRW-OWN the library shows owned games by default and a toggle reveals all games', async ({
+  page,
+  db,
+}) => {
+  await db.seedGame({ title: 'Catan', copies: [{}] });
+  await db.seedGame({ title: 'Wanted Game', copies: [] });
+  await page.goto('/games');
+
+  await expect(gameCards(page)).toHaveCount(1);
+  await expect(gameCards(page)).toContainText('Catan');
+  await expect(filters(page).getByRole('link', { name: 'We own' })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+
+  await filters(page).getByRole('link', { name: 'All games' }).click();
+  await expect(page).toHaveURL(/scope=all/);
+  await expect(gameCards(page)).toHaveCount(2);
+  await expect(resultCount(page)).toHaveText('2 games');
+
+  await filters(page).getByRole('link', { name: 'We own' }).click();
+  await expect(page).not.toHaveURL(/scope=/);
+  await expect(gameCards(page)).toHaveCount(1);
+});

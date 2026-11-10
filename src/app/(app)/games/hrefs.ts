@@ -12,6 +12,7 @@ export function filtersToParams(f: CatalogFilters): ParamRecord {
   if (f.tag) out.tag = f.tag;
   if (f.locationId) out.location = f.locationId;
   if (f.ownerUserId) out.owner = f.ownerUserId;
+  if (f.ownedOnly === false) out.scope = 'all';
   if (f.availability) out.availability = f.availability;
   if (f.sort && f.sort !== 'title') out.sort = f.sort;
   return out;

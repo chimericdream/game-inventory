@@ -48,6 +48,26 @@ export function FacetPanel({ filters, facets }: Props) {
 
   return (
     <div className={classes.panel}>
+      <section className={classes.group} aria-labelledby="facet-scope">
+        <h3 id="facet-scope">Show</h3>
+        <div className={classes.segments}>
+          <Link
+            href={catalogHref(current, { scope: null })}
+            className={classes.segment}
+            aria-current={filters.ownedOnly !== false}
+          >
+            We own
+          </Link>
+          <Link
+            href={catalogHref(current, { scope: 'all' })}
+            className={classes.segment}
+            aria-current={filters.ownedOnly === false}
+          >
+            All games
+          </Link>
+        </div>
+      </section>
+
       {facets.availability && (
         <section className={classes.group} aria-labelledby="facet-availability">
           <h3 id="facet-availability">Availability</h3>

@@ -42,6 +42,8 @@ export interface CatalogFilters {
    * search finds them. Set this to list them regardless.
    */
   includeExpansions?: boolean;
+  /** Only games with at least one copy (games we own). Off lists every game in the database. */
+  ownedOnly?: boolean;
   /** `out`: some copy is on loan. `here`: nothing is on loan. Ignored for restricted profiles. */
   availability?: 'here' | 'out';
   sort?: CatalogSort;
@@ -64,6 +66,7 @@ export function parseCatalogFilters(sp: RawParams): CatalogFilters {
     tag: textParam(sp, 'tag'),
     locationId: textParam(sp, 'location'),
     ownerUserId: textParam(sp, 'owner'),
+    ownedOnly: textParam(sp, 'scope') !== 'all',
     availability: availability === 'here' || availability === 'out' ? availability : undefined,
     sort: CATALOG_SORTS.includes(sort as CatalogSort) ? (sort as CatalogSort) : undefined,
     page: intParam(sp, 'page'),
@@ -98,6 +101,10 @@ function conditions(ctx: DataContext, f: CatalogFilters, omit?: FilterKey): SQL[
     playersCondition(f.players),
     maxMinutesCondition(f.maxMinutes),
     f.includeExpansions || f.search?.trim() ? undefined : sql`${games.isExpansion} = false`,
+    f.ownedOnly
+      ? sql`exists (select 1 from ${copies} oc where oc.game_id = ${games.id}
+          and oc.household_id = ${ctx.householdId})`
+      : undefined,
   ];
   if (f.type && omit !== 'type') out.push(sql`${games.type} = ${f.type}`);
   if (f.tag && omit !== 'tag') {
