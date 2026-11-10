@@ -56,7 +56,7 @@ services:
     restart: unless-stopped
 
   watchtower:
-    image: containrrr/watchtower:latest
+    image: nickfedor/watchtower:latest
     container_name: games-watchtower
     command: --label-enable --interval 300 --cleanup
     volumes:
