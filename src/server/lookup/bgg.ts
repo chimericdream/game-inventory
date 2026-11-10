@@ -21,6 +21,8 @@ export interface BggGame {
   /** BGG "weight" 1–5, rounded. */
   complexity: number | null;
   tags: string[];
+  /** Full-size cover on BGG's image host, or null. */
+  imageUrl: string | null;
 }
 
 const toArray = <T>(v: T | T[] | undefined): T[] =>
@@ -77,7 +79,43 @@ export function parseThing(xml: string): BggGame | null {
       .filter((l) => l['@_type'] === 'boardgamecategory')
       .map((l) => String(l['@_value']))
       .slice(0, 6),
+    imageUrl: bggImageUrl(item.image) ?? bggImageUrl(item.thumbnail),
   };
+}
+
+const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+/** Returns the URL only if it is https on BGG's image host (geekdo-images.com); else null. */
+export function bggImageUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  try {
+    const u = new URL(value.trim());
+    const host = u.hostname.toLowerCase();
+    const ok = host === 'geekdo-images.com' || host.endsWith('.geekdo-images.com');
+    return u.protocol === 'https:' && !u.username && !u.password && ok ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Downloads one cover from BGG's image host. Refuses other hosts, redirects, non-images and
+ * anything over 8 MB, so the lookup cannot be used to fetch arbitrary URLs.
+ */
+export async function fetchBggImage(value: string): Promise<File> {
+  const url = bggImageUrl(value);
+  if (!url) throw new Error('Not a BoardGameGeek image URL.');
+  const res = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`BoardGameGeek image returned ${res.status}`);
+  const type = (res.headers.get('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
+  if (!IMAGE_TYPES.includes(type))
+    throw new Error('BoardGameGeek image is not a JPEG, PNG or WebP.');
+  if (Number(res.headers.get('content-length') ?? 0) > IMAGE_MAX_BYTES)
+    throw new Error('BoardGameGeek image is too large.');
+  const bytes = await res.arrayBuffer();
+  if (bytes.byteLength > IMAGE_MAX_BYTES) throw new Error('BoardGameGeek image is too large.');
+  return new File([bytes], 'cover', { type });
 }
 
 async function bggFetch(path: string): Promise<string> {

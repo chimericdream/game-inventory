@@ -13,6 +13,7 @@ import {
   Stack,
   Switch,
   TextInput,
+  Text,
   Textarea,
   Title,
 } from '@mantine/core';
@@ -40,6 +41,8 @@ export interface GameFormValues {
   system: string;
   bookKind: string;
   pieceCount?: number | null;
+  /** Cover from a BGG lookup; the server downloads it on save unless a file is uploaded. */
+  bggImageUrl?: string | null;
 }
 
 export const EMPTY_GAME: GameFormValues = {
@@ -194,6 +197,15 @@ export function GameForm({ action, initial = EMPTY_GAME, cancelHref, copyOptions
               <Title order={2} size="h5">
                 Cover and visibility
               </Title>
+              {initial.bggImageUrl && (
+                <>
+                  <input type="hidden" name="bggImageUrl" value={initial.bggImageUrl} />
+                  <Text size="sm" data-bgg-cover>
+                    The BoardGameGeek cover will be saved with this game. Choose a file below to use
+                    your own instead.
+                  </Text>
+                </>
+              )}
               <FileInput
                 name="cover"
                 label="Cover image"

@@ -85,6 +85,7 @@ export function Lookup({ onPick }: Props) {
           playTimeMinutes: g.playTimeMinutes,
           complexity: g.complexity,
           minAge: g.minAge,
+          bggImageUrl: g.imageUrl,
         },
         [
           g.name && 'title',
@@ -94,6 +95,7 @@ export function Lookup({ onPick }: Props) {
           g.playTimeMinutes && 'play time',
           g.complexity && 'complexity',
           g.minAge && 'minimum age',
+          g.imageUrl && 'cover',
         ].filter((x): x is string => typeof x === 'string'),
       );
       setHits([]);

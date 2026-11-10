@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseSearch, parseThing } from './bgg';
+import { bggImageUrl, parseSearch, parseThing } from './bgg';
 
 const SEARCH = `<?xml version="1.0" encoding="utf-8"?>
 <items total="2" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
@@ -11,6 +11,8 @@ const SEARCH = `<?xml version="1.0" encoding="utf-8"?>
 const THING = `<?xml version="1.0" encoding="utf-8"?>
 <items><item type="boardgame" id="13">
   <name type="primary" sortindex="1" value="CATAN"/>
+  <thumbnail>https://cf.geekdo-images.com/thumb/catan.jpg</thumbnail>
+  <image>https://cf.geekdo-images.com/original/catan.jpg</image>
   <description>Build &amp; trade.&#10;&#10;Settle the island.</description>
   <minplayers value="3"/><maxplayers value="4"/><playingtime value="120"/><minage value="10"/>
   <link type="boardgamecategory" id="1021" value="Economic"/>
@@ -38,7 +40,30 @@ describe('BGG parsing', () => {
       minAge: 10,
       complexity: 2,
       tags: ['Economic', 'Negotiation'],
+      imageUrl: 'https://cf.geekdo-images.com/original/catan.jpg',
     });
+  });
+
+  it('falls back to the thumbnail, and to null when there is no image', () => {
+    const thumb = THING.replace(/<image>.*<\/image>\n?/, '');
+    expect(parseThing(thumb)?.imageUrl).toBe('https://cf.geekdo-images.com/thumb/catan.jpg');
+    expect(parseThing(thumb.replace(/<thumbnail>.*<\/thumbnail>\n?/, ''))?.imageUrl).toBeNull();
+  });
+
+  it('only accepts https URLs on the BGG image host', () => {
+    expect(bggImageUrl('https://cf.geekdo-images.com/a.jpg')).toBe(
+      'https://cf.geekdo-images.com/a.jpg',
+    );
+    for (const bad of [
+      'http://cf.geekdo-images.com/a.jpg',
+      'https://evil.example/a.jpg',
+      'https://geekdo-images.com.evil.example/a.jpg',
+      'https://user:pw@cf.geekdo-images.com/a.jpg',
+      'http://169.254.169.254/',
+      'not a url',
+      undefined,
+    ])
+      expect(bggImageUrl(bad)).toBeNull();
   });
 
   it('handles empty results', () => {

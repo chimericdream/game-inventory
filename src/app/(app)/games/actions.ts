@@ -16,6 +16,7 @@ import {
   type GameInput,
 } from '@/server/data/games';
 import { clearRating, ratingSummary, setRating } from '@/server/data/ratings';
+import { fetchBggImage } from '@/server/lookup/bgg';
 import { removeStored, saveCover } from '@/server/storage';
 
 import { toTile } from './tiles';
@@ -100,8 +101,13 @@ export async function saveGameAction(
       if (fd.get('addCopy') === 'on') await addCopy(ctx, gameId, parseCopyForm(fd, 'copy.'));
     }
 
-    const cover = fd.get('cover');
-    if (gameId && cover instanceof File && cover.size > 0) {
+    const upload = fd.get('cover');
+    let cover: File | null = upload instanceof File && upload.size > 0 ? upload : null;
+    // A cover picked from a BGG lookup is downloaded here, and an uploaded file wins over it.
+    // The game is already saved, so a failed download leaves it without a cover instead of failing.
+    const bggImage = text(fd, 'bggImageUrl');
+    if (gameId && !cover && bggImage) cover = await fetchBggImage(bggImage).catch(() => null);
+    if (gameId && cover) {
       const old = (await getGameDetail(ctx, gameId))?.game.coverImage;
       await setCoverImage(ctx, gameId, await saveCover(ctx.householdId, gameId, cover));
       if (old) await removeStored(old);
