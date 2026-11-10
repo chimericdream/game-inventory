@@ -229,6 +229,25 @@ describe('expansions', () => {
     ).rejects.toThrow('expansions of its own');
   });
 
+  it('treats a blank base game as none instead of failing on the uuid column', async () => {
+    const exp = await make('Loose add-on', { isExpansion: true, baseGameId: '' });
+    expect(exp).toMatchObject({ isExpansion: true, baseGameId: null });
+    const base = await make('Catan');
+    const moved = await updateGame(admin, exp.id, {
+      title: 'Loose add-on',
+      type: 'board',
+      isExpansion: true,
+      baseGameId: base.id,
+    });
+    const cleared = await updateGame(admin, exp.id, {
+      title: 'Loose add-on',
+      type: 'board',
+      isExpansion: true,
+      baseGameId: '',
+    });
+    expect([moved?.baseGameId, cleared?.baseGameId]).toEqual([base.id, null]);
+  });
+
   it('keeps the expansion when its base game is deleted', async () => {
     const base = await make('Catan');
     const exp = await make('Seafarers', { isExpansion: true, baseGameId: base.id });

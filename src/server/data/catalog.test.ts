@@ -5,7 +5,13 @@ import type { Db } from '../db/client';
 import { games } from '../db/schema';
 import { createTestDb } from '../db/test-db';
 import { eq } from 'drizzle-orm';
-import { catalogFacets, librarySummary, listCatalogPage, parseCatalogFilters } from './catalog';
+import {
+  catalogFacets,
+  librarySummary,
+  listCatalog,
+  listCatalogPage,
+  parseCatalogFilters,
+} from './catalog';
 import { createContext, type DataContext } from './context';
 import { addCopy } from './copies';
 import { createGame } from './games';
@@ -304,5 +310,22 @@ describe('expansions in the catalog', () => {
     });
     const found = await listCatalogPage(kid, { search: 'add-on' });
     expect(found.rows.map((r) => [r.title, r.baseTitle])).toEqual([['Visible add-on', null]]);
+  });
+});
+
+describe('expansions in pickers', () => {
+  it('lists expansions only when asked, so a play can be logged for one', async () => {
+    const base = await createGame(admin, { title: 'Catan', type: 'board' });
+    await createGame(admin, {
+      title: 'Seafarers',
+      type: 'board',
+      isExpansion: true,
+      baseGameId: base.id,
+    });
+    expect((await listCatalog(admin)).map((g) => g.title)).toEqual(['Catan']);
+    expect((await listCatalog(admin, { includeExpansions: true })).map((g) => g.title)).toEqual([
+      'Catan',
+      'Seafarers',
+    ]);
   });
 });

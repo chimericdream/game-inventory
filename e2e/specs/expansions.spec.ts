@@ -63,3 +63,14 @@ test('EXP-02 mark an expansion as standalone', async ({ page }) => {
   await page.getByRole('link', { name: 'Edit' }).click();
   await expect(page.getByRole('switch', { name: 'Standalone' })).toBeChecked();
 });
+
+test('EXP-03 a play can be logged for an expansion from its page', async ({ page }) => {
+  await addGameViaUi(page, { title: 'Carcassonne', type: 'Board game' });
+  await page.locator('[data-expansions]').getByRole('link', { name: 'Add expansion' }).click();
+  await fillGameForm(page, { title: 'Inns & Cathedrals' });
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.locator('[data-expansions]').getByRole('link', { name: /Inns/ }).click();
+
+  await page.getByRole('link', { name: 'Log a play' }).click();
+  await expect(page.getByRole('combobox', { name: /^Game/ })).toHaveValue('Inns & Cathedrals');
+});
