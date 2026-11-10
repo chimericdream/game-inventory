@@ -78,6 +78,8 @@ export async function saveGameAction(
       if (!(await updateGame(ctx, id, parsed.data))) return { error: 'Game not found.' };
     } else {
       gameId = (await createGame(ctx, parsed.data)).id;
+      // Most games added are ones we own, so the form adds an unowned copy by default.
+      if (fd.get('addCopy') === 'on') await addCopy(ctx, gameId, {});
     }
 
     const cover = fd.get('cover');

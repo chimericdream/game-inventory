@@ -32,6 +32,7 @@ export function NewGameClient() {
         action={saveGameAction.bind(null, null)}
         initial={initial}
         cancelHref="/games"
+        offerCopy
       />
     </>
   );

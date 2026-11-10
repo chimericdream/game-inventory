@@ -57,9 +57,11 @@ interface Props {
   action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
   initial?: GameFormValues;
   cancelHref: string;
+  /** Offer to add a copy to the collection along with the game (new games only). */
+  offerCopy?: boolean;
 }
 
-export function GameForm({ action, initial = EMPTY_GAME, cancelHref }: Props) {
+export function GameForm({ action, initial = EMPTY_GAME, cancelHref, offerCopy = false }: Props) {
   const [state, formAction, pending] = useActionState(action, {});
   const [type, setType] = useState(initial.type);
   const isBoard = type === 'board' || type === 'card';
@@ -206,6 +208,14 @@ export function GameForm({ action, initial = EMPTY_GAME, cancelHref }: Props) {
                 description="Guest links only ever show games marked as allowed."
                 defaultChecked={initial.shareable}
               />
+              {offerCopy && (
+                <Switch
+                  name="addCopy"
+                  label="Add a copy to our collection"
+                  description="Turn off for games we play but don't own. Details can be edited on the game page."
+                  defaultChecked
+                />
+              )}
             </Stack>
           </Paper>
         </Grid.Col>
