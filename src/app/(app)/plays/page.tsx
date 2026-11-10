@@ -52,7 +52,7 @@ export default async function PlaysPage({ searchParams }: { searchParams: Promis
   const limit = first(sp.more) === '1' ? 60 : RECENT_PAGE;
 
   const [catalog, plays, stats, who, picker, lastGroup] = await Promise.all([
-    listCatalog(ctx),
+    listCatalog(ctx, { includeExpansions: true }),
     recentPlays(ctx, limit + 1, { playerId }),
     playStats(ctx),
     playerStats(ctx),

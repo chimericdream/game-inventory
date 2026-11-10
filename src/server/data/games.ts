@@ -85,7 +85,7 @@ async function expansionFields(
   selfId?: string,
 ) {
   if (!input.isExpansion) return { isExpansion: false, baseGameId: null, standalone: false };
-  const baseId = input.baseGameId ?? null;
+  const baseId = input.baseGameId || null;
   if (baseId) {
     if (!isUuid(baseId) || baseId === selfId) throw new Error('Choose a different base game');
     const [base] = await tx
