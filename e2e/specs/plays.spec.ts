@@ -126,6 +126,13 @@ test('PLAY-02 a blank date means today', async ({ page, db }) => {
   await expect(playRows(page).filter({ hasText: 'Today Game' })).toContainText(long(db.today()));
 });
 
+/** The Yesterday chip uses the browser's own timezone. */
+const localYesterday = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 test('PLAY-02b Yesterday fills the date', async ({ page, db }) => {
   await db.seedGame({ title: 'Yesterday Game' });
   await page.goto('/plays');
@@ -134,10 +141,10 @@ test('PLAY-02b Yesterday fills the date', async ({ page, db }) => {
     .getByRole('group', { name: 'Today or yesterday' })
     .getByRole('button', { name: 'Yesterday' })
     .click();
-  await expect(form.getByLabel('Date')).toHaveValue(daysAgo(1));
+  await expect(form.getByLabel('Date')).toHaveValue(localYesterday());
   await choose(page, form, 'Game', 'Yesterday Game');
   await form.getByRole('button', { name: LOG }).click();
-  await expect(playRows(page)).toContainText(long(daysAgo(1)));
+  await expect(playRows(page)).toContainText(long(localYesterday()));
 });
 
 test('PLAY-03 most played ranks by count, then title', async ({ page, db }) => {

@@ -140,7 +140,7 @@ test('SET-11 adding a person can claim a friend’s earlier plays', async ({ pag
 test('SET-12 the activity tab says who did what', async ({ page }) => {
   await addGameViaUi(page, { title: 'Audited Game' });
   await page.goto('/settings?tab=activity');
-  const row = page.locator('[data-activity]', { hasText: 'Audited Game' }).first();
+  const row = page.locator('[data-activity]', { hasText: 'added the game Audited Game' });
   await expect(row).toContainText(ADMIN.name);
   await expect(row).toContainText('added the game Audited Game');
 });

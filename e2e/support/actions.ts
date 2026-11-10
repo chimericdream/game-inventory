@@ -37,7 +37,7 @@ export async function fillGameForm(page: Page, g: NewGame): Promise<void> {
   if (g.bookKind !== undefined) await page.getByLabel('Book kind').fill(g.bookKind);
   if (g.tags !== undefined) await page.getByLabel('Tags').fill(g.tags);
   if (g.description !== undefined) await page.getByLabel('Description').fill(g.description);
-  if (g.notes !== undefined) await page.getByLabel('Notes').fill(g.notes);
+  if (g.notes !== undefined) await page.getByLabel('Notes', { exact: true }).fill(g.notes);
   if (g.visibility) await choose(page, page, 'Visibility in this household', g.visibility);
   if (g.shareable !== undefined) {
     const sw = page.getByRole('switch', { name: 'Allow on guest links' });

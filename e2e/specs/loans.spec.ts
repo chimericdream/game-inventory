@@ -17,6 +17,13 @@ const short = (iso: string) =>
 const day = (offset: number) =>
   new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
 
+/** A date in the browser's own timezone, which is what the quick-due buttons use. */
+const localDay = (offset: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 async function lend(page: Page, game: string | RegExp, borrower: string, due?: string) {
   const form = formWith(page, LEND);
   await choose(page, form, 'Game', game);
@@ -226,7 +233,7 @@ test('LOAN-11 quick due dates fill the date, and "No due date" clears it', async
   const form = formWith(page, LEND);
   const quick = form.getByRole('group', { name: 'Quick due dates' });
   await quick.getByRole('button', { name: '2 weeks' }).click();
-  await expect(form.getByLabel('Due (optional)')).toHaveValue(day(14));
+  await expect(form.getByLabel('Due (optional)')).toHaveValue(localDay(14));
   await quick.getByRole('button', { name: 'No due date' }).click();
   await expect(form.getByLabel('Due (optional)')).toHaveValue('');
 
@@ -234,9 +241,11 @@ test('LOAN-11 quick due dates fill the date, and "No due date" clears it', async
   await form.getByRole('textbox', { name: /^Borrower/ }).fill('Dana');
   await quick.getByRole('button', { name: '1 week' }).click();
   await form.getByRole('button', { name: LEND }).click();
-  await expect(loanRows(page)).toContainText('in 7 days');
+  // The server counts days from the UTC date and the chip from the local one, so they can differ.
+  const away = Math.round((Date.parse(localDay(7)) - Date.parse(day(0))) / 86_400_000);
+  await expect(loanRows(page)).toContainText(`in ${away} days`);
   const [loan] = await db.sql`select due_on::text as due_on from loans`;
-  expect(loan!.due_on).toBe(day(7));
+  expect(loan!.due_on).toBe(localDay(7));
 });
 
 test('LOAN-12 the catalog marks a lent-out game and the loan shows how soon it is due', async ({

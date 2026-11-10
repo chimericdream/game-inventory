@@ -26,7 +26,7 @@ test('CAT-01 add a board game with every field and see it on the detail page @sm
     notes: 'Missing one road piece.',
   });
   await expect(page.getByRole('heading', { name: 'Catan' })).toBeVisible();
-  const facts = page.getByRole('main').locator('dl');
+  const facts = page.getByRole('main').locator('dl').first();
   for (const text of ['3–4', 'players', '90', 'play time', 'complexity, medium', '10+']) {
     await expect(facts).toContainText(text);
   }
@@ -71,8 +71,9 @@ test('CAT-02b RPG and video game save with their own details', async ({ page }) 
     system: 'D&D 5e',
     bookKind: 'Core rulebook',
   });
-  await expect(page.getByRole('main').locator('dl')).toContainText('D&D 5e');
-  await expect(page.getByRole('main').locator('dl')).toContainText('Core rulebook');
+  const facts = page.getByRole('main').locator('dl').first();
+  await expect(facts).toContainText('D&D 5e');
+  await expect(facts).toContainText('Core rulebook');
 
   await addGameViaUi(page, { title: 'Zelda', type: 'Video game' });
   await expect(page.getByRole('heading', { name: 'Zelda' })).toBeVisible();
