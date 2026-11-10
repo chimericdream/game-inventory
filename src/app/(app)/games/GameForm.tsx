@@ -19,6 +19,7 @@ import {
 import Link from 'next/link';
 
 import type { ActionState } from './actions';
+import { CopyFields, type Option } from './CopyFields';
 import classes from './GameForm.module.css';
 import { TYPE_OPTIONS, VISIBILITY_OPTIONS } from './labels';
 
@@ -58,11 +59,12 @@ interface Props {
   initial?: GameFormValues;
   cancelHref: string;
   /** Offer to add a copy to the collection along with the game (new games only). */
-  offerCopy?: boolean;
+  copyOptions?: { members: Option[]; locations: Option[] };
 }
 
-export function GameForm({ action, initial = EMPTY_GAME, cancelHref, offerCopy = false }: Props) {
+export function GameForm({ action, initial = EMPTY_GAME, cancelHref, copyOptions }: Props) {
   const [state, formAction, pending] = useActionState(action, {});
+  const [addCopy, setAddCopy] = useState(true);
   const [type, setType] = useState(initial.type);
   const isBoard = type === 'board' || type === 'card';
 
@@ -208,16 +210,27 @@ export function GameForm({ action, initial = EMPTY_GAME, cancelHref, offerCopy =
                 description="Guest links only ever show games marked as allowed."
                 defaultChecked={initial.shareable}
               />
-              {offerCopy && (
+            </Stack>
+          </Paper>
+          {copyOptions && (
+            <Paper withBorder p="md" mt="md">
+              <Stack>
+                <Title order={2} size="h5">
+                  Our copy
+                </Title>
                 <Switch
                   name="addCopy"
                   label="Add a copy to our collection"
-                  description="Turn off for games we play but don't own. Details can be edited on the game page."
-                  defaultChecked
+                  description="Turn off for games we play but don't own."
+                  checked={addCopy}
+                  onChange={(e) => setAddCopy(e.currentTarget.checked)}
                 />
-              )}
-            </Stack>
-          </Paper>
+                {addCopy && (
+                  <CopyFields members={copyOptions.members} locations={copyOptions.locations} />
+                )}
+              </Stack>
+            </Paper>
+          )}
         </Grid.Col>
       </Grid>
     </form>

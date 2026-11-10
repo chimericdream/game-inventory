@@ -7,7 +7,12 @@ import { saveGameAction } from '../actions';
 import { EMPTY_GAME, GameForm, type GameFormValues } from '../GameForm';
 import { Lookup } from '../Lookup';
 
-export function NewGameClient() {
+interface Props {
+  members: { value: string; label: string }[];
+  locations: { value: string; label: string }[];
+}
+
+export function NewGameClient({ members, locations }: Props) {
   const [initial, setInitial] = useState<GameFormValues>(EMPTY_GAME);
   const [version, setVersion] = useState(0);
   const [filled, setFilled] = useState<string[]>([]);
@@ -32,7 +37,7 @@ export function NewGameClient() {
         action={saveGameAction.bind(null, null)}
         initial={initial}
         cancelHref="/games"
-        offerCopy
+        copyOptions={{ members, locations }}
       />
     </>
   );

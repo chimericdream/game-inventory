@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { requireContext } from '@/server/auth/current';
 import { listCatalogPage, parseCatalogFilters } from '@/server/data/catalog';
-import { addCopy, deleteCopy, updateCopy } from '@/server/data/copies';
+import { addCopy, deleteCopy, updateCopy, type CopyInput } from '@/server/data/copies';
 import {
   createGame,
   deleteGame,
@@ -33,6 +33,23 @@ const int = (fd: FormData, key: string) => {
   const v = text(fd, key);
   return v === null || Number.isNaN(Number(v)) ? null : Math.round(Number(v));
 };
+
+/** Copy details from a form; `prefix` namespaces the fields when the form also holds a game. */
+function parseCopyForm(fd: FormData, prefix = ''): CopyInput {
+  const t = (key: string) => text(fd, prefix + key);
+  const price = t('price');
+  return {
+    format: (t('format') ?? 'physical') as 'physical' | 'digital',
+    platform: t('platform'),
+    condition: (t('condition') ?? 'good') as 'good',
+    conditionNotes: t('conditionNotes'),
+    ownerUserId: t('ownerUserId'),
+    locationId: t('locationId'),
+    acquiredOn: t('acquiredOn'),
+    priceCents: price ? Math.round(Number(price) * 100) : null,
+    notes: t('notes'),
+  };
+}
 
 function parseGameForm(fd: FormData): GameInput {
   const type = text(fd, 'type') as GameInput['type'];
@@ -78,8 +95,8 @@ export async function saveGameAction(
       if (!(await updateGame(ctx, id, parsed.data))) return { error: 'Game not found.' };
     } else {
       gameId = (await createGame(ctx, parsed.data)).id;
-      // Most games added are ones we own, so the form adds an unowned copy by default.
-      if (fd.get('addCopy') === 'on') await addCopy(ctx, gameId, {});
+      // Most games added are ones we own, so the form adds a copy by default.
+      if (fd.get('addCopy') === 'on') await addCopy(ctx, gameId, parseCopyForm(fd, 'copy.'));
     }
 
     const cover = fd.get('cover');
@@ -110,19 +127,8 @@ export async function addCopyAction(
   fd: FormData,
 ): Promise<ActionState> {
   const { ctx } = await requireContext();
-  const price = text(fd, 'price');
   try {
-    await addCopy(ctx, gameId, {
-      format: (text(fd, 'format') ?? 'physical') as 'physical' | 'digital',
-      platform: text(fd, 'platform'),
-      condition: (text(fd, 'condition') ?? 'good') as 'good',
-      conditionNotes: text(fd, 'conditionNotes'),
-      ownerUserId: text(fd, 'ownerUserId'),
-      locationId: text(fd, 'locationId'),
-      acquiredOn: text(fd, 'acquiredOn'),
-      priceCents: price ? Math.round(Number(price) * 100) : null,
-      notes: text(fd, 'notes'),
-    });
+    await addCopy(ctx, gameId, parseCopyForm(fd));
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Could not add copy.' };
   }
@@ -137,19 +143,8 @@ export async function updateCopyAction(
   fd: FormData,
 ): Promise<ActionState> {
   const { ctx } = await requireContext();
-  const price = text(fd, 'price');
   try {
-    const updated = await updateCopy(ctx, copyId, {
-      format: (text(fd, 'format') ?? 'physical') as 'physical' | 'digital',
-      platform: text(fd, 'platform'),
-      condition: (text(fd, 'condition') ?? 'good') as 'good',
-      conditionNotes: text(fd, 'conditionNotes'),
-      ownerUserId: text(fd, 'ownerUserId'),
-      locationId: text(fd, 'locationId'),
-      acquiredOn: text(fd, 'acquiredOn'),
-      priceCents: price ? Math.round(Number(price) * 100) : null,
-      notes: text(fd, 'notes'),
-    });
+    const updated = await updateCopy(ctx, copyId, parseCopyForm(fd));
     if (!updated) return { error: 'Copy not found.' };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Could not save copy.' };
