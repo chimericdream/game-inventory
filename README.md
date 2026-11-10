@@ -45,6 +45,12 @@ docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 - The app listens on port 3000 (`APP_PORT` to change it). Migrations run on startup.
+- **Automated deploys (recommended):** a push to `main` runs CI, and if everything passes the
+  `publish` job pushes `ghcr.io/chimericdream/game-inventory:latest`. On the Docker host, copy
+  `deploy/` and run `docker compose up -d` there (see `deploy/docker-compose.yml`): it runs the app,
+  Postgres, a Tailscale sidecar that serves HTTPS at `https://games.<tailnet>.ts.net`, and
+  Watchtower, which pulls a new app image every 5 minutes. Make the GHCR package public (or add a
+  registry login for Watchtower) after the first publish.
 - Install Tailscale on the VM/LXC to give it its own tailnet address. To serve it over HTTPS on the
   tailnet, run `tailscale serve --bg 3000` and set `COOKIE_SECURE=true`.
 - Uploaded images live in the `app-data` volume and the database in `db-data`.
