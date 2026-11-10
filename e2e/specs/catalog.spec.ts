@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, test } from '../fixtures';
-import { addGameViaUi, fillGameForm, gameCards } from '../support/actions';
+import { addGameViaUi, attachCover, fillGameForm, gameCards } from '../support/actions';
 import { DATA_DIR } from '../support/env';
 import { fakePng, oversizePng, png, TINY_PNG, textFile } from '../support/images';
 import { choose, label } from '../support/mantine';
@@ -232,7 +232,7 @@ test('CAT-08 replacing a cover serves the new file and removes the old one', asy
   expect(existsSync(oldPath)).toBe(true);
 
   await page.goto(`/games/${id}/edit`);
-  await page.locator('input[type="file"]').setInputFiles({
+  await attachCover(page, {
     name: 'new.png',
     mimeType: 'image/png',
     buffer: Buffer.concat([TINY_PNG, Buffer.from('different')]),
