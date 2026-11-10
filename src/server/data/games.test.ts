@@ -186,12 +186,9 @@ describe('household isolation', () => {
   });
 });
 
-const addGame = (ctx: DataContext, title: string, extra = {}) =>
-  createGame(ctx, { title, type: 'board', ...extra });
+const make = (title: string, extra = {}) => createGame(admin, { title, type: 'board', ...extra });
 
 describe('expansions', () => {
-  const make = (title: string, extra = {}) => addGame(admin, title, extra);
-
   it('links an expansion to its base, lists it on the base, and keeps it out of the library', async () => {
     const base = await make('Catan');
     const exp = await make('Seafarers', {
