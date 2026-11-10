@@ -185,3 +185,66 @@ describe('household isolation', () => {
     expect((await getGameDetail(admin, game.id))?.game.title).toBe('Mine');
   });
 });
+
+describe('expansions', () => {
+  const make = (title: string, extra = {}) => createGame(admin, { title, type: 'board', ...extra });
+
+  it('links an expansion to its base, lists it on the base, and keeps it out of the library', async () => {
+    const base = await make('Catan');
+    const exp = await make('Seafarers', {
+      isExpansion: true,
+      baseGameId: base.id,
+      board: { minPlayers: 3, maxPlayers: 4 },
+    });
+    expect(exp.standalone).toBe(false);
+
+    const detail = await getGameDetail(admin, base.id);
+    expect(detail?.expansions.map((e) => [e.title, e.maxPlayers])).toEqual([['Seafarers', 4]]);
+    expect((await getGameDetail(admin, exp.id))?.baseGame?.title).toBe('Catan');
+
+    expect((await listCatalog(admin)).map((g) => g.title)).toEqual(['Catan']);
+    expect((await listCatalog(admin, { search: 'seafar' })).map((g) => g.title)).toEqual([
+      'Seafarers',
+    ]);
+  });
+
+  it('ignores base and standalone on a game that is not an expansion', async () => {
+    const base = await make('Catan');
+    const game = await make('Other', { baseGameId: base.id, standalone: true });
+    expect(game).toMatchObject({ isExpansion: false, baseGameId: null, standalone: false });
+  });
+
+  it('rejects a base that is missing, in another household, or an expansion itself', async () => {
+    const base = await make('Catan');
+    const exp = await make('Seafarers', { isExpansion: true, baseGameId: base.id });
+    const foreign = await createGame(otherHousehold, { title: 'Theirs', type: 'board' });
+    await expect(make('A', { isExpansion: true, baseGameId: foreign.id })).rejects.toThrow(
+      'Base game not found',
+    );
+    await expect(make('B', { isExpansion: true, baseGameId: exp.id })).rejects.toThrow(
+      'cannot be the base',
+    );
+    await expect(
+      updateGame(admin, base.id, { title: 'Catan', type: 'board', isExpansion: true }),
+    ).rejects.toThrow('expansions of its own');
+  });
+
+  it('keeps the expansion when its base game is deleted', async () => {
+    const base = await make('Catan');
+    const exp = await make('Seafarers', { isExpansion: true, baseGameId: base.id });
+    await deleteGame(admin, base.id);
+    const detail = await getGameDetail(admin, exp.id);
+    expect(detail?.game).toMatchObject({ isExpansion: true, baseGameId: null });
+  });
+
+  it('never shows restricted profiles a hidden expansion', async () => {
+    const base = await make('Catan');
+    await make('Secret', {
+      isExpansion: true,
+      baseGameId: base.id,
+      visibility: 'hidden_restricted',
+    });
+    expect((await getGameDetail(kid, base.id))?.expansions).toEqual([]);
+    expect((await getGameDetail(admin, base.id))?.expansions).toHaveLength(1);
+  });
+});

@@ -8,6 +8,13 @@
       "when": 1794274191617,
       "tag": "0000_nifty_unus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794319922723,
+      "tag": "0001_right_dark_beast",
+      "breakpoints": true
     }
   ]
 }

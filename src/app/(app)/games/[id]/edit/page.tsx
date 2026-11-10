@@ -2,7 +2,7 @@ import { Title } from '@mantine/core';
 import { notFound, redirect } from 'next/navigation';
 
 import { requireContext } from '@/server/auth/current';
-import { getGameDetail } from '@/server/data/games';
+import { getGameDetail, listBaseGameOptions } from '@/server/data/games';
 
 import { saveGameAction } from '../../actions';
 import { GameForm, type GameFormValues } from '../../GameForm';
@@ -25,6 +25,9 @@ export default async function EditGamePage({ params }: { params: Promise<{ id: s
     visibility: game.visibility,
     shareable: game.shareable,
     tags: detail.tags.join(', '),
+    isExpansion: game.isExpansion,
+    baseGameId: game.baseGameId ?? '',
+    standalone: game.standalone,
     minPlayers: board?.minPlayers,
     maxPlayers: board?.maxPlayers,
     playTimeMinutes: board?.playTimeMinutes,
@@ -43,6 +46,7 @@ export default async function EditGamePage({ params }: { params: Promise<{ id: s
         action={saveGameAction.bind(null, id)}
         initial={initial}
         cancelHref={`/games/${id}`}
+        baseGames={detail.expansions.length > 0 ? [] : await listBaseGameOptions(ctx, id)}
       />
     </>
   );

@@ -37,6 +37,11 @@ export interface CatalogFilters {
   /** A location and everything nested under it. */
   locationId?: string;
   ownerUserId?: string;
+  /**
+   * Expansions are listed on their base game's page and stay out of the browsable library, but a
+   * search finds them. Set this to list them regardless.
+   */
+  includeExpansions?: boolean;
   /** `out`: some copy is on loan. `here`: nothing is on loan. Ignored for restricted profiles. */
   availability?: 'here' | 'out';
   sort?: CatalogSort;
@@ -92,6 +97,7 @@ function conditions(ctx: DataContext, f: CatalogFilters, omit?: FilterKey): SQL[
     searchCondition(f.search),
     playersCondition(f.players),
     maxMinutesCondition(f.maxMinutes),
+    f.includeExpansions || f.search?.trim() ? undefined : sql`${games.isExpansion} = false`,
   ];
   if (f.type && omit !== 'type') out.push(sql`${games.type} = ${f.type}`);
   if (f.tag && omit !== 'tag') {
@@ -140,7 +146,10 @@ async function hydrate(
 ) {
   const ids = visible.map((r) => r.game.id);
   if (ids.length === 0) return [];
-  const [copyRows, tagRows, loanRows] = await Promise.all([
+  const baseIds = [
+    ...new Set(visible.flatMap((r) => (r.game.baseGameId ? [r.game.baseGameId] : []))),
+  ];
+  const [copyRows, tagRows, loanRows, baseRows] = await Promise.all([
     ctx.db
       .select({ gameId: copies.gameId, platform: copies.platform })
       .from(copies)
@@ -168,7 +177,15 @@ async function hydrate(
         ),
       )
       .orderBy(asc(loans.lentOn), asc(loans.id)),
+    // Only bases this viewer may see are named, so a hidden game's title never leaks.
+    baseIds.length
+      ? ctx.db
+          .select({ id: games.id, title: games.title })
+          .from(games)
+          .where(and(inArray(games.id, baseIds), gameVisibilityCondition(ctx)))
+      : Promise.resolve([] as { id: string; title: string }[]),
   ]);
+  const baseTitle = new Map(baseRows.map((b) => [b.id, b.title]));
 
   // Both sides are date-only strings, so the difference is a whole number of days in any time zone.
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -189,6 +206,7 @@ async function hydrate(
     return {
       ...game,
       board,
+      baseTitle: game.baseGameId ? (baseTitle.get(game.baseGameId) ?? null) : null,
       onLoan: out.length > 0,
       loan,
       copyCount: copyRows.filter((c) => c.gameId === game.id).length,
@@ -422,7 +440,7 @@ export async function librarySummary(ctx: DataContext): Promise<LibrarySummary> 
   const [gamesRow] = await ctx.db
     .select({ n: count() })
     .from(games)
-    .where(gameVisibilityCondition(ctx));
+    .where(and(gameVisibilityCondition(ctx), eq(games.isExpansion, false)));
   const [shelvesRow] = await ctx.db
     .select({ n: sql<number>`count(distinct ${copies.locationId})::int` })
     .from(copies)

@@ -273,3 +273,36 @@ describe('library summary', () => {
     });
   });
 });
+
+describe('expansions in the catalog', () => {
+  it('leaves expansions out of browsing and counts, but search finds them with their base', async () => {
+    const base = await createGame(admin, { title: 'Catan', type: 'board' });
+    await createGame(admin, {
+      title: 'Seafarers',
+      type: 'board',
+      isExpansion: true,
+      baseGameId: base.id,
+    });
+    expect((await listCatalogPage(admin)).rows.map((r) => r.title)).toEqual(['Catan']);
+    expect((await librarySummary(admin)).games).toBe(1);
+
+    const found = await listCatalogPage(admin, { search: 'sea' });
+    expect(found.rows.map((r) => [r.title, r.baseTitle])).toEqual([['Seafarers', 'Catan']]);
+  });
+
+  it('does not name a hidden base game to a restricted profile', async () => {
+    const base = await createGame(admin, {
+      title: 'Hidden base',
+      type: 'board',
+      visibility: 'hidden_restricted',
+    });
+    await createGame(admin, {
+      title: 'Visible add-on',
+      type: 'board',
+      isExpansion: true,
+      baseGameId: base.id,
+    });
+    const found = await listCatalogPage(kid, { search: 'add-on' });
+    expect(found.rows.map((r) => [r.title, r.baseTitle])).toEqual([['Visible add-on', null]]);
+  });
+});

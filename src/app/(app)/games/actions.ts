@@ -62,6 +62,9 @@ function parseGameForm(fd: FormData): GameInput {
     notes: text(fd, 'notes'),
     visibility: (text(fd, 'visibility') ?? 'normal') as GameInput['visibility'],
     shareable: fd.get('shareable') === 'on',
+    isExpansion: fd.get('isExpansion') === 'on',
+    baseGameId: text(fd, 'baseGameId'),
+    standalone: fd.get('standalone') === 'on',
     tags: (text(fd, 'tags') ?? '')
       .split(',')
       .map((t) => t.trim())
@@ -116,6 +119,12 @@ export async function saveGameAction(
     return { error: e instanceof Error ? e.message : 'Could not save.' };
   }
   revalidatePath('/games');
+  // Adding several expansions in a row is the common case, so a new one returns to its base game.
+  const base = !id ? parsed.data.baseGameId : null;
+  if (base && parsed.data.isExpansion) {
+    revalidatePath(`/games/${base}`);
+    redirect(`/games/${base}`);
+  }
   redirect(`/games/${gameId}`);
 }
 
@@ -125,6 +134,7 @@ export async function deleteGameAction(id: string) {
   await deleteGame(ctx, id);
   await removeStored(old);
   revalidatePath('/games');
+  revalidatePath('/games/[id]', 'page');
   redirect('/games');
 }
 
