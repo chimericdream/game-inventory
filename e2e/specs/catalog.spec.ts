@@ -130,6 +130,7 @@ test('CAT-04 edit a game: values are prefilled, changes persist, tag casing is d
     playTimeMinutes: 45,
     description: 'Cure diseases.',
     tags: ['coop', 'medical'],
+    copies: [],
   });
   await page.goto(`/games/${id}/edit`);
   await expect(page.getByLabel(label('Title'))).toHaveValue('Pandemic');

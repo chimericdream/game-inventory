@@ -7,7 +7,7 @@ const copyCards = (page: import('@playwright/test').Page) => page.locator('[data
 const ADD = 'Add copy';
 
 test('COPY-01 add a copy with every detail and see it on the game @smoke', async ({ page, db }) => {
-  const id = await db.seedGame({ title: 'Catan' });
+  const id = await db.seedGame({ title: 'Catan', copies: [] });
   await db.seedLocation('Hall closet');
   await page.goto(`/games/${id}`);
   await expect(page.getByText('No copies yet.')).toBeVisible();
@@ -68,7 +68,7 @@ test('COPY-03 deleting a copy leaves the other copy and the game', async ({ page
 });
 
 test('COPY-04 prices keep their cents', async ({ page, db }) => {
-  const id = await db.seedGame({ title: 'Priced' });
+  const id = await db.seedGame({ title: 'Priced', copies: [] });
   await page.goto(`/games/${id}`);
   for (const [typed, shown] of [
     ['0', '$0.00'],
@@ -107,7 +107,7 @@ test('COPY-06 a video game copy shows its platform in the grid and on the game',
   page,
   db,
 }) => {
-  const id = await db.seedGame({ title: 'Zelda', type: 'video' });
+  const id = await db.seedGame({ title: 'Zelda', type: 'video', copies: [] });
   await page.goto(`/games/${id}`);
   const form = formWith(page, ADD);
   await form.getByLabel('Platform').fill('Switch');

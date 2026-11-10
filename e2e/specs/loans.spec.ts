@@ -172,7 +172,7 @@ test('LOAN-07 only copies are offered, and a game with two platforms shows both'
     type: 'video',
     copies: [{ platform: 'Switch' }, { platform: 'Wii' }],
   });
-  await db.seedGame({ title: 'No Copy Yet' });
+  await db.seedGame({ title: 'No Copy Yet', copies: [] });
   await page.goto('/loans');
   await formWith(page, LEND).getByRole('combobox', { name: /^Game/ }).click();
   await expect(page.getByRole('option')).toHaveText(['Mario (Switch)', 'Mario (Wii)']);

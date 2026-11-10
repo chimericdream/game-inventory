@@ -149,6 +149,17 @@ describe('filtering in the database', () => {
     expect(parsed.page).toBeUndefined();
   });
 
+  it('lists only games with a copy when ownedOnly is set, and defaults to owned from the URL', async () => {
+    const catan = await createGame(admin, { title: 'Catan', type: 'board' });
+    await createGame(admin, { title: 'Wishlist Game', type: 'board' });
+    await addCopy(admin, catan.id, {});
+
+    expect(titles(await listCatalogPage(admin, { ownedOnly: true }))).toEqual(['Catan']);
+    expect(titles(await listCatalogPage(admin, {}))).toEqual(['Catan', 'Wishlist Game']);
+    expect(parseCatalogFilters({}).ownedOnly).toBe(true);
+    expect(parseCatalogFilters({ scope: 'all' }).ownedOnly).toBe(false);
+  });
+
   it('filters by availability and reports the borrower to household members only', async () => {
     const catan = await createGame(admin, { title: 'Catan', type: 'board' });
     await createGame(admin, { title: 'Uno', type: 'card' });

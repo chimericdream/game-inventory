@@ -117,7 +117,9 @@ export async function seedGame(g: SeedGame): Promise<string> {
         .id as string);
     await sql`insert into game_tags (household_id, game_id, tag_id) values (${hh}, ${id}, ${tagId})`;
   }
-  for (const c of g.copies ?? []) await seedCopy(id, c, hh);
+  // The library lists owned games (those with a copy) by default, so a game gets one blank copy
+  // unless the test says otherwise with `copies: []`.
+  for (const c of g.copies ?? [{}]) await seedCopy(id, c, hh);
   if (g.cover) await seedCover(id, hh, Buffer.isBuffer(g.cover) ? g.cover : undefined);
   return id;
 }
@@ -146,6 +148,10 @@ export async function seedMany(total: number, prefix = 'Bulk Game'): Promise<voi
       returning id)
     insert into board_game_details (game_id, household_id, min_players, max_players, play_time_minutes)
     select id, ${hh}::uuid, 2, 4, 30 from g`;
+  // Owned games are what the library lists by default.
+  await sql`
+    insert into copies (household_id, game_id)
+    select household_id, id from games where household_id = ${hh}::uuid and title like ${prefix + ' %'}`;
 }
 
 export interface SeedLink {
