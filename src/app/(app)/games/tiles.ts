@@ -12,6 +12,7 @@ export function toTile(row: CatalogRow): TileGame {
     title: row.title,
     type: row.type,
     hasCover: row.coverImage !== null,
+    expansion: row.isExpansion ? { of: row.baseTitle, standalone: row.standalone } : null,
     platforms: row.platforms,
     minPlayers: row.board?.minPlayers ?? null,
     maxPlayers: row.board?.maxPlayers ?? null,

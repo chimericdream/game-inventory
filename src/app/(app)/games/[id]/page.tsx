@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core';
-import { IconDice5, IconPencil, IconStar, IconStarFilled } from '@tabler/icons-react';
+import { IconDice5, IconPencil, IconPlus, IconStar, IconStarFilled } from '@tabler/icons-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -27,6 +27,11 @@ const weekday = (iso: string) =>
   new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'UTC' }).format(
     new Date(`${iso}T00:00:00Z`),
   );
+
+const playerRange = (min: number | null, max: number | null) => {
+  if (!min && !max) return null;
+  return min && max && min !== max ? `${min}–${max} players` : `${min ?? max} players`;
+};
 
 interface Fact {
   value: string;
@@ -78,7 +83,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
   const copyCount = detail.copies.length;
   const subtitle = [
-    TYPE_LABELS[game.type],
+    game.isExpansion
+      ? `${TYPE_LABELS[game.type]} expansion${game.standalone ? ' (standalone)' : ''}`
+      : TYPE_LABELS[game.type],
     game.publisher,
     `${copyCount} ${copyCount === 1 ? 'copy' : 'copies'}`,
     member && plays.length > 0
@@ -94,6 +101,12 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
         <Link href={`/games?type=${game.type}`}>
           {TYPE_PLURALS[game.type] ?? TYPE_LABELS[game.type]}
         </Link>
+        {detail.baseGame && (
+          <>
+            <span aria-hidden>›</span>
+            <Link href={`/games/${detail.baseGame.id}`}>{detail.baseGame.title}</Link>
+          </>
+        )}
       </nav>
 
       <div className={classes.layout}>
@@ -141,6 +154,18 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           <header>
             <h1 className={classes.title}>{game.title}</h1>
             <p className={classes.subtitle}>{subtitle.join(' · ')}</p>
+            {game.isExpansion && (
+              <p className={classes.hint} data-expansion-note>
+                {game.standalone ? 'Can be played on its own.' : 'Needs the base game to play.'}
+                {detail.baseGame && (
+                  <>
+                    {' '}
+                    Expands{' '}
+                    <Link href={`/games/${detail.baseGame.id}`}>{detail.baseGame.title}</Link>.
+                  </>
+                )}
+              </p>
+            )}
             {member && (
               <div className={classes.actions}>
                 <LinkButton
@@ -198,6 +223,55 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               <figcaption>Notes</figcaption>
               <blockquote>{game.notes}</blockquote>
             </figure>
+          )}
+
+          {(detail.expansions.length > 0 || (member && !game.isExpansion)) && (
+            <section className={classes.section} aria-labelledby="expansions" data-expansions>
+              <h2 id="expansions">
+                Expansions
+                {detail.expansions.length > 0 && (
+                  <span className={classes.sectionNote}>{detail.expansions.length}</span>
+                )}
+              </h2>
+              {detail.expansions.length > 0 && (
+                <ul className={classes.expansions}>
+                  {detail.expansions.map((e) => {
+                    const meta = [
+                      e.standalone ? 'Standalone' : null,
+                      playerRange(e.minPlayers, e.maxPlayers),
+                      e.playTimeMinutes ? `${e.playTimeMinutes} min` : null,
+                    ].filter(Boolean);
+                    return (
+                      <li key={e.id}>
+                        <Link href={`/games/${e.id}`} className={classes.expansion}>
+                          <span className={classes.expansionCover}>
+                            <CoverTile
+                              title={e.title}
+                              type={e.type}
+                              src={e.coverImage ? coverUrl(e.id) : null}
+                            />
+                          </span>
+                          <span className={classes.expansionText}>
+                            <b>{e.title}</b>
+                            {meta.length > 0 && <small>{meta.join(' · ')}</small>}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {member && !game.isExpansion && (
+                <LinkButton
+                  href={`/games/new?expansionOf=${id}`}
+                  variant="default"
+                  leftSection={<IconPlus size={16} aria-hidden />}
+                  mt={detail.expansions.length > 0 ? 'md' : 0}
+                >
+                  Add expansion
+                </LinkButton>
+              )}
+            </section>
           )}
 
           <section className={classes.section} aria-labelledby="copies">

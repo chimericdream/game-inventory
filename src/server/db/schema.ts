@@ -120,10 +120,21 @@ export const games = pgTable(
     notes: text('notes'),
     /** External IDs for metadata lookup (phase 4). */
     bggId: integer('bgg_id'),
+    /** An expansion is a full game row that also points at the game it expands. */
+    isExpansion: boolean('is_expansion').notNull().default(false),
+    /** The game this expands. Cleared (the expansion stays) if the base game is deleted. */
+    baseGameId: uuid('base_game_id').references((): AnyPgColumn => games.id, {
+      onDelete: 'set null',
+    }),
+    /** Expansions only: playable on its own, without the base game. */
+    standalone: boolean('standalone').notNull().default(false),
     ...authorship(),
     ...stamps(),
   },
-  (t) => [index('games_household_title_idx').on(t.householdId, t.title)],
+  (t) => [
+    index('games_household_title_idx').on(t.householdId, t.title),
+    index('games_base_game_idx').on(t.baseGameId),
+  ],
 );
 
 /** Details shared by board and card games. */

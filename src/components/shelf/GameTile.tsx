@@ -12,6 +12,8 @@ export interface TileGame {
   title: string;
   type: string;
   hasCover: boolean;
+  /** Set for expansions, so a search result says what it expands. */
+  expansion?: { of: string | null; standalone: boolean } | null;
   platforms: string[];
   minPlayers: number | null;
   maxPlayers: number | null;
@@ -44,6 +46,7 @@ function loanLine(loan: NonNullable<TileGame['loan']>) {
 
 export function GameTile({ game, href, coverUrl }: Props) {
   const meta = [
+    game.expansion ? (game.expansion.of ? `Expansion of ${game.expansion.of}` : 'Expansion') : null,
     game.platforms.join(' / ') || null,
     players(game.minPlayers, game.maxPlayers),
     game.playTimeMinutes ? `${game.playTimeMinutes} min` : null,

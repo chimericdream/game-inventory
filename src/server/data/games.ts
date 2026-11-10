@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
@@ -38,6 +38,11 @@ export const gameInput = z.object({
   notes: optionalText,
   visibility: z.enum(['normal', 'hide_images', 'hidden_restricted']).default('normal'),
   shareable: z.boolean().default(false),
+  /** An expansion is a full game that adds to `baseGameId`. */
+  isExpansion: z.boolean().default(false),
+  baseGameId: z.string().nullable().optional(),
+  /** Expansions only: can be played without the base game. */
+  standalone: z.boolean().default(false),
   board: z
     .object({
       minPlayers: optionalInt,
@@ -66,6 +71,39 @@ function assertCanEdit(ctx: DataContext) {
   }
 }
 
+/**
+ * Expansion fields as stored: a base game and `standalone` only mean something on an expansion.
+ * The base must be another, visible-to-editors game in this household that is not itself an
+ * expansion, and a game that has expansions cannot become one (a single level keeps lists simple).
+ */
+async function expansionFields(
+  ctx: DataContext,
+  tx: DataContext['db'],
+  input: z.output<typeof gameInput>,
+  selfId?: string,
+) {
+  if (!input.isExpansion) return { isExpansion: false, baseGameId: null, standalone: false };
+  const baseId = input.baseGameId ?? null;
+  if (baseId) {
+    if (!isUuid(baseId) || baseId === selfId) throw new Error('Choose a different base game');
+    const [base] = await tx
+      .select({ isExpansion: games.isExpansion })
+      .from(games)
+      .where(and(eq(games.id, baseId), eq(games.householdId, ctx.householdId)));
+    if (!base) throw new Error('Base game not found');
+    if (base.isExpansion) throw new Error('An expansion cannot be the base of another expansion');
+  }
+  if (selfId) {
+    const [child] = await tx
+      .select({ id: games.id })
+      .from(games)
+      .where(and(eq(games.baseGameId, selfId), eq(games.householdId, ctx.householdId)))
+      .limit(1);
+    if (child) throw new Error('This game has expansions of its own, so it cannot be one');
+  }
+  return { isExpansion: true, baseGameId: baseId, standalone: input.standalone };
+}
+
 export async function getGameDetail(ctx: DataContext, id: string) {
   if (!isUuid(id)) return null;
   const [row] = await ctx.db
@@ -80,33 +118,51 @@ export async function getGameDetail(ctx: DataContext, id: string) {
   const game = redactGame(row.game, ctx.viewer);
   if (!game) return null;
 
-  const [locationOptions, copyRows, tagRows, openLoans] = await Promise.all([
-    listLocationOptions(ctx),
-    ctx.db
-      .select({ copy: copies })
-      .from(copies)
-      .where(and(eq(copies.gameId, id), eq(copies.householdId, ctx.householdId))),
-    ctx.db
-      .select({ name: tags.name })
-      .from(gameTags)
-      .innerJoin(tags, eq(tags.id, gameTags.tagId))
-      .where(and(eq(gameTags.gameId, id), eq(gameTags.householdId, ctx.householdId))),
-    // Who has a copy is household business: restricted profiles are never told.
-    ctx.viewer.role === 'restricted'
-      ? Promise.resolve([] as (typeof loans.$inferSelect)[])
-      : ctx.db
-          .select({ loan: loans })
-          .from(loans)
-          .innerJoin(copies, eq(copies.id, loans.copyId))
-          .where(
-            and(
-              eq(copies.gameId, id),
-              eq(loans.householdId, ctx.householdId),
-              isNull(loans.returnedOn),
-            ),
-          )
-          .then((rows) => rows.map((r) => r.loan)),
-  ]);
+  const [locationOptions, copyRows, tagRows, openLoans, baseRow, expansionRows] = await Promise.all(
+    [
+      listLocationOptions(ctx),
+      ctx.db
+        .select({ copy: copies })
+        .from(copies)
+        .where(and(eq(copies.gameId, id), eq(copies.householdId, ctx.householdId))),
+      ctx.db
+        .select({ name: tags.name })
+        .from(gameTags)
+        .innerJoin(tags, eq(tags.id, gameTags.tagId))
+        .where(and(eq(gameTags.gameId, id), eq(gameTags.householdId, ctx.householdId))),
+      // Who has a copy is household business: restricted profiles are never told.
+      ctx.viewer.role === 'restricted'
+        ? Promise.resolve([] as (typeof loans.$inferSelect)[])
+        : ctx.db
+            .select({ loan: loans })
+            .from(loans)
+            .innerJoin(copies, eq(copies.id, loans.copyId))
+            .where(
+              and(
+                eq(copies.gameId, id),
+                eq(loans.householdId, ctx.householdId),
+                isNull(loans.returnedOn),
+              ),
+            )
+            .then((rows) => rows.map((r) => r.loan)),
+      game.baseGameId
+        ? ctx.db
+            .select({ id: games.id, title: games.title })
+            .from(games)
+            .where(and(eq(games.id, game.baseGameId), gameVisibilityCondition(ctx)))
+            .then((r) => r[0] ?? null)
+        : Promise.resolve(null),
+      // Only the basics: expansions are listed on the base game, not fully expanded there.
+      game.isExpansion
+        ? Promise.resolve([])
+        : ctx.db
+            .select({ game: games, board: boardGameDetails })
+            .from(games)
+            .leftJoin(boardGameDetails, eq(boardGameDetails.gameId, games.id))
+            .where(and(eq(games.baseGameId, id), gameVisibilityCondition(ctx)))
+            .orderBy(asc(games.title), asc(games.id)),
+    ],
+  );
   const locationLabel = new Map(locationOptions.map((o) => [o.value, o.label]));
   const loanByCopy = new Map(
     openLoans.map((l) => [
@@ -119,6 +175,25 @@ export async function getGameDetail(ctx: DataContext, id: string) {
     board: row.board,
     rpg: row.rpg,
     puzzle: row.puzzle,
+    /** The game this expands, when it is visible to the viewer. */
+    baseGame: baseRow,
+    expansions: expansionRows.flatMap((r) => {
+      const e = redactGame(r.game, ctx.viewer);
+      return e
+        ? [
+            {
+              id: e.id,
+              title: e.title,
+              type: e.type,
+              coverImage: e.coverImage,
+              standalone: e.standalone,
+              minPlayers: r.board?.minPlayers ?? null,
+              maxPlayers: r.board?.maxPlayers ?? null,
+              playTimeMinutes: r.board?.playTimeMinutes ?? null,
+            },
+          ]
+        : [];
+    }),
     copies: copyRows.map((c) => ({
       ...c.copy,
       /** Full path such as "Office › Small Kallax". */
@@ -194,9 +269,11 @@ export async function createGame(ctx: DataContext, raw: GameInput) {
   assertCanEdit(ctx);
   const input = gameInput.parse(raw);
   return ctx.db.transaction(async (tx) => {
+    const expansion = await expansionFields(ctx, tx, input);
     const [game] = await tx
       .insert(games)
       .values({
+        ...expansion,
         householdId: ctx.householdId,
         title: input.title,
         type: input.type,
@@ -220,6 +297,9 @@ export async function createGame(ctx: DataContext, raw: GameInput) {
         type: game.type,
         visibility: game.visibility,
         shareable: game.shareable,
+        isExpansion: game.isExpansion || null,
+        baseGameId: game.baseGameId,
+        standalone: game.standalone || null,
       }),
     });
     return game;
@@ -235,6 +315,9 @@ const GAME_AUDIT_FIELDS = [
   'visibility',
   'shareable',
   'coverImage',
+  'isExpansion',
+  'baseGameId',
+  'standalone',
 ] as const;
 
 const auditable = (g: typeof games.$inferSelect) =>
@@ -279,9 +362,11 @@ export async function updateGame(ctx: DataContext, id: string, raw: GameInput) {
       detailsSnapshot(tx, id),
     ]);
 
+    const expansion = await expansionFields(ctx, tx, input, id);
     const [game] = await tx
       .update(games)
       .set({
+        ...expansion,
         title: input.title,
         type: input.type,
         description: input.description ?? null,
@@ -362,4 +447,14 @@ export async function gameTitles(ctx: DataContext, ids: string[]): Promise<Map<s
     .from(games)
     .where(and(inArray(games.id, valid), gameVisibilityCondition(ctx)));
   return new Map(rows.map((r) => [r.id, r.title]));
+}
+
+/** Games an expansion can be attached to: visible games that are not expansions themselves. */
+export async function listBaseGameOptions(ctx: DataContext, excludeId?: string) {
+  const rows = await ctx.db
+    .select({ id: games.id, title: games.title })
+    .from(games)
+    .where(and(gameVisibilityCondition(ctx), eq(games.isExpansion, false)))
+    .orderBy(asc(games.title), asc(games.id));
+  return rows.filter((r) => r.id !== excludeId).map((r) => ({ value: r.id, label: r.title }));
 }

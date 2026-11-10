@@ -33,6 +33,9 @@ export interface GameFormValues {
   visibility: string;
   shareable: boolean;
   tags: string;
+  isExpansion: boolean;
+  baseGameId: string;
+  standalone: boolean;
   minPlayers?: number | null;
   maxPlayers?: number | null;
   playTimeMinutes?: number | null;
@@ -55,6 +58,9 @@ export const EMPTY_GAME: GameFormValues = {
   // On for new games: sharing is the common case, and a guest link still needs its own allowlist.
   shareable: true,
   tags: '',
+  isExpansion: false,
+  baseGameId: '',
+  standalone: false,
   system: '',
   bookKind: '',
 };
@@ -65,12 +71,21 @@ interface Props {
   cancelHref: string;
   /** Offer to add a copy to the collection along with the game (new games only). */
   copyOptions?: { members: Option[]; locations: Option[] };
+  /** Games an expansion can belong to. */
+  baseGames?: Option[];
 }
 
-export function GameForm({ action, initial = EMPTY_GAME, cancelHref, copyOptions }: Props) {
+export function GameForm({
+  action,
+  initial = EMPTY_GAME,
+  cancelHref,
+  copyOptions,
+  baseGames = [],
+}: Props) {
   const [state, formAction, pending] = useActionState(action, {});
   const [addCopy, setAddCopy] = useState(true);
   const [type, setType] = useState(initial.type);
+  const [isExpansion, setIsExpansion] = useState(initial.isExpansion);
   const isBoard = type === 'board' || type === 'card';
 
   return (
@@ -93,6 +108,32 @@ export function GameForm({ action, initial = EMPTY_GAME, cancelHref, copyOptions
               allowDeselect={false}
             />
             <TextInput name="publisher" label="Publisher" defaultValue={initial.publisher} />
+            <Switch
+              name="isExpansion"
+              label="This is an expansion"
+              description="Expansions are listed on their base game and found by search."
+              checked={isExpansion}
+              onChange={(e) => setIsExpansion(e.currentTarget.checked)}
+            />
+            {isExpansion && (
+              <>
+                <Select
+                  name="baseGameId"
+                  label="Base game"
+                  placeholder="Search for the game this expands"
+                  data={baseGames}
+                  defaultValue={initial.baseGameId || null}
+                  searchable
+                  clearable
+                />
+                <Switch
+                  name="standalone"
+                  label="Standalone"
+                  description="Can be played on its own, without the base game."
+                  defaultChecked={initial.standalone}
+                />
+              </>
+            )}
 
             {isBoard && (
               <>
