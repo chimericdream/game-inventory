@@ -120,6 +120,19 @@ describe('catalog', () => {
     expect((await getGameDetail(admin, game.id))?.puzzle).toBeNull();
   });
 
+  it('stores a publisher, trims it, and clears it when blank', async () => {
+    const game = await createGame(admin, {
+      title: 'Catan',
+      type: 'board',
+      publisher: '  Kosmos  ',
+    });
+    expect((await getGameDetail(admin, game.id))?.game.publisher).toBe('Kosmos');
+    await updateGame(admin, game.id, { title: 'Catan', type: 'board', publisher: 'Catan Studio' });
+    expect((await getGameDetail(admin, game.id))?.game.publisher).toBe('Catan Studio');
+    await updateGame(admin, game.id, { title: 'Catan', type: 'board', publisher: '   ' });
+    expect((await getGameDetail(admin, game.id))?.game.publisher).toBeNull();
+  });
+
   it('updates and deletes games', async () => {
     const game = await createGame(admin, { title: 'Old', type: 'board', board: { minPlayers: 2 } });
     await updateGame(admin, game.id, { title: 'New', type: 'rpg', rpg: { system: 'D&D 5e' } });

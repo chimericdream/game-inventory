@@ -79,6 +79,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const copyCount = detail.copies.length;
   const subtitle = [
     TYPE_LABELS[game.type],
+    game.publisher,
     `${copyCount} ${copyCount === 1 ? 'copy' : 'copies'}`,
     member && plays.length > 0
       ? `played ${plays.length} ${plays.length === 1 ? 'time' : 'times'}`

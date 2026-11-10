@@ -57,6 +57,7 @@ function parseGameForm(fd: FormData): GameInput {
     title: text(fd, 'title') ?? '',
     type,
     description: text(fd, 'description'),
+    publisher: text(fd, 'publisher'),
     notes: text(fd, 'notes'),
     visibility: (text(fd, 'visibility') ?? 'normal') as GameInput['visibility'],
     shareable: fd.get('shareable') === 'on',

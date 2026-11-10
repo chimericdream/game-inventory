@@ -112,6 +112,7 @@ export const games = pgTable(
     title: text('title').notNull(),
     type: gameType('type').notNull(),
     description: text('description'),
+    publisher: text('publisher'),
     coverImage: text('cover_image'),
     visibility: gameVisibility('visibility').notNull().default('normal'),
     /** Guest links only ever see games with `shareable = true` (allowlist by default). */

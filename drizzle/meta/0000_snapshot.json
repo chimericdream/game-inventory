@@ -1,5 +1,5 @@
 {
-  "id": "2837c191-b115-4f95-bef6-0ae0e12b96ef",
+  "id": "5e20bcf6-eb41-4180-af39-adbf56c97ebe",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -515,6 +515,12 @@
         },
         "description": {
           "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "publisher": {
+          "name": "publisher",
           "type": "text",
           "primaryKey": false,
           "notNull": false

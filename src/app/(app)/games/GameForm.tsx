@@ -27,6 +27,7 @@ export interface GameFormValues {
   title: string;
   type: string;
   description: string;
+  publisher: string;
   notes: string;
   visibility: string;
   shareable: boolean;
@@ -45,6 +46,7 @@ export const EMPTY_GAME: GameFormValues = {
   title: '',
   type: 'board',
   description: '',
+  publisher: '',
   notes: '',
   visibility: 'normal',
   // On for new games: sharing is the common case, and a guest link still needs its own allowlist.
@@ -87,6 +89,7 @@ export function GameForm({ action, initial = EMPTY_GAME, cancelHref, copyOptions
               onChange={(v) => setType(v ?? 'board')}
               allowDeselect={false}
             />
+            <TextInput name="publisher" label="Publisher" defaultValue={initial.publisher} />
 
             {isBoard && (
               <>

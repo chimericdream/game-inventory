@@ -20,6 +20,7 @@ export default async function EditGamePage({ params }: { params: Promise<{ id: s
     title: game.title,
     type: game.type,
     description: game.description ?? '',
+    publisher: game.publisher ?? '',
     notes: game.notes ?? '',
     visibility: game.visibility,
     shareable: game.shareable,

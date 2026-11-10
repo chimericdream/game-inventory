@@ -57,6 +57,7 @@ CREATE TABLE "games" (
 	"title" text NOT NULL,
 	"type" "game_type" NOT NULL,
 	"description" text,
+	"publisher" text,
 	"cover_image" text,
 	"visibility" "game_visibility" DEFAULT 'normal' NOT NULL,
 	"shareable" boolean DEFAULT false NOT NULL,
