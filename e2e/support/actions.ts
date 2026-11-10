@@ -44,7 +44,24 @@ export async function fillGameForm(page: Page, g: NewGame): Promise<void> {
     if (g.shareable) await sw.check();
     else await sw.uncheck();
   }
-  if (g.cover) await page.locator('input[type="file"]').setInputFiles(g.cover);
+  if (g.cover) await attachCover(page, g.cover);
+}
+
+/**
+ * Picks a cover file. Mantine's FileInput keeps the file in React state, so a file chosen before
+ * the page hydrates is silently dropped and the form saves without it. The field only shows the
+ * file's name once it has taken the file, so retry until it does.
+ */
+export async function attachCover(
+  page: Page,
+  file: { name: string; mimeType: string; buffer: Buffer },
+): Promise<void> {
+  await expect(async () => {
+    await page.locator('input[type="file"]').setInputFiles(file);
+    await expect(page.getByRole('button', { name: 'Cover image' })).toContainText(file.name, {
+      timeout: 1000,
+    });
+  }).toPass();
 }
 
 /** Adds a game through the UI and waits for the detail page. Returns the new game's id. */
