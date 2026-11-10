@@ -108,6 +108,7 @@ export default defineConfig({
         COOKIE_SECURE: 'false',
         BGG_API_TOKEN: BGG_TOKEN,
         BGG_BASE_URL: `${MOCK_URL}/bgg`,
+        BGG_IMAGE_ORIGIN: MOCK_URL,
         UPC_BASE_URL: `${MOCK_URL}/upc`,
         NODE_ENV: 'production',
         ...(process.env.E2E_SKIP_BUILD ? { E2E_SKIP_BUILD: process.env.E2E_SKIP_BUILD } : {}),

@@ -7,7 +7,7 @@ const PORT = Number(process.env.MOCK_PORT ?? 4010);
 const TOKEN = process.env.BGG_API_TOKEN ?? 'test-token';
 
 interface Logged {
-  service: 'bgg' | 'upc';
+  service: 'bgg' | 'upc' | 'img';
   path: string;
   query: Record<string, string>;
   authorization: string | null;
@@ -27,6 +27,7 @@ const BGG_GAMES = [
     weight: 2.32,
     description: 'Trade, build &amp; settle.&#10;&#10;Collect resources.',
     categories: ['Negotiation', 'Economic'],
+    image: true,
   },
   {
     id: 30549,
@@ -54,6 +55,12 @@ const BGG_GAMES = [
   },
 ];
 
+// A 1x1 PNG.
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
 const xml = (body: string) => `<?xml version="1.0" encoding="utf-8"?>\n${body}`;
 
 function searchXml(items: { id: number; name: string; year: number | null }[]) {
@@ -77,6 +84,7 @@ function thingXml(g: (typeof BGG_GAMES)[number]) {
   return xml(
     `<items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse"><item type="boardgame" id="${g.id}">` +
       `<name type="primary" sortindex="1" value="${g.name}"/>` +
+      (g.image ? `<image>http://127.0.0.1:${PORT}/img/${g.id}.png</image>` : '') +
       `<description>${g.description}</description>` +
       `<yearpublished value="${g.year}"/>` +
       `<minplayers value="${g.minPlayers}"/><maxplayers value="${g.maxPlayers}"/>` +
@@ -107,6 +115,19 @@ const server = createServer(async (req, res) => {
   if (url.pathname === '/__reset') {
     log.length = 0;
     return send(200, 'reset', 'text/plain');
+  }
+
+  // --- cover images (stands in for BGG's image host) ---
+  if (url.pathname.startsWith('/img/')) {
+    log.push({ service: 'img', path: url.pathname, query, authorization: null, at: Date.now() });
+  }
+  if (url.pathname === '/img/13.png') {
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    return res.end(PNG);
+  }
+  if (url.pathname === '/img/bad.png') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    return res.end('<html></html>');
   }
 
   // --- BoardGameGeek ---

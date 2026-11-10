@@ -3,6 +3,7 @@
 // docs/E2E_TEST_PLAN.md (BGG-xx).
 import { expect, test } from '../fixtures';
 import { BGG_TOKEN, MOCK_URL } from '../support/env';
+import { png, TINY_PNG } from '../support/images';
 
 interface Logged {
   service: string;
@@ -170,4 +171,46 @@ test('LOOK-02 a failed lookup offers to try again @external', async ({ page }) =
   await page.getByRole('button', { name: 'Try again' }).click();
   await expect(page.getByRole('button', { name: 'Catan (1995)' })).toBeVisible();
   await expect(page.getByText('BoardGameGeek did not answer.')).toHaveCount(0);
+});
+
+// The mock image host's cover (a different PNG from the one tests upload).
+const MOCK_COVER = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+async function lookUpCatan(page: import('@playwright/test').Page) {
+  await page.goto('/games/new');
+  await page.getByPlaceholder('Search a title to fill in the details').fill('catan');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('button', { name: 'Catan (1995)' }).click();
+  // The form remounts once the result arrives, so wait for that before touching it.
+  await expect(page.locator('[data-lookup-filled]')).toBeVisible();
+}
+
+test('LOOK-03 a lookup cover is downloaded by the server and saved with the game @external', async ({
+  page,
+}) => {
+  await lookUpCatan(page);
+  await expect(page.locator('[data-lookup-filled]')).toContainText('cover');
+  await expect(page.locator('[data-bgg-cover]')).toBeVisible();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/\/games\/[0-9a-f-]{36}$/);
+
+  const res = await page.request.get(`/api/games/${page.url().split('/').pop()}/cover`);
+  expect(res.status()).toBe(200);
+  expect(res.headers()['content-type']).toBe('image/png');
+  // The bytes are the mock image host's, so the server fetched it.
+  expect(Buffer.compare(await res.body(), MOCK_COVER)).toBe(0);
+});
+
+test('LOOK-04 an uploaded cover wins over the lookup cover @external', async ({ page }) => {
+  await lookUpCatan(page);
+  await page.locator('input[type="file"]').setInputFiles(png('mine.png'));
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/\/games\/[0-9a-f-]{36}$/);
+
+  const res = await page.request.get(`/api/games/${page.url().split('/').pop()}/cover`);
+  expect(res.status()).toBe(200);
+  expect(Buffer.compare(await res.body(), TINY_PNG)).toBe(0);
 });

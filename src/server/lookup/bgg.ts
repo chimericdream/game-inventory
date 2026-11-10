@@ -91,6 +91,8 @@ export function bggImageUrl(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   try {
     const u = new URL(value.trim());
+    // BGG_IMAGE_ORIGIN exists so end-to-end tests can serve covers from a mock server.
+    if (process.env.BGG_IMAGE_ORIGIN && u.origin === process.env.BGG_IMAGE_ORIGIN) return u.href;
     const host = u.hostname.toLowerCase();
     const ok = host === 'geekdo-images.com' || host.endsWith('.geekdo-images.com');
     return u.protocol === 'https:' && !u.username && !u.password && ok ? u.href : null;
