@@ -94,7 +94,7 @@ test('MOCK-01 the app reaches the mock BGG with its token, not the real service 
   const res = await request.get('/api/lookup/bgg?q=catan');
   expect(res.status()).toBe(200);
   const { hits } = await res.json();
-  expect(hits).toEqual([{ id: 13, name: 'Catan', year: 1995 }]);
+  expect(hits).toEqual([{ id: 13, name: 'Catan', year: 1995, isExpansion: false }]);
 
   const log = await requests('bgg');
   expect(log).toHaveLength(1);
@@ -213,4 +213,60 @@ test('LOOK-04 an uploaded cover wins over the lookup cover @external', async ({ 
   const res = await page.request.get(`/api/games/${page.url().split('/').pop()}/cover`);
   expect(res.status()).toBe(200);
   expect(Buffer.compare(await res.body(), TINY_PNG)).toBe(0);
+});
+
+test('EXPLOOK-01 search results mark expansions, and picking one fills it in as an expansion @external', async ({
+  page,
+}) => {
+  await page.goto('/games/new');
+  await page.getByPlaceholder('Search a title to fill in the details').fill('seafar');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('button', { name: 'Seafarers (1997) · expansion' }).click();
+  await expect(page.locator('[data-lookup-filled]')).toBeVisible();
+  await expect(page.getByRole('switch', { name: 'This is an expansion' })).toBeChecked();
+  await expect(page.getByLabel('Max players')).toHaveValue('6');
+});
+
+test('EXPLOOK-02 a base game lists its BGG expansions, each one click from a filled form @external', async ({
+  page,
+}) => {
+  // Add Catan from the lookup so its BGG id is kept, plus one expansion we already own.
+  await lookUpCatan(page);
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/\/games\/[0-9a-f-]{36}$/);
+  const baseUrl = page.url();
+
+  await page.getByRole('link', { name: 'Add expansion' }).click();
+  const list = page.locator('[data-bgg-expansions]');
+  await expect(list.getByRole('button', { name: /Cities & Knights/ })).toBeVisible();
+  await expect(list.getByRole('button', { name: /Seafarers/ })).toBeVisible();
+
+  await list.getByRole('button', { name: /Seafarers/ }).click();
+  await expect(page.locator('[data-lookup-filled]')).toBeVisible();
+  await expect(page.getByLabel('Title *')).toHaveValue('Seafarers');
+  await expect(page.getByRole('combobox', { name: 'Base game' })).toHaveValue('Catan');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+  // Back on Catan, listing the new expansion; and the lookup now marks it as owned.
+  await expect(page).toHaveURL(baseUrl);
+  await expect(page.locator('[data-expansions] li').filter({ hasText: 'Seafarers' })).toBeVisible();
+  await page.getByRole('link', { name: 'Add expansion' }).click();
+  await expect(
+    page.locator('[data-bgg-expansions]').getByRole('button', { name: /Seafarers.*In library/ }),
+  ).toBeVisible();
+});
+
+test('EXPLOOK-03 picking an expansion from a general search finds its base game by name @external', async ({
+  page,
+}) => {
+  await lookUpCatan(page);
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/\/games\/[0-9a-f-]{36}$/);
+
+  await page.goto('/games/new');
+  await page.getByPlaceholder('Search a title to fill in the details').fill('cities');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('button', { name: /Cities & Knights/ }).click();
+  await expect(page.locator('[data-lookup-filled]')).toContainText('base game');
+  await expect(page.getByRole('combobox', { name: 'Base game' })).toHaveValue('Catan');
 });

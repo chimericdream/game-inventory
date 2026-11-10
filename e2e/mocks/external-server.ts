@@ -15,7 +15,23 @@ interface Logged {
 }
 const log: Logged[] = [];
 
-const BGG_GAMES = [
+interface MockGame {
+  id: number;
+  name: string;
+  year: number;
+  minPlayers: number;
+  maxPlayers: number;
+  playingTime: number;
+  minAge: number;
+  weight: number;
+  description: string;
+  categories: string[];
+  image?: boolean;
+  expansions?: { id: number; name: string }[];
+  expansionOf?: { id: number; name: string }[];
+}
+
+const BGG_GAMES: MockGame[] = [
   {
     id: 13,
     name: 'Catan',
@@ -28,6 +44,36 @@ const BGG_GAMES = [
     description: 'Trade, build &amp; settle.&#10;&#10;Collect resources.',
     categories: ['Negotiation', 'Economic'],
     image: true,
+    expansions: [
+      { id: 325, name: 'Seafarers' },
+      { id: 926, name: 'Cities & Knights' },
+    ],
+  },
+  {
+    id: 325,
+    name: 'Seafarers',
+    year: 1997,
+    minPlayers: 3,
+    maxPlayers: 6,
+    playingTime: 150,
+    minAge: 10,
+    weight: 2.5,
+    description: 'Sail to new islands.',
+    categories: ['Nautical'],
+    expansionOf: [{ id: 13, name: 'Catan' }],
+  },
+  {
+    id: 926,
+    name: 'Cities & Knights',
+    year: 1998,
+    minPlayers: 3,
+    maxPlayers: 4,
+    playingTime: 150,
+    minAge: 12,
+    weight: 3.1,
+    description: 'Defend against barbarians.',
+    categories: ['Fantasy'],
+    expansionOf: [{ id: 13, name: 'Catan' }],
   },
   {
     id: 30549,
@@ -63,11 +109,13 @@ const PNG = Buffer.from(
 
 const xml = (body: string) => `<?xml version="1.0" encoding="utf-8"?>\n${body}`;
 
-function searchXml(items: { id: number; name: string; year: number | null }[]) {
+function searchXml(
+  items: { id: number; name: string; year: number | null; expansionOf?: unknown }[],
+) {
   const rows = items
     .map(
       (g) =>
-        `<item type="boardgame" id="${g.id}"><name type="primary" value="${g.name}"/>${
+        `<item type="${g.expansionOf ? 'boardgameexpansion' : 'boardgame'}" id="${g.id}"><name type="primary" value="${g.name}"/>${
           g.year ? `<yearpublished value="${g.year}"/>` : ''
         }</item>`,
     )
@@ -77,12 +125,22 @@ function searchXml(items: { id: number; name: string; year: number | null }[]) {
   );
 }
 
-function thingXml(g: (typeof BGG_GAMES)[number]) {
+function thingXml(g: MockGame) {
   const links = g.categories
     .map((c, i) => `<link type="boardgamecategory" id="${1000 + i}" value="${c}"/>`)
     .join('');
+  const expansionLinks =
+    (g.expansions ?? [])
+      .map(
+        (e) =>
+          `<link type="boardgameexpansion" id="${e.id}" value="${e.name.replace(/&/g, '&amp;')}"/>`,
+      )
+      .join('') +
+    (g.expansionOf ?? [])
+      .map((b) => `<link type="boardgameexpansion" id="${b.id}" value="${b.name}" inbound="true"/>`)
+      .join('');
   return xml(
-    `<items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse"><item type="boardgame" id="${g.id}">` +
+    `<items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse"><item type="${g.expansionOf ? 'boardgameexpansion' : 'boardgame'}" id="${g.id}">` +
       `<name type="primary" sortindex="1" value="${g.name}"/>` +
       (g.image ? `<image>http://127.0.0.1:${PORT}/img/${g.id}.png</image>` : '') +
       `<description>${g.description}</description>` +
@@ -90,6 +148,7 @@ function thingXml(g: (typeof BGG_GAMES)[number]) {
       `<minplayers value="${g.minPlayers}"/><maxplayers value="${g.maxPlayers}"/>` +
       `<playingtime value="${g.playingTime}"/><minage value="${g.minAge}"/>` +
       links +
+      expansionLinks +
       `<statistics page="1"><ratings><averageweight value="${g.weight}"/></ratings></statistics>` +
       `</item></items>`,
   );

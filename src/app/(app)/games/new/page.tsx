@@ -34,7 +34,11 @@ export default async function NewGamePage({
         members={members.map((m) => ({ value: m.id, label: m.name }))}
         locations={locations}
         baseGames={baseGames}
-        base={baseGame ? { id: baseGame.id, type: baseGame.type } : null}
+        base={
+          baseGame
+            ? { id: baseGame.id, type: baseGame.type, title: baseGame.title, bggId: baseGame.bggId }
+            : null
+        }
       />
     </>
   );

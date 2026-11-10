@@ -12,7 +12,7 @@ interface Props {
   locations: { value: string; label: string }[];
   baseGames: { value: string; label: string }[];
   /** Set when adding an expansion from a game's page. */
-  base: { id: string; type: string } | null;
+  base: { id: string; type: string; title: string; bggId: number | null } | null;
 }
 
 export function NewGameClient({ members, locations, baseGames, base }: Props) {
@@ -26,6 +26,8 @@ export function NewGameClient({ members, locations, baseGames, base }: Props) {
     <>
       <Box maw={{ base: '100%', md: 700 }}>
         <Lookup
+          base={base}
+          baseGames={baseGames}
           onPick={(values, names) => {
             setInitial({ ...start, ...values });
             setFilled(names);

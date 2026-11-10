@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { bggImageUrl, parseSearch, parseThing } from './bgg';
+import { bggImageUrl, parseExpansions, parseSearch, parseThing } from './bgg';
 
 const SEARCH = `<?xml version="1.0" encoding="utf-8"?>
 <items total="2" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
   <item type="boardgame" id="13"><name type="primary" value="CATAN"/><yearpublished value="1995"/></item>
-  <item type="boardgame" id="27710"><name type="alternate" value="Catan: Cities"/><name type="primary" value="Catan Cities"/></item>
+  <item type="boardgameexpansion" id="27710"><name type="alternate" value="Catan: Cities"/><name type="primary" value="Catan Cities"/></item>
 </items>`;
 
 const THING = `<?xml version="1.0" encoding="utf-8"?>
@@ -18,14 +18,16 @@ const THING = `<?xml version="1.0" encoding="utf-8"?>
   <link type="boardgamecategory" id="1021" value="Economic"/>
   <link type="boardgamecategory" id="1026" value="Negotiation"/>
   <link type="boardgamemechanic" id="2" value="Dice Rolling"/>
+  <link type="boardgameexpansion" id="926" value="Seafarers"/>
+  <link type="boardgameexpansion" id="325" value="Cities &amp; Knights"/>
   <statistics><ratings><averageweight value="2.33"/></ratings></statistics>
 </item></items>`;
 
 describe('BGG parsing', () => {
   it('parses search results, preferring the primary name', () => {
     expect(parseSearch(SEARCH)).toEqual([
-      { id: 13, name: 'CATAN', year: 1995 },
-      { id: 27710, name: 'Catan Cities', year: null },
+      { id: 13, name: 'CATAN', year: 1995, isExpansion: false },
+      { id: 27710, name: 'Catan Cities', year: null, isExpansion: true },
     ]);
   });
 
@@ -41,7 +43,28 @@ describe('BGG parsing', () => {
       complexity: 2,
       tags: ['Economic', 'Negotiation'],
       imageUrl: 'https://cf.geekdo-images.com/original/catan.jpg',
+      isExpansion: false,
+      baseGames: [],
     });
+  });
+
+  it('lists the expansions of a base game by name', () => {
+    expect(parseExpansions(THING)).toEqual([
+      { id: 325, name: 'Cities & Knights' },
+      { id: 926, name: 'Seafarers' },
+    ]);
+  });
+
+  it('reads the base game of an expansion from its inbound link', () => {
+    const exp = `<items><item type="boardgameexpansion" id="926">
+      <name type="primary" value="Seafarers"/>
+      <link type="boardgameexpansion" id="13" value="CATAN" inbound="true"/></item></items>`;
+    expect(parseThing(exp)).toMatchObject({
+      isExpansion: true,
+      baseGames: [{ id: 13, name: 'CATAN' }],
+    });
+    // Inbound links are the base game, never one of its own expansions.
+    expect(parseExpansions(exp)).toEqual([]);
   });
 
   it('falls back to the thumbnail, and to null when there is no image', () => {

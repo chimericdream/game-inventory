@@ -8,6 +8,12 @@ export interface BggSearchHit {
   id: number;
   name: string;
   year: number | null;
+  isExpansion: boolean;
+}
+
+export interface BggRef {
+  id: number;
+  name: string;
 }
 
 export interface BggGame {
@@ -23,6 +29,9 @@ export interface BggGame {
   tags: string[];
   /** Full-size cover on BGG's image host, or null. */
   imageUrl: string | null;
+  isExpansion: boolean;
+  /** For an expansion: the games it expands, as BGG lists them. */
+  baseGames: BggRef[];
 }
 
 const toArray = <T>(v: T | T[] | undefined): T[] =>
@@ -51,8 +60,21 @@ export function parseSearch(xml: string): BggSearchHit[] {
       id: Number(item['@_id']),
       name: String(primary?.['@_value'] ?? ''),
       year: attrNum(item.yearpublished),
+      isExpansion: item['@_type'] === 'boardgameexpansion',
     };
   });
+}
+
+const expansionLinks = (item: any, inbound: boolean): BggRef[] =>
+  (toArray(item?.link) as any[])
+    .filter((l) => l['@_type'] === 'boardgameexpansion' && (l['@_inbound'] === 'true') === inbound)
+    .map((l) => ({ id: Number(l['@_id']), name: String(l['@_value'] ?? '') }))
+    .filter((r) => Number.isInteger(r.id) && r.id > 0 && r.name);
+
+/** The expansions BGG lists for a base game, by name. */
+export function parseExpansions(xml: string): BggRef[] {
+  const item = toArray(parser.parse(xml)?.items?.item)[0];
+  return expansionLinks(item, false).toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
 export function parseThing(xml: string): BggGame | null {
@@ -80,6 +102,8 @@ export function parseThing(xml: string): BggGame | null {
       .map((l) => String(l['@_value']))
       .slice(0, 6),
     imageUrl: bggImageUrl(item.image) ?? bggImageUrl(item.thumbnail),
+    isExpansion: item['@_type'] === 'boardgameexpansion',
+    baseGames: expansionLinks(item, true),
   };
 }
 
@@ -136,11 +160,18 @@ async function bggFetch(path: string): Promise<string> {
 export async function searchBgg(query: string): Promise<BggSearchHit[]> {
   const q = query.trim();
   if (!q) return [];
-  const hits = parseSearch(await bggFetch(`/search?type=boardgame&query=${encodeURIComponent(q)}`));
+  const hits = parseSearch(
+    await bggFetch(`/search?type=boardgame,boardgameexpansion&query=${encodeURIComponent(q)}`),
+  );
   return hits.slice(0, 10);
 }
 
 export async function getBggGame(id: number): Promise<BggGame | null> {
   if (!Number.isInteger(id) || id <= 0) return null;
   return parseThing(await bggFetch(`/thing?id=${id}&stats=1`));
+}
+
+export async function getBggExpansions(id: number): Promise<BggRef[]> {
+  if (!Number.isInteger(id) || id <= 0) return [];
+  return parseExpansions(await bggFetch(`/thing?id=${id}`));
 }
