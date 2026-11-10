@@ -46,6 +46,8 @@ export interface GameFormValues {
   pieceCount?: number | null;
   /** Cover from a BGG lookup; the server downloads it on save unless a file is uploaded. */
   bggImageUrl?: string | null;
+  /** BoardGameGeek id from a lookup, saved with a new game. */
+  bggId?: number | null;
 }
 
 export const EMPTY_GAME: GameFormValues = {
@@ -238,6 +240,7 @@ export function GameForm({
               <Title order={2} size="h5">
                 Cover and visibility
               </Title>
+              {initial.bggId && <input type="hidden" name="bggId" value={initial.bggId} />}
               {initial.bggImageUrl && (
                 <>
                   <input type="hidden" name="bggImageUrl" value={initial.bggImageUrl} />

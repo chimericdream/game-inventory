@@ -38,6 +38,8 @@ export const gameInput = z.object({
   notes: optionalText,
   visibility: z.enum(['normal', 'hide_images', 'hidden_restricted']).default('normal'),
   shareable: z.boolean().default(false),
+  /** BoardGameGeek id, kept when a game was added from a lookup. */
+  bggId: z.number().int().positive().nullable().optional(),
   /** An expansion is a full game that adds to `baseGameId`. */
   isExpansion: z.boolean().default(false),
   baseGameId: z.string().nullable().optional(),
@@ -282,6 +284,7 @@ export async function createGame(ctx: DataContext, raw: GameInput) {
         notes: input.notes ?? null,
         visibility: input.visibility,
         shareable: input.shareable,
+        bggId: input.bggId ?? null,
         ...stampCreate(ctx),
       })
       .returning();
@@ -457,4 +460,16 @@ export async function listBaseGameOptions(ctx: DataContext, excludeId?: string) 
     .where(and(gameVisibilityCondition(ctx), eq(games.isExpansion, false)))
     .orderBy(asc(games.title), asc(games.id));
   return rows.filter((r) => r.id !== excludeId).map((r) => ({ value: r.id, label: r.title }));
+}
+
+/** BGG ids and lowercase titles of the games this viewer can see, to mark lookup results as owned. */
+export async function libraryBggKeys(ctx: DataContext) {
+  const rows = await ctx.db
+    .select({ bggId: games.bggId, title: games.title })
+    .from(games)
+    .where(gameVisibilityCondition(ctx));
+  return {
+    ids: new Set(rows.flatMap((r) => (r.bggId ? [r.bggId] : []))),
+    titles: new Set(rows.map((r) => r.title.trim().toLowerCase())),
+  };
 }
