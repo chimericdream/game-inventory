@@ -19,9 +19,9 @@ self-hosters later. Not a SaaS.
   `docs/design/the-shelf/`. Fraunces (titles) and Figtree (everything else) are **self-hosted** in
   `src/fonts/`; never load fonts or assets from a CDN. Use `--app-*` CSS variables in CSS modules, not
   hard-coded colours, so light and dark both work.
-- PostgreSQL + Drizzle ORM (migrations via drizzle-kit). **Until v1 is locked, nothing is deployed:
-  change `src/server/db/schema.ts` freely, delete `drizzle/`, run `pnpm db:generate` to get one fresh
-  baseline, and write no data migrations. Remove this note when v1 locks.**
+- PostgreSQL + Drizzle ORM (migrations via drizzle-kit). v1 is locked and deployed: never delete or
+  regenerate `drizzle/`. Change `src/server/db/schema.ts`, run `pnpm db:generate` to add a new
+  migration, and make it safe for existing data.
 - pnpm; tool versions pinned with **mise** (`mise.toml`). Run `mise install` once, then use
   `mise exec -- pnpm <cmd>` if the shell isn't mise-activated.
 - Linting and formatting use the **oxc stack** (oxlint + oxfmt). Do not add ESLint or Prettier.
