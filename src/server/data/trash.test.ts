@@ -10,7 +10,7 @@ import { createContext, type DataContext } from './context';
 import { addCopy, deleteCopy } from './copies';
 import { createGame, deleteGame, getGameDetail, updateGame } from './games';
 import { createShareLink, guestCatalog, resolveShareLink } from './guest';
-import { lendCopy, listLendableCopies } from './loans';
+import { borrowerHistory, lendCopy, listLendableCopies, previousBorrowers } from './loans';
 import { createLocation, deleteLocation, listLocationOptions } from './lookups';
 import { deletePlay, logPlay, playStats, recentPlays } from './plays';
 import { deletePlayer, listPlayers } from './players';
@@ -131,8 +131,12 @@ describe('deleting a copy', () => {
     const game = await mk('Catan');
     const copy = await addCopy(admin, game.id, {});
     await lendCopy(admin, { copyId: copy.id, borrower: 'Dana' });
+    expect((await previousBorrowers(admin)).map((b) => b.name)).toEqual(['Dana']);
     await deleteCopy(admin, copy.id);
     expect((await getGameDetail(admin, game.id))?.copies).toHaveLength(0);
+    // A trashed copy's loans no longer feed the borrower suggestions or stats.
+    expect(await previousBorrowers(admin)).toEqual([]);
+    expect((await borrowerHistory(admin, 'Dana')).borrowed).toBe(0);
     expect(await listLendableCopies(admin)).toHaveLength(0);
 
     await deleteGame(admin, game.id);

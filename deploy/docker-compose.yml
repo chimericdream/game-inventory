@@ -48,6 +48,7 @@ services:
     environment:
       DATABASE_URL: postgres://games:${POSTGRES_PASSWORD}@db:5432/games
       BGG_API_TOKEN: ${BGG_API_TOKEN:-}
+      TRASH_RETENTION_DAYS: ${TRASH_RETENTION_DAYS:-30}
       COOKIE_SECURE: 'true'
     volumes:
       - app-data:/data

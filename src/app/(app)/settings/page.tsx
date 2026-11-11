@@ -10,7 +10,7 @@ import { listLocationsWithCounts, listMembers } from '@/server/data/lookups';
 import { listPlayers } from '@/server/data/players';
 import { listTrash, purgeDate, retentionDays } from '@/server/data/trash';
 
-import { describeActivity } from './activity';
+import { actorLabel, describeActivity } from './activity';
 import classes from './Settings.module.css';
 import { AddLocationForm, AddMemberForm, DeleteLocationButton, PlayerAdmin } from './SettingsForms';
 import { ShareLinks } from './ShareLinks';
@@ -265,7 +265,7 @@ async function ActivityTab() {
             <li key={e.id} className={classes.event} data-activity>
               <span className={classes.when}>{longDate(e.at.toISOString().slice(0, 10))}</span>
               <span>
-                <b>{e.actorName ?? 'Someone who has since left'}</b> {describeActivity(e, titles)}
+                <b>{actorLabel(e)}</b> {describeActivity(e, titles)}
               </span>
             </li>
           ))}

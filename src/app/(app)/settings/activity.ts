@@ -73,6 +73,10 @@ function describeTrash(entry: AuditEntry, gameTitle: (id: string | null) => stri
   return change[1] ? `moved ${what} to the trash` : `restored ${what} from the trash`;
 }
 
+/** Who to credit in the feed: the person, or the trash cleanup when nobody did it. */
+export const actorLabel = (entry: AuditEntry) =>
+  entry.changes.automatic ? 'Trash cleanup' : (entry.actorName ?? 'Someone who has since left');
+
 /**
  * A sentence for an audit entry, such as "added the game Catan". `titles` maps game ids to their
  * current titles, for entries that only carry the id.
