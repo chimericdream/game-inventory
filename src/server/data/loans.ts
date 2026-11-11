@@ -158,7 +158,8 @@ export async function previousBorrowers(ctx: DataContext, limit = 30) {
       returnedOn: loans.returnedOn,
     })
     .from(loans)
-    .where(eq(loans.householdId, ctx.householdId))
+    .innerJoin(copies, eq(copies.id, loans.copyId))
+    .where(and(eq(loans.householdId, ctx.householdId), isNull(copies.deletedAt)))
     .orderBy(desc(loans.lentOn), desc(loans.id));
   const seen = new Map<
     string,
@@ -189,9 +190,11 @@ export async function borrowerHistory(ctx: DataContext, borrower: string) {
   const rows = await ctx.db
     .select({ dueOn: loans.dueOn, returnedOn: loans.returnedOn })
     .from(loans)
+    .innerJoin(copies, eq(copies.id, loans.copyId))
     .where(
       and(
         eq(loans.householdId, ctx.householdId),
+        isNull(copies.deletedAt),
         sql`lower(${loans.borrower}) = ${borrower.trim().toLowerCase()}`,
       ),
     );

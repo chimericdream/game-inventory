@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { AuditEntry } from '@/server/data/audit';
 
-import { describeActivity } from './activity';
+import { actorLabel, describeActivity } from './activity';
 
 const entry = (over: Partial<AuditEntry>): AuditEntry => ({
   id: 'e',
@@ -72,5 +72,17 @@ describe('describeActivity', () => {
     expect(
       describeActivity(entry({ entityType: 'mystery' as never, action: 'update' }), titles),
     ).toBe('updated something');
+  });
+});
+
+describe('actorLabel', () => {
+  it('credits the person, the trash cleanup, or someone who has left', () => {
+    expect(actorLabel(entry({}))).toBe('Ada');
+    expect(actorLabel(entry({ actorName: null }))).toBe('Someone who has since left');
+    expect(
+      actorLabel(
+        entry({ action: 'delete', actorName: null, changes: { automatic: [null, true] } }),
+      ),
+    ).toBe('Trash cleanup');
   });
 });
