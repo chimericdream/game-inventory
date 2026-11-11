@@ -19,6 +19,16 @@ jobs:
       - run: pnpm build
 
   e2e:
+    name: e2e
+    needs: e2e-shards
+    # Always reports, so the required "e2e" check on main never waits forever, and fails
+    # unless every shard succeeded. Shard count can change without touching branch protection.
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.e2e-shards.result }}" = "success"
+
+  e2e-shards:
     name: e2e (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     strategy:
