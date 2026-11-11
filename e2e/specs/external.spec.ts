@@ -144,9 +144,11 @@ test('LOOK-01 picking a match fills the form and says what it filled @external',
   await expect(page.getByLabel('Title *')).toHaveValue('Catan');
   await expect(page.getByLabel('Min players')).toHaveValue('3');
   await expect(page.getByLabel('Max players')).toHaveValue('4');
+  await expect(page.getByLabel('Publisher')).toHaveValue('Kosmos');
   const note = page.locator('[data-lookup-filled]');
   await expect(note).toContainText('Filled in');
   await expect(note).toContainText('players');
+  await expect(note).toContainText('publisher');
   await expect(note).toContainText('Check the details, then save.');
 });
 
