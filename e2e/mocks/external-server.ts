@@ -26,6 +26,7 @@ interface MockGame {
   weight: number;
   description: string;
   categories: string[];
+  publishers?: string[];
   image?: boolean;
   expansions?: { id: number; name: string }[];
   expansionOf?: { id: number; name: string }[];
@@ -43,6 +44,7 @@ const BGG_GAMES: MockGame[] = [
     weight: 2.32,
     description: 'Trade, build &amp; settle.&#10;&#10;Collect resources.',
     categories: ['Negotiation', 'Economic'],
+    publishers: ['Kosmos', 'Catan Studio'],
     image: true,
     expansions: [
       { id: 325, name: 'Seafarers' },
@@ -129,6 +131,9 @@ function thingXml(g: MockGame) {
   const links = g.categories
     .map((c, i) => `<link type="boardgamecategory" id="${1000 + i}" value="${c}"/>`)
     .join('');
+  const publisherLinks = (g.publishers ?? [])
+    .map((p, i) => `<link type="boardgamepublisher" id="${2000 + i}" value="${p}"/>`)
+    .join('');
   const expansionLinks =
     (g.expansions ?? [])
       .map(
@@ -148,6 +153,7 @@ function thingXml(g: MockGame) {
       `<minplayers value="${g.minPlayers}"/><maxplayers value="${g.maxPlayers}"/>` +
       `<playingtime value="${g.playingTime}"/><minage value="${g.minAge}"/>` +
       links +
+      publisherLinks +
       expansionLinks +
       `<statistics page="1"><ratings><averageweight value="${g.weight}"/></ratings></statistics>` +
       `</item></items>`,

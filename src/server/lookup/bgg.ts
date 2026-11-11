@@ -27,6 +27,8 @@ export interface BggGame {
   /** BGG "weight" 1–5, rounded. */
   complexity: number | null;
   tags: string[];
+  /** The first publisher BGG lists (its primary one), or null. */
+  publisher: string | null;
   /** Full-size cover on BGG's image host, or null. */
   imageUrl: string | null;
   isExpansion: boolean;
@@ -101,6 +103,11 @@ export function parseThing(xml: string): BggGame | null {
       .filter((l) => l['@_type'] === 'boardgamecategory')
       .map((l) => String(l['@_value']))
       .slice(0, 6),
+    publisher:
+      links
+        .find((l) => l['@_type'] === 'boardgamepublisher' && String(l['@_value'] ?? '').trim())
+        ?.['@_value'].trim()
+        .slice(0, 200) ?? null,
     imageUrl: bggImageUrl(item.image) ?? bggImageUrl(item.thumbnail),
     isExpansion: item['@_type'] === 'boardgameexpansion',
     baseGames: expansionLinks(item, true),

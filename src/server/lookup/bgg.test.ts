@@ -18,6 +18,8 @@ const THING = `<?xml version="1.0" encoding="utf-8"?>
   <link type="boardgamecategory" id="1021" value="Economic"/>
   <link type="boardgamecategory" id="1026" value="Negotiation"/>
   <link type="boardgamemechanic" id="2" value="Dice Rolling"/>
+  <link type="boardgamepublisher" id="37" value="Kosmos"/>
+  <link type="boardgamepublisher" id="38" value="Catan Studio"/>
   <link type="boardgameexpansion" id="926" value="Seafarers"/>
   <link type="boardgameexpansion" id="325" value="Cities &amp; Knights"/>
   <statistics><ratings><averageweight value="2.33"/></ratings></statistics>
@@ -42,10 +44,21 @@ describe('BGG parsing', () => {
       minAge: 10,
       complexity: 2,
       tags: ['Economic', 'Negotiation'],
+      publisher: 'Kosmos',
       imageUrl: 'https://cf.geekdo-images.com/original/catan.jpg',
       isExpansion: false,
       baseGames: [],
     });
+  });
+
+  it('takes the first publisher, and null when BGG lists none', () => {
+    const none = THING.replace(/<link type="boardgamepublisher"[^>]*\/>\n?/g, '');
+    expect(parseThing(none)?.publisher).toBeNull();
+    const amp = none.replace(
+      '</item>',
+      '<link type="boardgamepublisher" id="1" value="Z-Man &amp; Co"/></item>',
+    );
+    expect(parseThing(amp)?.publisher).toBe('Z-Man & Co');
   });
 
   it('lists the expansions of a base game by name', () => {
