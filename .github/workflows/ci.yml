@@ -50,7 +50,19 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install chromium
+      # Only go to apt when a system library is actually missing, so an Ubuntu mirror outage
+      # does not fail the build when the runner image already has what the browser needs.
+      - name: Install browser system dependencies if missing
+        run: |
+          missing=0
+          for bin in $(find ~/.cache/ms-playwright -type f \( -name chrome -o -name chrome-headless-shell \)); do
+            if ldd "$bin" | grep -q 'not found'; then
+              echo "Missing libraries for $bin:"; ldd "$bin" | grep 'not found'
+              missing=1
+            fi
+          done
+          if [ "$missing" = 1 ]; then pnpm exec playwright install-deps chromium; fi
       - uses: actions/cache@v4
         with:
           path: .next/cache
