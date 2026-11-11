@@ -1,6 +1,7 @@
 import { expect, test, MEMBER } from '../fixtures';
 import { choose, formWith } from '../support/mantine';
 import { gameCards } from '../support/actions';
+import { confirmDelete } from '../support/trash';
 
 const copyCards = (page: import('@playwright/test').Page) => page.locator('[data-copy]');
 
@@ -61,9 +62,11 @@ test('COPY-03 deleting a copy leaves the other copy and the game', async ({ page
     .filter({ hasText: '$11.11' })
     .getByRole('button', { name: 'Delete copy' })
     .click();
+  await confirmDelete(page);
   await expect(page.getByText('$11.11')).toHaveCount(0);
   await expect(page.getByText('$22.22')).toBeVisible();
-  expect(await db.count('copies')).toBe(1);
+  expect(await db.count('copies', 'deleted_at is null')).toBe(1);
+  expect(await db.count('copies')).toBe(2);
   expect(await db.count('games')).toBe(1);
 });
 

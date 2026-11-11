@@ -7,6 +7,8 @@ import { createUser, newUserInput } from '@/server/auth/accounts';
 import { requireContext } from '@/server/auth/current';
 import { createLocation, deleteLocation } from '@/server/data/lookups';
 import { isUuid } from '@/server/data/ids';
+import { isTrashKind, purgeTrashed, restoreTrashed } from '@/server/data/trash';
+import { removeStored } from '@/server/storage';
 import { deletePlayer, linkPlayerToUser, mergePlayers, renamePlayer } from '@/server/data/players';
 
 export interface SettingsState {
@@ -191,5 +193,52 @@ export async function deletePlayerAction(
     return { error: e instanceof Error ? e.message : 'Could not remove them.' };
   }
   revalidatePath('/settings');
+  return { ok: true };
+}
+
+/** What to refresh after something comes back or goes for good. */
+function refreshAll() {
+  revalidatePath('/settings');
+  revalidatePath('/games', 'layout');
+  revalidatePath('/plays');
+  revalidatePath('/wishlist');
+  revalidatePath('/loans');
+}
+
+export async function restoreTrashedAction(
+  kind: string,
+  id: string,
+  _prev: SettingsState,
+  _fd: FormData,
+): Promise<SettingsState> {
+  const { ctx } = await requireContext();
+  if (!isTrashKind(kind)) return { error: 'Unknown item.' };
+  try {
+    const result = await restoreTrashed(ctx, kind, id);
+    if (!result.ok) return { error: result.error };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Could not restore it.' };
+  }
+  refreshAll();
+  return { ok: true };
+}
+
+/** The browser asks for a typed word first; deleting permanently needs the admin role either way. */
+export async function purgeTrashedAction(
+  kind: string,
+  id: string,
+  _prev: SettingsState,
+  _fd: FormData,
+): Promise<SettingsState> {
+  const { ctx } = await requireContext();
+  if (!isTrashKind(kind)) return { error: 'Unknown item.' };
+  try {
+    const result = await purgeTrashed(ctx, kind, id);
+    if (!result.ok) return { error: result.error };
+    await removeStored(result.coverImage);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Could not delete it.' };
+  }
+  refreshAll();
   return { ok: true };
 }

@@ -1,4 +1,4 @@
-import { and, eq, ne, type SQL } from 'drizzle-orm';
+import { and, eq, isNull, ne, type SQL } from 'drizzle-orm';
 
 import { games } from '../db/schema';
 import type { DataContext } from './context';
@@ -10,9 +10,12 @@ export interface VisibleGameFields {
   coverImage: string | null;
 }
 
-/** SQL condition: which game rows this viewer may see at all. Always scoped to the household. */
+/**
+ * SQL condition: which game rows this viewer may see at all. Always scoped to the household, and
+ * never includes games in the trash (soft-deleted); only the admin trash functions look at those.
+ */
 export function gameVisibilityCondition(ctx: DataContext): SQL {
-  const inHousehold = eq(games.householdId, ctx.householdId);
+  const inHousehold = and(eq(games.householdId, ctx.householdId), isNull(games.deletedAt)) as SQL;
   if (ctx.viewer.role === 'restricted') {
     return and(inHousehold, ne(games.visibility, 'hidden_restricted')) as SQL;
   }

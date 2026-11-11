@@ -27,7 +27,13 @@ export async function lendCopy(ctx: DataContext, raw: LoanInput) {
   const [copy] = await ctx.db
     .select({ id: copies.id })
     .from(copies)
-    .where(and(eq(copies.id, input.copyId), eq(copies.householdId, ctx.householdId)));
+    .where(
+      and(
+        eq(copies.id, input.copyId),
+        eq(copies.householdId, ctx.householdId),
+        isNull(copies.deletedAt),
+      ),
+    );
   if (!copy) throw new Error('Copy not found');
 
   const [open] = await ctx.db
@@ -101,6 +107,7 @@ export async function listLoans(ctx: DataContext, opts: { includeReturned?: bool
     .where(
       and(
         eq(loans.householdId, ctx.householdId),
+        isNull(copies.deletedAt),
         gameVisibilityCondition(ctx),
         opts.includeReturned ? undefined : isNull(loans.returnedOn),
       ),
@@ -210,7 +217,13 @@ export async function listLendableCopies(ctx: DataContext) {
     .from(copies)
     .innerJoin(games, eq(games.id, copies.gameId))
     .leftJoin(loans, and(eq(loans.copyId, copies.id), isNull(loans.returnedOn)))
-    .where(and(eq(copies.householdId, ctx.householdId), gameVisibilityCondition(ctx)))
+    .where(
+      and(
+        eq(copies.householdId, ctx.householdId),
+        isNull(copies.deletedAt),
+        gameVisibilityCondition(ctx),
+      ),
+    )
     .orderBy(asc(games.title));
   return rows.filter((r) => !r.onLoan).map(({ id, title, platform }) => ({ id, title, platform }));
 }

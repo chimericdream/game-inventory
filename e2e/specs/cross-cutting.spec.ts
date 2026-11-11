@@ -6,6 +6,7 @@ import { expect, test, ADMIN } from '../fixtures';
 import { addGameViaUi, gameCards } from '../support/actions';
 import { DATA_DIR } from '../support/env';
 import { png } from '../support/images';
+import { confirmDelete } from '../support/trash';
 
 // ---------------------------------------------------------------------------------------------
 // X-01 route x role matrix: every page renders (no console errors, thanks to the fixture guard)
@@ -324,10 +325,26 @@ test('X-11 cover files live under DATA_DIR and are removed with their game', asy
   expect(file.startsWith(DATA_DIR)).toBe(true);
   expect(existsSync(file)).toBe(true);
 
+  // A game with copies cannot be deleted, so the copies go to the trash first.
+  await db.sql`update copies set deleted_at = now() where game_id = ${id}`;
+  await page.reload();
   await page.getByRole('button', { name: 'Delete game', exact: true }).click();
+  await confirmDelete(page);
   await expect(page).toHaveURL(/\/games$/);
-  expect(existsSync(file)).toBe(false);
   await expect(gameCards(page)).toHaveCount(0);
+  // In the trash the picture is kept, so a restore is complete.
+  expect(existsSync(file)).toBe(true);
+
+  // Deleting for good removes the stored file too.
+  await page.goto('/settings?tab=trash');
+  await page
+    .locator('[data-trashed="game"]')
+    .getByRole('button', { name: /^Delete forever/ })
+    .click();
+  await page.getByRole('dialog').getByLabel('Type delete to confirm').fill('delete');
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete forever' }).click();
+  await expect(page.getByText('The trash is empty.')).toBeVisible();
+  expect(existsSync(file)).toBe(false);
 });
 
 test('X-12 cover URLs cannot be used to read other files', async ({ page, db }) => {

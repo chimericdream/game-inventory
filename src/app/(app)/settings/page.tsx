@@ -8,15 +8,17 @@ import { gameTitles } from '@/server/data/games';
 import { listShareLinks } from '@/server/data/guest';
 import { listLocationsWithCounts, listMembers } from '@/server/data/lookups';
 import { listPlayers } from '@/server/data/players';
+import { listTrash, purgeDate, retentionDays } from '@/server/data/trash';
 
 import { describeActivity } from './activity';
 import classes from './Settings.module.css';
 import { AddLocationForm, AddMemberForm, DeleteLocationButton, PlayerAdmin } from './SettingsForms';
 import { ShareLinks } from './ShareLinks';
+import { TrashActions } from './TrashList';
 
 export const dynamic = 'force-dynamic';
 
-type Tab = 'people' | 'locations' | 'links' | 'activity';
+type Tab = 'people' | 'locations' | 'links' | 'activity' | 'trash';
 type SearchParams = Record<string, string | string[] | undefined>;
 
 const TAB_LABELS: Record<Tab, string> = {
@@ -24,6 +26,7 @@ const TAB_LABELS: Record<Tab, string> = {
   locations: 'Locations',
   links: 'Guest links',
   activity: 'Activity',
+  trash: 'Trash',
 };
 
 const choice = (p: { id: string; displayName: string }) => ({
@@ -42,8 +45,10 @@ export default async function SettingsPage({
   const isAdmin = ctx.viewer.role === 'admin';
   const canEdit = ctx.viewer.role !== 'restricted';
   const tabs: Tab[] = isAdmin
-    ? ['people', 'locations', 'links', 'activity']
-    : ['people', 'locations'];
+    ? ['people', 'locations', 'links', 'activity', 'trash']
+    : canEdit
+      ? ['people', 'locations', 'trash']
+      : ['people', 'locations'];
   const params = await searchParams;
   const raw = params.tab;
   const asked = Array.isArray(raw) ? raw[0] : raw;
@@ -72,6 +77,7 @@ export default async function SettingsPage({
       {tab === 'locations' && <LocationsTab canEdit={canEdit} />}
       {tab === 'links' && isAdmin && <LinksTab />}
       {tab === 'activity' && isAdmin && <ActivityTab />}
+      {tab === 'trash' && canEdit && <TrashTab isAdmin={isAdmin} />}
     </>
   );
 }
@@ -263,6 +269,72 @@ async function ActivityTab() {
               </span>
             </li>
           ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+const KIND_LABELS: Record<string, string> = {
+  game: 'Game',
+  copy: 'Copy',
+  play: 'Play',
+  wishlist_item: 'Wishlist',
+  location: 'Place',
+  player: 'Player',
+};
+
+async function TrashTab({ isAdmin }: { isAdmin: boolean }) {
+  const { ctx } = await requireContext();
+  const trashed = await listTrash(ctx);
+  const days = retentionDays();
+  return (
+    <section className={classes.section} aria-labelledby="trash">
+      <h2 id="trash">Trash</h2>
+      <p className={classes.lede}>
+        {isAdmin
+          ? 'Everything anyone deletes waits here. Restore it to bring everything back, or delete it forever.'
+          : 'Things you deleted wait here. Restore one to bring it back. An admin can delete things for good.'}
+        {days > 0
+          ? ` Anything left here for ${days} days is deleted for good automatically.`
+          : ' Nothing is deleted automatically.'}
+      </p>
+      {trashed.length === 0 ? (
+        <p className={classes.empty}>The trash is empty.</p>
+      ) : (
+        <ul className={classes.list}>
+          {trashed.map((g) => {
+            const goesOn = purgeDate(g.deletedAt, days);
+            return (
+              <li key={`${g.kind}-${g.id}`} className={classes.place} data-trashed={g.kind}>
+                <span className={classes.placeName}>
+                  {g.title}
+                  <span className={classes.trashMeta}>
+                    {[
+                      KIND_LABELS[g.kind],
+                      g.detail && g.detail !== KIND_LABELS[g.kind] ? g.detail : null,
+                      `Deleted ${longDate(g.deletedAt.toISOString().slice(0, 10))}${g.deletedByName ? ` by ${g.deletedByName}` : ''}`,
+                      goesOn
+                        ? `removed for good ${longDate(goesOn.toISOString().slice(0, 10))}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                </span>
+                <TrashActions
+                  kind={g.kind}
+                  id={g.id}
+                  title={g.title}
+                  canRestore={g.canRestore}
+                  canPurge={isAdmin}
+                  plays={g.plays}
+                  ratings={g.ratings}
+                  expansions={g.expansions}
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

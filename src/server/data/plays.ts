@@ -1,8 +1,15 @@
-import { and, asc, count, desc, eq, inArray, max, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { games, playParticipants, playSessions, players } from '../db/schema';
-import { createdFields, deletedFields, recordAudit, stampCreate } from './audit';
+import {
+  createdFields,
+  recordAudit,
+  stampCreate,
+  stampTrash,
+  stampUpdate,
+  trashedFields,
+} from './audit';
 import { isUuid } from './ids';
 import type { DataContext } from './context';
 import { createPlayerIn, loadParticipants } from './players';
@@ -37,7 +44,13 @@ export async function logPlay(ctx: DataContext, raw: PlayInput) {
     const [game] = await tx
       .select({ id: games.id })
       .from(games)
-      .where(and(eq(games.id, input.gameId), eq(games.householdId, ctx.householdId)));
+      .where(
+        and(
+          eq(games.id, input.gameId),
+          eq(games.householdId, ctx.householdId),
+          isNull(games.deletedAt),
+        ),
+      );
     if (!game) throw new Error('Game not found');
 
     const wanted = [...new Set(input.playerIds)];
@@ -45,7 +58,13 @@ export async function logPlay(ctx: DataContext, raw: PlayInput) {
       const found = await tx
         .select({ id: players.id })
         .from(players)
-        .where(and(eq(players.householdId, ctx.householdId), inArray(players.id, wanted)));
+        .where(
+          and(
+            eq(players.householdId, ctx.householdId),
+            isNull(players.deletedAt),
+            inArray(players.id, wanted),
+          ),
+        );
       if (found.length !== wanted.length) throw new Error('Unknown player');
     }
     const playerIds = [...wanted];
@@ -90,19 +109,27 @@ export async function logPlay(ctx: DataContext, raw: PlayInput) {
   });
 }
 
+/** Moves a play to the trash; its players are kept so a restore is complete. */
 export async function deletePlay(ctx: DataContext, id: string): Promise<boolean> {
   assertCanEdit(ctx);
   return ctx.db.transaction(async (tx) => {
     const [row] = await tx
-      .delete(playSessions)
-      .where(and(eq(playSessions.id, id), eq(playSessions.householdId, ctx.householdId)))
+      .update(playSessions)
+      .set({ ...stampTrash(ctx), ...stampUpdate(ctx) })
+      .where(
+        and(
+          eq(playSessions.id, id),
+          eq(playSessions.householdId, ctx.householdId),
+          isNull(playSessions.deletedAt),
+        ),
+      )
       .returning();
     if (!row) return false;
     await recordAudit(tx, ctx, {
       entityType: 'play',
       entityId: id,
-      action: 'delete',
-      changes: deletedFields({ gameId: row.gameId, playedOn: row.playedOn }),
+      action: 'update',
+      changes: trashedFields({ gameId: row.gameId, playedOn: row.playedOn }),
     });
     return true;
   });
@@ -124,6 +151,7 @@ export async function recentPlays(ctx: DataContext, limit = 25, opts: { playerId
     .where(
       and(
         eq(playSessions.householdId, ctx.householdId),
+        isNull(playSessions.deletedAt),
         gameVisibilityCondition(ctx),
         opts.playerId
           ? sql`exists (select 1 from ${playParticipants} pp
@@ -151,6 +179,7 @@ export async function playsForGame(ctx: DataContext, gameId: string) {
       and(
         eq(playSessions.gameId, gameId),
         eq(playSessions.householdId, ctx.householdId),
+        isNull(playSessions.deletedAt),
         gameVisibilityCondition(ctx),
       ),
     )
@@ -190,7 +219,7 @@ export async function playStats(ctx: DataContext, staleDays = 365): Promise<Play
       lastPlayed: max(playSessions.playedOn),
     })
     .from(games)
-    .leftJoin(playSessions, eq(playSessions.gameId, games.id))
+    .leftJoin(playSessions, and(eq(playSessions.gameId, games.id), isNull(playSessions.deletedAt)))
     .where(gameVisibilityCondition(ctx))
     .groupBy(games.id, games.title, games.type, games.coverImage)
     .orderBy(asc(games.title));
@@ -203,6 +232,7 @@ export async function playStats(ctx: DataContext, staleDays = 365): Promise<Play
     .where(
       and(
         eq(playSessions.householdId, ctx.householdId),
+        isNull(playSessions.deletedAt),
         gameVisibilityCondition(ctx),
         sql`${playSessions.playedOn} >= ${cutoff}`,
       ),
@@ -249,6 +279,7 @@ export async function playerStats(ctx: DataContext, opts: { gameId?: string } = 
     .where(
       and(
         eq(playParticipants.householdId, ctx.householdId),
+        isNull(playSessions.deletedAt),
         gameVisibilityCondition(ctx),
         opts.gameId ? eq(playSessions.gameId, opts.gameId) : undefined,
       ),
@@ -264,7 +295,13 @@ export async function lastPlayGroup(ctx: DataContext): Promise<string[]> {
     .select({ id: playSessions.id })
     .from(playSessions)
     .innerJoin(games, eq(games.id, playSessions.gameId))
-    .where(and(eq(playSessions.householdId, ctx.householdId), gameVisibilityCondition(ctx)))
+    .where(
+      and(
+        eq(playSessions.householdId, ctx.householdId),
+        isNull(playSessions.deletedAt),
+        gameVisibilityCondition(ctx),
+      ),
+    )
     .orderBy(desc(playSessions.playedOn), desc(playSessions.createdAt), desc(playSessions.id))
     .limit(1);
   if (!latest) return [];

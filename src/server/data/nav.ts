@@ -27,13 +27,14 @@ export async function navCounts(ctx: DataContext): Promise<NavCounts> {
         and(
           eq(loans.householdId, ctx.householdId),
           isNull(loans.returnedOn),
+          isNull(copies.deletedAt),
           gameVisibilityCondition(ctx),
         ),
       ),
     ctx.db
       .select({ n: count() })
       .from(wishlistItems)
-      .where(eq(wishlistItems.householdId, ctx.householdId)),
+      .where(and(eq(wishlistItems.householdId, ctx.householdId), isNull(wishlistItems.deletedAt))),
   ]);
   return { loans: loanRow?.n ?? 0, wishlist: wishRow?.n ?? 0 };
 }

@@ -1,8 +1,15 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { copies, games, locations, tags, users } from '../db/schema';
-import { createdFields, deletedFields, recordAudit, stampCreate } from './audit';
+import {
+  createdFields,
+  recordAudit,
+  stampCreate,
+  stampTrash,
+  stampUpdate,
+  trashedFields,
+} from './audit';
 import type { DataContext } from './context';
 import { isUuid } from './ids';
 import { gameVisibilityCondition } from './visibility';
@@ -11,7 +18,7 @@ export async function listLocations(ctx: DataContext) {
   return ctx.db
     .select()
     .from(locations)
-    .where(eq(locations.householdId, ctx.householdId))
+    .where(and(eq(locations.householdId, ctx.householdId), isNull(locations.deletedAt)))
     .orderBy(asc(locations.name));
 }
 
@@ -63,7 +70,13 @@ export async function listLocationsWithCounts(ctx: DataContext): Promise<Locatio
       .select({ locationId: copies.locationId, n: sql<number>`count(*)::int` })
       .from(copies)
       .innerJoin(games, eq(games.id, copies.gameId))
-      .where(and(eq(copies.householdId, ctx.householdId), gameVisibilityCondition(ctx)))
+      .where(
+        and(
+          eq(copies.householdId, ctx.householdId),
+          isNull(copies.deletedAt),
+          gameVisibilityCondition(ctx),
+        ),
+      )
       .groupBy(copies.locationId),
   ]);
   const direct = new Map(counts.map((c) => [c.locationId, c.n]));
@@ -99,7 +112,13 @@ export async function createLocation(ctx: DataContext, name: string, parentId?: 
     const [parent] = await ctx.db
       .select({ id: locations.id })
       .from(locations)
-      .where(and(eq(locations.id, parentId), eq(locations.householdId, ctx.householdId)));
+      .where(
+        and(
+          eq(locations.id, parentId),
+          eq(locations.householdId, ctx.householdId),
+          isNull(locations.deletedAt),
+        ),
+      );
     if (!parent) throw new Error('Unknown parent location');
   }
   return ctx.db.transaction(async (tx) => {
@@ -162,7 +181,13 @@ export async function deleteLocation(ctx: DataContext, id: string): Promise<Dele
     const [row] = await tx
       .select()
       .from(locations)
-      .where(and(eq(locations.id, id), eq(locations.householdId, ctx.householdId)));
+      .where(
+        and(
+          eq(locations.id, id),
+          eq(locations.householdId, ctx.householdId),
+          isNull(locations.deletedAt),
+        ),
+      );
     if (!row) return { ok: false, reason: 'not_found' };
 
     const [counts] = await tx
@@ -174,10 +199,12 @@ export async function deleteLocation(ctx: DataContext, id: string): Promise<Dele
             select l.id from ${locations} l join tree t on l.parent_id = t.id
           )
           select count(*)::int from ${copies} c
-          where c.location_id in (select id from tree) and c.household_id = ${ctx.householdId})`,
+          where c.location_id in (select id from tree) and c.deleted_at is null
+            and c.household_id = ${ctx.householdId})`,
         children: sql<number>`(
           select count(*)::int from ${locations} ch
-          where ch.parent_id = ${id}::uuid and ch.household_id = ${ctx.householdId})`,
+          where ch.parent_id = ${id}::uuid and ch.deleted_at is null
+            and ch.household_id = ${ctx.householdId})`,
       })
       .from(locations)
       .where(eq(locations.id, id));
@@ -187,12 +214,15 @@ export async function deleteLocation(ctx: DataContext, id: string): Promise<Dele
       return { ok: false, reason: 'has_children', children: counts.children };
     }
 
-    await tx.delete(locations).where(eq(locations.id, id));
+    await tx
+      .update(locations)
+      .set({ ...stampTrash(ctx), ...stampUpdate(ctx) })
+      .where(eq(locations.id, id));
     await recordAudit(tx, ctx, {
       entityType: 'location',
       entityId: id,
-      action: 'delete',
-      changes: deletedFields({ name: row.name, parentId: row.parentId }),
+      action: 'update',
+      changes: trashedFields({ name: row.name, parentId: row.parentId }),
     });
     return { ok: true };
   });

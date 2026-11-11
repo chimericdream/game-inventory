@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures';
 import { choose, formWith } from '../support/mantine';
+import { confirmDelete } from '../support/trash';
 
 const LOG = 'Log play';
 
@@ -246,8 +247,10 @@ test('PLAY-06 delete a play', async ({ page, db }) => {
   await db.seedPlay(id);
   await page.goto('/plays');
   await page.getByRole('button', { name: 'Delete play' }).click();
+  await confirmDelete(page);
   await expect(page.getByText('No plays logged yet.')).toBeVisible();
-  expect(await db.count('play_sessions')).toBe(0);
+  expect(await db.count('play_sessions', 'deleted_at is null')).toBe(0);
+  expect(await db.count('play_sessions')).toBe(1);
 });
 
 test('PLAY-07 minutes must be positive; a play needs a game', async ({ page, db }) => {

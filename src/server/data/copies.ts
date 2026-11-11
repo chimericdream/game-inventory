@@ -1,14 +1,15 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { copies, games, locations, users } from '../db/schema';
 import {
   createdFields,
-  deletedFields,
   diffFields,
   recordAudit,
   stampCreate,
+  stampTrash,
   stampUpdate,
+  trashedFields,
 } from './audit';
 import type { DataContext } from './context';
 
@@ -44,7 +45,13 @@ async function assertRefs(ctx: DataContext, input: z.output<typeof copyInput>) {
     const [l] = await ctx.db
       .select({ id: locations.id })
       .from(locations)
-      .where(and(eq(locations.id, input.locationId), eq(locations.householdId, ctx.householdId)));
+      .where(
+        and(
+          eq(locations.id, input.locationId),
+          eq(locations.householdId, ctx.householdId),
+          isNull(locations.deletedAt),
+        ),
+      );
     if (!l) throw new Error('Unknown location');
   }
 }
@@ -70,7 +77,9 @@ export async function addCopy(ctx: DataContext, gameId: string, raw: CopyInput) 
   const [game] = await ctx.db
     .select({ id: games.id })
     .from(games)
-    .where(and(eq(games.id, gameId), eq(games.householdId, ctx.householdId)));
+    .where(
+      and(eq(games.id, gameId), eq(games.householdId, ctx.householdId), isNull(games.deletedAt)),
+    );
   if (!game) throw new Error('Game not found');
   await assertRefs(ctx, input);
   return ctx.db.transaction(async (tx) => {
@@ -109,7 +118,13 @@ export async function updateCopy(ctx: DataContext, copyId: string, raw: CopyInpu
     const [before] = await tx
       .select()
       .from(copies)
-      .where(and(eq(copies.id, copyId), eq(copies.householdId, ctx.householdId)));
+      .where(
+        and(
+          eq(copies.id, copyId),
+          eq(copies.householdId, ctx.householdId),
+          isNull(copies.deletedAt),
+        ),
+      );
     if (!before) return null;
     const [copy] = await tx
       .update(copies)
@@ -125,7 +140,13 @@ export async function updateCopy(ctx: DataContext, copyId: string, raw: CopyInpu
         notes: input.notes ?? null,
         ...stampUpdate(ctx),
       })
-      .where(and(eq(copies.id, copyId), eq(copies.householdId, ctx.householdId)))
+      .where(
+        and(
+          eq(copies.id, copyId),
+          eq(copies.householdId, ctx.householdId),
+          isNull(copies.deletedAt),
+        ),
+      )
       .returning();
     const changes = diffFields(auditable(before), auditable(copy!));
     if (Object.keys(changes).length) {
@@ -140,19 +161,27 @@ export async function updateCopy(ctx: DataContext, copyId: string, raw: CopyInpu
   });
 }
 
+/** Moves a copy to the trash. Its loans stay with it; restoring the copy brings them back. */
 export async function deleteCopy(ctx: DataContext, copyId: string): Promise<boolean> {
   assertCanEdit(ctx);
   return ctx.db.transaction(async (tx) => {
     const [row] = await tx
-      .delete(copies)
-      .where(and(eq(copies.id, copyId), eq(copies.householdId, ctx.householdId)))
+      .update(copies)
+      .set({ ...stampTrash(ctx), ...stampUpdate(ctx) })
+      .where(
+        and(
+          eq(copies.id, copyId),
+          eq(copies.householdId, ctx.householdId),
+          isNull(copies.deletedAt),
+        ),
+      )
       .returning();
     if (!row) return false;
     await recordAudit(tx, ctx, {
       entityType: 'copy',
       entityId: copyId,
-      action: 'delete',
-      changes: { gameId: [row.gameId, null], ...deletedFields(auditable(row)) },
+      action: 'update',
+      changes: trashedFields({ gameId: row.gameId, platform: row.platform }),
     });
     return true;
   });

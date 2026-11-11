@@ -1,8 +1,9 @@
-import { ActionIcon } from '@mantine/core';
+import { Text } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { CoverTile } from '@/components/shelf/CoverTile';
 import { longDate } from '@/lib/dates';
 import { requireContext } from '@/server/auth/current';
@@ -156,16 +157,19 @@ export default async function PlaysPage({ searchParams }: { searchParams: Promis
                       </div>
                     )}
                   </div>
-                  <form action={deletePlayAction.bind(null, p.play.id)} className={classes.remove}>
-                    <ActionIcon
-                      type="submit"
-                      variant="subtle"
-                      color="gray"
-                      aria-label="Delete play"
+                  <div className={classes.remove}>
+                    <ConfirmDelete
+                      title="Delete this play?"
+                      triggerLabel="Delete play"
+                      triggerIcon={<IconTrash size={18} />}
+                      action={deletePlayAction.bind(null, p.play.id)}
                     >
-                      <IconTrash size={18} />
-                    </ActionIcon>
-                  </form>
+                      <Text size="sm">
+                        This play of {p.title} moves to the trash. You can restore it from Settings
+                        → Trash.
+                      </Text>
+                    </ConfirmDelete>
+                  </div>
                 </li>
               ))}
             </ul>

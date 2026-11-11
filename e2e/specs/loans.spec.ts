@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures';
 import { choose, formWith } from '../support/mantine';
+import { confirmDelete } from '../support/trash';
 
 const LEND = 'Lend';
 
@@ -178,14 +179,15 @@ test('LOAN-07 only copies are offered, and a game with two platforms shows both'
   await expect(page.getByRole('option')).toHaveText(['Mario (Switch)', 'Mario (Wii)']);
 });
 
-test('LOAN-08 deleting a game that is out on loan does not break the loans page', async ({
+test('LOAN-08 deleting the copy that is out on loan does not break the loans page', async ({
   page,
   db,
 }) => {
   const id = await seedLoan(db, 'Doomed Loan', { borrower: 'Ghost' });
   await page.goto(`/games/${id}`);
-  await page.getByRole('button', { name: 'Delete game', exact: true }).click();
-  await expect(page).toHaveURL(/\/games$/);
+  await page.getByRole('button', { name: 'Delete copy' }).click();
+  await confirmDelete(page);
+  await expect(page.locator('[data-copy]')).toHaveCount(0);
   const res = await page.goto('/loans');
   expect(res?.status()).toBe(200);
   await expect(page.getByText('Nothing is out on loan.')).toBeVisible();

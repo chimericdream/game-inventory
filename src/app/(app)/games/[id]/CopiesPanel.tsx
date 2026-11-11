@@ -20,6 +20,7 @@ import { IconArrowsExchange, IconPencil, IconTrash } from '@tabler/icons-react';
 import { longDate, shortDate } from '@/lib/dates';
 
 import { lendAction, returnLoanAction, type TrackState } from '../../tracking-actions';
+import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { addCopyAction, deleteCopyAction, updateCopyAction, type ActionState } from '../actions';
 import { CONDITION_LABELS, CONDITION_OPTIONS } from '../labels';
 import classes from './CopiesPanel.module.css';
@@ -239,11 +240,17 @@ function CopyCard({
                 >
                   <IconPencil size={18} />
                 </ActionIcon>
-                <form action={deleteCopyAction.bind(null, gameId, c.id)}>
-                  <ActionIcon type="submit" variant="subtle" color="gray" aria-label="Delete copy">
-                    <IconTrash size={18} />
-                  </ActionIcon>
-                </form>
+                <ConfirmDelete
+                  title="Delete this copy?"
+                  triggerLabel="Delete copy"
+                  triggerIcon={<IconTrash size={18} />}
+                  action={deleteCopyAction.bind(null, gameId, c.id)}
+                >
+                  <Text size="sm">
+                    This copy moves to the trash, along with its loan history. You can restore it
+                    from Settings → Trash.
+                  </Text>
+                </ConfirmDelete>
               </Group>
             </footer>
           )}

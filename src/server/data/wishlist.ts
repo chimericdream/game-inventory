@@ -1,8 +1,16 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { wishlistItems } from '../db/schema';
-import { createdFields, deletedFields, recordAudit, stampCreate } from './audit';
+import {
+  createdFields,
+  deletedFields,
+  recordAudit,
+  stampCreate,
+  stampTrash,
+  stampUpdate,
+  trashedFields,
+} from './audit';
 import type { DataContext } from './context';
 import { createGame, GAME_TYPES } from './games';
 
@@ -31,7 +39,7 @@ export async function listWishlist(ctx: DataContext) {
   return ctx.db
     .select()
     .from(wishlistItems)
-    .where(eq(wishlistItems.householdId, ctx.householdId))
+    .where(and(eq(wishlistItems.householdId, ctx.householdId), isNull(wishlistItems.deletedAt)))
     .orderBy(asc(wishlistItems.createdAt));
 }
 
@@ -62,19 +70,27 @@ export async function addWishlistItem(ctx: DataContext, raw: WishlistInput) {
   });
 }
 
+/** Moves a wishlist item to the trash. */
 export async function removeWishlistItem(ctx: DataContext, id: string): Promise<boolean> {
   assertCanEdit(ctx);
   return ctx.db.transaction(async (tx) => {
     const [row] = await tx
-      .delete(wishlistItems)
-      .where(and(eq(wishlistItems.id, id), eq(wishlistItems.householdId, ctx.householdId)))
+      .update(wishlistItems)
+      .set({ ...stampTrash(ctx), ...stampUpdate(ctx) })
+      .where(
+        and(
+          eq(wishlistItems.id, id),
+          eq(wishlistItems.householdId, ctx.householdId),
+          isNull(wishlistItems.deletedAt),
+        ),
+      )
       .returning();
     if (!row) return false;
     await recordAudit(tx, ctx, {
       entityType: 'wishlist_item',
       entityId: id,
-      action: 'delete',
-      changes: deletedFields({ title: row.title, type: row.type }),
+      action: 'update',
+      changes: trashedFields({ title: row.title, type: row.type }),
     });
     return true;
   });
@@ -86,9 +102,25 @@ export async function markAcquired(ctx: DataContext, id: string) {
   const [item] = await ctx.db
     .select()
     .from(wishlistItems)
-    .where(and(eq(wishlistItems.id, id), eq(wishlistItems.householdId, ctx.householdId)));
+    .where(
+      and(
+        eq(wishlistItems.id, id),
+        eq(wishlistItems.householdId, ctx.householdId),
+        isNull(wishlistItems.deletedAt),
+      ),
+    );
   if (!item) return null;
   const game = await createGame(ctx, { title: item.title, type: item.type, notes: item.notes });
-  await removeWishlistItem(ctx, id);
+  // Getting it is not a deletion: the item has become a game, so it leaves the wishlist for good
+  // instead of waiting in the trash where a restore would duplicate it.
+  await ctx.db.transaction(async (tx) => {
+    await tx.delete(wishlistItems).where(eq(wishlistItems.id, id));
+    await recordAudit(tx, ctx, {
+      entityType: 'wishlist_item',
+      entityId: id,
+      action: 'delete',
+      changes: { ...deletedFields({ title: item.title, type: item.type }), acquired: [null, true] },
+    });
+  });
   return game;
 }

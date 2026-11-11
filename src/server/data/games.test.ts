@@ -7,6 +7,7 @@ import { addCopy, updateCopy } from './copies';
 import { createContext, type DataContext } from './context';
 import { listCatalog } from './catalog';
 import { createGame, deleteGame, getGameDetail, updateGame } from './games';
+import { purgeTrashed } from './trash';
 import { createLocation } from './lookups';
 
 let db: Db;
@@ -140,7 +141,7 @@ describe('catalog', () => {
     expect(detail?.game.title).toBe('New');
     expect(detail?.board).toBeNull();
     expect(detail?.rpg?.system).toBe('D&D 5e');
-    expect(await deleteGame(admin, game.id)).toBe(true);
+    expect(await deleteGame(admin, game.id)).toEqual({ ok: true });
     expect(await getGameDetail(admin, game.id)).toBeNull();
   });
 });
@@ -180,7 +181,8 @@ describe('household isolation', () => {
     expect(
       await updateGame(otherHousehold, game.id, { title: 'Stolen', type: 'board' }),
     ).toBeNull();
-    expect(await deleteGame(otherHousehold, game.id)).toBe(false);
+    expect(await deleteGame(otherHousehold, game.id)).toEqual({ ok: false, reason: 'not_found' });
+    expect((await getGameDetail(admin, game.id))?.game.title).toBe('Mine');
     await expect(addCopy(otherHousehold, game.id, {})).rejects.toThrow(/not found/);
     expect((await getGameDetail(admin, game.id))?.game.title).toBe('Mine');
   });
@@ -252,6 +254,9 @@ describe('expansions', () => {
     const base = await make('Catan');
     const exp = await make('Seafarers', { isExpansion: true, baseGameId: base.id });
     await deleteGame(admin, base.id);
+    // Trashed: the expansion no longer shows a base game, but the link is kept for a restore.
+    expect((await getGameDetail(admin, exp.id))?.baseGame).toBeNull();
+    await purgeTrashed(admin, 'game', base.id);
     const detail = await getGameDetail(admin, exp.id);
     expect(detail?.game).toMatchObject({ isExpansion: true, baseGameId: null });
   });

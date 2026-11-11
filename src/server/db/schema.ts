@@ -67,6 +67,15 @@ const authorship = () => ({
   updatedByUserId: uuid('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
 });
 
+/**
+ * Soft delete. A row with `deletedAt` set is in the trash: hidden everywhere, but kept so it can be
+ * restored until it is permanently deleted (by an admin, or automatically after the retention period).
+ */
+const trashable = () => ({
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  deletedByUserId: uuid('deleted_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+});
+
 const stamps = () => ({
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -128,6 +137,15 @@ export const games = pgTable(
     }),
     /** Expansions only: playable on its own, without the base game. */
     standalone: boolean('standalone').notNull().default(false),
+    /**
+     * Soft delete. A game in the trash is hidden everywhere (library, plays, loans, stats, guest
+     * links) but keeps its plays, ratings and tags so an admin can restore it. Permanently deleting
+     * it from the trash is what removes the row and cascades to its children.
+     */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deletedByUserId: uuid('deleted_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     ...authorship(),
     ...stamps(),
   },
@@ -187,6 +205,7 @@ export const locations = pgTable(
     parentId: uuid('parent_id').references((): AnyPgColumn => locations.id, {
       onDelete: 'set null',
     }),
+    ...trashable(),
     ...authorship(),
     ...stamps(),
   },
@@ -215,6 +234,7 @@ export const copies = pgTable(
     acquiredOn: date('acquired_on'),
     priceCents: integer('price_cents'),
     notes: text('notes'),
+    ...trashable(),
     ...authorship(),
     ...stamps(),
   },
@@ -328,6 +348,7 @@ export const wishlistItems = pgTable(
     requestedByUserId: uuid('requested_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
+    ...trashable(),
     ...authorship(),
     ...stamps(),
   },
@@ -351,6 +372,7 @@ export const players = pgTable(
     userId: uuid('user_id')
       .unique()
       .references(() => users.id, { onDelete: 'set null' }),
+    ...trashable(),
     ...authorship(),
     ...stamps(),
   },
@@ -370,6 +392,7 @@ export const playSessions = pgTable(
     playedOn: date('played_on').notNull(),
     durationMinutes: integer('duration_minutes'),
     notes: text('notes'),
+    ...trashable(),
     ...authorship(),
     ...stamps(),
   },
