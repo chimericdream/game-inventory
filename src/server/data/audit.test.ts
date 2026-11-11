@@ -7,8 +7,9 @@ import { createTestDb } from '../db/test-db';
 import { eq } from 'drizzle-orm';
 import { lastEdit, recentActivity } from './audit';
 import { createContext, type DataContext } from './context';
-import { addCopy, updateCopy } from './copies';
+import { addCopy, deleteCopy, updateCopy } from './copies';
 import { createGame, deleteGame, setCoverImage, updateGame } from './games';
+import { purgeTrashed } from './trash';
 import { createShareLink, revokeShareLink } from './guest';
 import { lendCopy, returnLoan } from './loans';
 import { createLocation } from './lookups';
@@ -93,9 +94,12 @@ describe('audit trail', () => {
     await logPlay(admin, { gameId: game.id, newPlayers: ['John'] });
     const wish = await addWishlistItem(admin, { title: 'Azul' });
     await removeWishlistItem(admin, wish.id);
+    await purgeTrashed(admin, 'wishlist_item', wish.id);
     await createLocation(admin, 'Basement');
     await setCoverImage(admin, game.id, 'covers/x.png');
+    await deleteCopy(admin, copy.id);
     await deleteGame(admin, game.id);
+    await purgeTrashed(admin, 'game', game.id);
 
     const seen = (await entries()).map((e) => `${e.entityType}:${e.action}`);
     for (const expected of [

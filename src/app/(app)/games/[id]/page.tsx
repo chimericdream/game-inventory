@@ -1,4 +1,3 @@
-import { Button } from '@mantine/core';
 import { IconDice5, IconPencil, IconPlus, IconStar, IconStarFilled } from '@tabler/icons-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -14,9 +13,10 @@ import { listLocationOptions, listMembers } from '@/server/data/lookups';
 import { playerStats, playsForGame } from '@/server/data/plays';
 import { ratingSummary } from '@/server/data/ratings';
 
-import { deleteGameAction, rateGameAction } from '../actions';
+import { rateGameAction } from '../actions';
 import { coverUrl } from '../tiles';
 import { CopiesPanel } from './CopiesPanel';
+import { DeleteGameButton } from './DeleteGameButton';
 import classes from './Detail.module.css';
 
 export const dynamic = 'force-dynamic';
@@ -346,11 +346,13 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                   ? `Last ${edited.action === 'create' ? 'added' : 'edited'} by ${edited.actorName ?? 'someone who has since left'} on ${longDate(edited.at.toISOString().slice(0, 10))}`
                   : ''}
               </span>
-              <form action={deleteGameAction.bind(null, id)}>
-                <Button type="submit" color="red" variant="subtle">
-                  Delete game
-                </Button>
-              </form>
+              <DeleteGameButton
+                id={id}
+                title={game.title}
+                copies={detail.copies.length}
+                plays={plays.length}
+                expansions={detail.expansions.map((e) => e.title)}
+              />
             </footer>
           )}
         </div>

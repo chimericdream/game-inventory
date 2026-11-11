@@ -34,7 +34,7 @@ describe('describeActivity', () => {
         entry({ action: 'delete', entityId: 'gone', changes: { title: ['Old Game', null] } }),
         titles,
       ),
-    ).toBe('removed the game Old Game');
+    ).toBe('permanently deleted the game Old Game');
   });
 
   it('describes loans, plays and players in plain words', () => {

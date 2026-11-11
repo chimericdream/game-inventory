@@ -1,6 +1,7 @@
-import { Button } from '@mantine/core';
+import { Button, Text } from '@mantine/core';
 import { redirect } from 'next/navigation';
 
+import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { TYPE_LABELS } from '@/components/shelf/types';
 import { requireContext } from '@/server/auth/current';
 import { listMembers } from '@/server/data/lookups';
@@ -93,11 +94,16 @@ export default async function WishlistPage() {
                         We got it
                       </Button>
                     </form>
-                    <form action={removeWishlistAction.bind(null, i.id)}>
-                      <Button type="submit" variant="subtle" color="red">
-                        Remove
-                      </Button>
-                    </form>
+                    <ConfirmDelete
+                      title={`Remove ${i.title}?`}
+                      triggerLabel="Remove"
+                      confirmLabel="Remove"
+                      action={removeWishlistAction.bind(null, i.id)}
+                    >
+                      <Text size="sm">
+                        {i.title} moves to the trash. You can restore it from Settings → Trash.
+                      </Text>
+                    </ConfirmDelete>
                   </div>
                 </li>
               ))}

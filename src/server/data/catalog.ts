@@ -79,7 +79,8 @@ const canSeeLoans = (ctx: DataContext) => ctx.viewer.role !== 'restricted';
 
 function onLoanSql(ctx: DataContext): SQL {
   return sql`exists (select 1 from ${loans} l join ${copies} c on c.id = l.copy_id
-    where c.game_id = ${games.id} and l.household_id = ${ctx.householdId} and l.returned_on is null)`;
+    where c.game_id = ${games.id} and c.deleted_at is null and l.household_id = ${ctx.householdId}
+      and l.returned_on is null)`;
 }
 
 /** Whether a filter value can possibly match (malformed ids can never match anything). */
@@ -116,7 +117,7 @@ function conditions(ctx: DataContext, f: CatalogFilters, omit?: FilterKey): SQL[
   if (f.locationId && omit !== 'locationId') {
     out.push(
       sql`exists (select 1 from ${copies} c where c.game_id = ${games.id}
-        and c.household_id = ${ctx.householdId} and c.location_id in (
+        and c.household_id = ${ctx.householdId} and c.deleted_at is null and c.location_id in (
           with recursive tree(id) as (
             select id from ${locations} where id = ${f.locationId} and household_id = ${ctx.householdId}
             union all
@@ -127,7 +128,8 @@ function conditions(ctx: DataContext, f: CatalogFilters, omit?: FilterKey): SQL[
   if (f.ownerUserId && omit !== 'ownerUserId') {
     out.push(
       sql`exists (select 1 from ${copies} c where c.game_id = ${games.id}
-        and c.household_id = ${ctx.householdId} and c.owner_user_id = ${f.ownerUserId})`,
+        and c.household_id = ${ctx.householdId} and c.deleted_at is null
+        and c.owner_user_id = ${f.ownerUserId})`,
     );
   }
   if (f.availability && omit !== 'availability' && canSeeLoans(ctx)) {
@@ -160,7 +162,13 @@ async function hydrate(
     ctx.db
       .select({ gameId: copies.gameId, platform: copies.platform })
       .from(copies)
-      .where(and(eq(copies.householdId, ctx.householdId), inArray(copies.gameId, ids))),
+      .where(
+        and(
+          eq(copies.householdId, ctx.householdId),
+          isNull(copies.deletedAt),
+          inArray(copies.gameId, ids),
+        ),
+      ),
     ctx.db
       .select({ gameId: gameTags.gameId, name: tags.name })
       .from(gameTags)
@@ -180,6 +188,7 @@ async function hydrate(
         and(
           eq(loans.householdId, ctx.householdId),
           isNull(loans.returnedOn),
+          isNull(copies.deletedAt),
           inArray(copies.gameId, ids),
         ),
       )
@@ -361,11 +370,17 @@ export async function catalogFacets(
         .from(games)
         .leftJoin(boardGameDetails, eq(boardGameDetails.gameId, games.id))
         .innerJoin(copies, eq(copies.gameId, games.id))
-        .where(and(...conditions(ctx, filters, 'locationId'), isNotNull(copies.locationId))),
+        .where(
+          and(
+            ...conditions(ctx, filters, 'locationId'),
+            isNotNull(copies.locationId),
+            isNull(copies.deletedAt),
+          ),
+        ),
       ctx.db
         .select({ id: locations.id, name: locations.name, parentId: locations.parentId })
         .from(locations)
-        .where(eq(locations.householdId, ctx.householdId))
+        .where(and(eq(locations.householdId, ctx.householdId), isNull(locations.deletedAt)))
         .orderBy(asc(locations.name)),
       canSeeLoans(ctx)
         ? ctx.db
@@ -378,7 +393,7 @@ export async function catalogFacets(
             .leftJoin(boardGameDetails, eq(boardGameDetails.gameId, games.id))
             .innerJoin(copies, eq(copies.gameId, games.id))
             .innerJoin(users, eq(users.id, copies.ownerUserId))
-            .where(and(...conditions(ctx, filters, 'ownerUserId')))
+            .where(and(...conditions(ctx, filters, 'ownerUserId'), isNull(copies.deletedAt)))
             .groupBy(users.id, users.name)
             .orderBy(asc(users.name))
         : Promise.resolve([] as { userId: string; name: string; n: number }[]),
@@ -452,7 +467,13 @@ export async function librarySummary(ctx: DataContext): Promise<LibrarySummary> 
     .select({ n: sql<number>`count(distinct ${copies.locationId})::int` })
     .from(copies)
     .innerJoin(games, eq(games.id, copies.gameId))
-    .where(and(eq(copies.householdId, ctx.householdId), gameVisibilityCondition(ctx)));
+    .where(
+      and(
+        eq(copies.householdId, ctx.householdId),
+        isNull(copies.deletedAt),
+        gameVisibilityCondition(ctx),
+      ),
+    );
   const base = { games: gamesRow?.n ?? 0, shelves: shelvesRow?.n ?? 0 };
   if (!canSeeLoans(ctx)) return { ...base, onLoan: 0, overdue: 0, dueThisWeek: 0 };
 
@@ -471,6 +492,7 @@ export async function librarySummary(ctx: DataContext): Promise<LibrarySummary> 
       and(
         eq(loans.householdId, ctx.householdId),
         isNull(loans.returnedOn),
+        isNull(copies.deletedAt),
         gameVisibilityCondition(ctx),
       ),
     );

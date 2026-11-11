@@ -1,8 +1,8 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import type { Db } from '../db/client';
 import { playParticipants, playSessions, players, users } from '../db/schema';
-import { createdFields, deletedFields, recordAudit, stampUpdate } from './audit';
+import { createdFields, recordAudit, stampTrash, stampUpdate, trashedFields } from './audit';
 import type { DataContext } from './context';
 
 /**
@@ -43,6 +43,7 @@ export async function findPlayerByName(
     .where(
       and(
         eq(players.householdId, householdId),
+        isNull(players.deletedAt),
         sql`lower(${players.displayName}) = ${cleanName(name).toLowerCase()}`,
       ),
     )
@@ -116,7 +117,7 @@ export async function listPlayers(ctx: DataContext): Promise<PlayerSummary[]> {
       plays: sql<number>`(select count(*)::int from ${playParticipants} pp where pp.player_id = ${players.id})`,
     })
     .from(players)
-    .where(eq(players.householdId, ctx.householdId))
+    .where(and(eq(players.householdId, ctx.householdId), isNull(players.deletedAt)))
     .orderBy(asc(players.displayName));
   return rows;
 }
@@ -139,10 +140,10 @@ export async function listPlayersForPicker(ctx: DataContext): Promise<PickerPlay
       lastPlayedOn: sql<string | null>`(
         select max(s.played_on)::text from ${playParticipants} pp
         join ${playSessions} s on s.id = pp.play_id
-        where pp.player_id = ${players.id})`,
+        where s.deleted_at is null and pp.player_id = ${players.id})`,
     })
     .from(players)
-    .where(eq(players.householdId, ctx.householdId));
+    .where(and(eq(players.householdId, ctx.householdId), isNull(players.deletedAt)));
   const members = rows
     .filter((p) => p.userId !== null)
     .toSorted((x, y) => x.displayName.localeCompare(y.displayName));
@@ -207,7 +208,9 @@ async function getPlayer(db: Db, householdId: string, id: string) {
   const [row] = await db
     .select()
     .from(players)
-    .where(and(eq(players.id, id), eq(players.householdId, householdId)));
+    .where(
+      and(eq(players.id, id), eq(players.householdId, householdId), isNull(players.deletedAt)),
+    );
   return row ?? null;
 }
 
@@ -255,12 +258,15 @@ export async function deletePlayer(ctx: DataContext, id: string): Promise<Delete
     if (player.userId) return { ok: false, reason: 'is_user' };
     const plays = await countPlays(tx, id);
     if (plays > 0) return { ok: false, reason: 'has_plays', plays };
-    await tx.delete(players).where(eq(players.id, id));
+    await tx
+      .update(players)
+      .set({ ...stampTrash(ctx), ...stampUpdate(ctx) })
+      .where(eq(players.id, id));
     await recordAudit(tx, ctx, {
       entityType: 'player',
       entityId: id,
-      action: 'delete',
-      changes: deletedFields({ displayName: player.displayName }),
+      action: 'update',
+      changes: trashedFields({ displayName: player.displayName }),
     });
     return { ok: true };
   });

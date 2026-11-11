@@ -157,6 +157,7 @@ export interface GuestGame {
 function guestConditions(link: ShareLink): SQL[] {
   const conds: SQL[] = [
     eq(games.householdId, link.householdId),
+    isNull(games.deletedAt),
     eq(games.shareable, true),
     // Guests are treated like the most restricted household profile.
     sql`${games.visibility} <> 'hidden_restricted'`,
@@ -193,7 +194,13 @@ async function hydrate(db: Db, link: ShareLink, ids: string[]) {
       .select({ gameId: copies.gameId, platform: copies.platform, location: locations.name })
       .from(copies)
       .leftJoin(locations, eq(locations.id, copies.locationId))
-      .where(and(eq(copies.householdId, link.householdId), sql`${copies.gameId} in (${idList})`)),
+      .where(
+        and(
+          eq(copies.householdId, link.householdId),
+          isNull(copies.deletedAt),
+          sql`${copies.gameId} in (${idList})`,
+        ),
+      ),
   ]);
   return { tagRows, copyRows };
 }

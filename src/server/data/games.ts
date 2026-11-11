@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
@@ -13,11 +13,12 @@ import {
 } from '../db/schema';
 import {
   createdFields,
-  deletedFields,
   diffFields,
   recordAudit,
   stampCreate,
+  stampTrash,
   stampUpdate,
+  trashedFields,
 } from './audit';
 import type { DataContext } from './context';
 import { isUuid } from './ids';
@@ -91,7 +92,9 @@ async function expansionFields(
     const [base] = await tx
       .select({ isExpansion: games.isExpansion })
       .from(games)
-      .where(and(eq(games.id, baseId), eq(games.householdId, ctx.householdId)));
+      .where(
+        and(eq(games.id, baseId), eq(games.householdId, ctx.householdId), isNull(games.deletedAt)),
+      );
     if (!base) throw new Error('Base game not found');
     if (base.isExpansion) throw new Error('An expansion cannot be the base of another expansion');
   }
@@ -126,7 +129,13 @@ export async function getGameDetail(ctx: DataContext, id: string) {
       ctx.db
         .select({ copy: copies })
         .from(copies)
-        .where(and(eq(copies.gameId, id), eq(copies.householdId, ctx.householdId))),
+        .where(
+          and(
+            eq(copies.gameId, id),
+            eq(copies.householdId, ctx.householdId),
+            isNull(copies.deletedAt),
+          ),
+        ),
       ctx.db
         .select({ name: tags.name })
         .from(gameTags)
@@ -142,6 +151,7 @@ export async function getGameDetail(ctx: DataContext, id: string) {
             .where(
               and(
                 eq(copies.gameId, id),
+                isNull(copies.deletedAt),
                 eq(loans.householdId, ctx.householdId),
                 isNull(loans.returnedOn),
               ),
@@ -358,7 +368,9 @@ export async function updateGame(ctx: DataContext, id: string, raw: GameInput) {
     const [before] = await tx
       .select()
       .from(games)
-      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)));
+      .where(
+        and(eq(games.id, id), eq(games.householdId, ctx.householdId), isNull(games.deletedAt)),
+      );
     if (!before) return null;
     const [tagsBefore, detailsBefore] = await Promise.all([
       tagNames(tx, id),
@@ -379,7 +391,7 @@ export async function updateGame(ctx: DataContext, id: string, raw: GameInput) {
         shareable: input.shareable,
         ...stampUpdate(ctx),
       })
-      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)))
+      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId), isNull(games.deletedAt)))
       .returning();
     if (!game) return null;
     await writeDetails(ctx, tx, id, input);
@@ -406,12 +418,16 @@ export async function setCoverImage(ctx: DataContext, id: string, path: string |
     const [before] = await tx
       .select({ coverImage: games.coverImage })
       .from(games)
-      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)));
+      .where(
+        and(eq(games.id, id), eq(games.householdId, ctx.householdId), isNull(games.deletedAt)),
+      );
     if (!before) return false;
     await tx
       .update(games)
       .set({ coverImage: path, ...stampUpdate(ctx) })
-      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)));
+      .where(
+        and(eq(games.id, id), eq(games.householdId, ctx.householdId), isNull(games.deletedAt)),
+      );
     await recordAudit(tx, ctx, {
       entityType: 'game',
       entityId: id,
@@ -422,22 +438,48 @@ export async function setCoverImage(ctx: DataContext, id: string, path: string |
   });
 }
 
-export async function deleteGame(ctx: DataContext, id: string): Promise<boolean> {
+export type DeleteGameResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'has_copies'; copies: number };
+
+/**
+ * Moves a game to the trash (a soft delete). It disappears from the library, plays, loans, stats and
+ * guest links, but its plays, ratings and tags are kept so an admin can restore it. A game that still
+ * has owned copies cannot be deleted: remove the copies first.
+ */
+export async function deleteGame(ctx: DataContext, id: string): Promise<DeleteGameResult> {
   assertCanEdit(ctx);
+  if (!isUuid(id)) return { ok: false, reason: 'not_found' };
   return ctx.db.transaction(async (tx) => {
-    const deleted = await tx
-      .delete(games)
-      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId)))
-      .returning({ id: games.id, title: games.title, type: games.type });
-    const [row] = deleted;
-    if (!row) return false;
+    const [game] = await tx
+      .select({ id: games.id, title: games.title, type: games.type })
+      .from(games)
+      .where(and(eq(games.id, id), eq(games.householdId, ctx.householdId), isNull(games.deletedAt)))
+      .for('update');
+    if (!game) return { ok: false, reason: 'not_found' } as const;
+    const [owned] = await tx
+      .select({ n: count() })
+      .from(copies)
+      .where(
+        and(
+          eq(copies.gameId, id),
+          eq(copies.householdId, ctx.householdId),
+          isNull(copies.deletedAt),
+        ),
+      );
+    if (owned && owned.n > 0) return { ok: false, reason: 'has_copies', copies: owned.n } as const;
+    await tx
+      .update(games)
+      .set({ ...stampTrash(ctx), ...stampUpdate(ctx) })
+      .where(eq(games.id, id));
     await recordAudit(tx, ctx, {
       entityType: 'game',
       entityId: id,
-      action: 'delete',
-      changes: deletedFields({ title: row.title, type: row.type }),
+      action: 'update',
+      changes: trashedFields({ title: game.title, type: game.type }),
     });
-    return true;
+    return { ok: true } as const;
   });
 }
 

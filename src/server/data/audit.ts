@@ -61,6 +61,30 @@ export const deletedFields = (values: Record<string, unknown>): AuditChanges =>
       .map(([k, v]) => [k, [v, null] as [unknown, unknown]]),
   );
 
+const nonNull = (values: Record<string, unknown>) =>
+  Object.entries(values).filter(([, v]) => v !== null && v !== undefined);
+
+/**
+ * Audit changes for moving a row to the trash. The identifying fields repeat as `[v, v]` so the
+ * activity feed can still name the row.
+ */
+export const trashedFields = (values: Record<string, unknown>): AuditChanges => ({
+  deletedAt: [null, new Date().toISOString()],
+  ...Object.fromEntries(nonNull(values).map(([k, v]) => [k, [v, v] as [unknown, unknown]])),
+});
+
+/** Audit changes for bringing a row back from the trash. */
+export const restoredFields = (values: Record<string, unknown>): AuditChanges => ({
+  deletedAt: ['trashed', null],
+  ...Object.fromEntries(nonNull(values).map(([k, v]) => [k, [v, v] as [unknown, unknown]])),
+});
+
+/** Stamp for moving a row to the trash on behalf of the current viewer. */
+export const stampTrash = (ctx: AuditActor) => ({
+  deletedAt: new Date(),
+  deletedByUserId: ctx.viewer.userId,
+});
+
 /**
  * Writes one audit entry. Call it with the same transaction as the change it describes, so a
  * failed change never leaves a log entry behind (and vice versa).

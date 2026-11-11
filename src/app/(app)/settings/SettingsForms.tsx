@@ -1,7 +1,9 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { Alert, Button, Group, PasswordInput, Select, Stack, TextInput } from '@mantine/core';
+import { Alert, Button, Group, PasswordInput, Select, Stack, Text, TextInput } from '@mantine/core';
+
+import { ConfirmDelete } from '@/components/ConfirmDelete';
 
 import {
   addLocationAction,
@@ -96,22 +98,28 @@ export function AddLocationForm({ parents }: { parents: Choice[] }) {
 
 /** Remove a place. The server refuses while it holds copies, and says so here. */
 export function DeleteLocationButton({ id, name }: { id: string; name: string }) {
-  const [state, action, pending] = useActionState<SettingsState, FormData>(
-    deleteLocationAction.bind(null, id),
-    {},
-  );
+  const [error, setError] = useState<string | null>(null);
   return (
-    <form action={action} className={classes.inlineForm}>
-      <Button type="submit" variant="subtle" color="red" size="compact-sm" loading={pending}>
-        Remove
-        <span className={classes.srOnly}> {name}</span>
-      </Button>
-      {state.error && (
+    <span className={classes.inlineForm}>
+      <ConfirmDelete
+        title={`Remove ${name}?`}
+        triggerLabel={`Remove ${name}`}
+        confirmLabel="Remove"
+        compact
+        action={async () => {
+          const result = await deleteLocationAction(id, {}, new FormData());
+          // The reason is shown beside the place, so the dialog just closes.
+          setError(result.error ?? null);
+        }}
+      >
+        <Text size="sm">{name} moves to the trash. You can restore it from Settings → Trash.</Text>
+      </ConfirmDelete>
+      {error && (
         <span role="alert" className={classes.problem}>
-          {name}: {state.error}
+          {name}: {error}
         </span>
       )}
-    </form>
+    </span>
   );
 }
 
@@ -151,10 +159,6 @@ export function PlayerAdmin({
   );
   const [, mergeAction, merging] = useActionState<SettingsState, FormData>(
     track(mergePlayersAction.bind(null, playerId)),
-    {},
-  );
-  const [, removeAction, removing] = useActionState<SettingsState, FormData>(
-    track(deletePlayerAction.bind(null, playerId)),
     {},
   );
   return (
@@ -209,11 +213,19 @@ export function PlayerAdmin({
             </Button>
           </form>
         )}
-        <form action={removeAction}>
-          <Button type="submit" variant="subtle" color="red" loading={removing}>
-            Remove {name}
-          </Button>
-        </form>
+        <ConfirmDelete
+          title={`Remove ${name}?`}
+          triggerLabel={`Remove ${name}`}
+          confirmLabel="Remove"
+          action={async () => {
+            // Any error shows in the panel above, so the dialog just closes.
+            await track(deletePlayerAction.bind(null, playerId))({}, new FormData());
+          }}
+        >
+          <Text size="sm">
+            {name} moves to the trash. You can restore them from Settings → Trash.
+          </Text>
+        </ConfirmDelete>
       </div>
     </details>
   );

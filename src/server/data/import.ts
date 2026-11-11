@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { games, locations } from '../db/schema';
 import type { ImportRow } from '../import/csv';
@@ -26,7 +26,11 @@ export async function importGames(ctx: DataContext, rows: ImportRow[]): Promise<
       .select({ id: locations.id })
       .from(locations)
       .where(
-        and(eq(locations.householdId, ctx.householdId), sql`lower(${locations.name}) = ${key}`),
+        and(
+          eq(locations.householdId, ctx.householdId),
+          isNull(locations.deletedAt),
+          sql`lower(${locations.name}) = ${key}`,
+        ),
       );
     let id = existing?.id;
     if (!id) {
@@ -56,6 +60,7 @@ export async function importGames(ctx: DataContext, rows: ImportRow[]): Promise<
       .where(
         and(
           eq(games.householdId, ctx.householdId),
+          isNull(games.deletedAt),
           eq(games.type, row.type),
           sql`lower(${games.title}) = ${row.title.toLowerCase()}`,
         ),

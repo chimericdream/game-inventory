@@ -129,11 +129,27 @@ export async function saveGameAction(
   redirect(`/games/${gameId}`);
 }
 
-export async function deleteGameAction(id: string) {
+/** Moves a game to the trash. The cover file stays, so a restored game keeps its picture. */
+export async function deleteGameAction(
+  id: string,
+  _prev: ActionState,
+  _fd: FormData,
+): Promise<ActionState> {
   const { ctx } = await requireContext();
-  const old = (await getGameDetail(ctx, id))?.game.coverImage;
-  await deleteGame(ctx, id);
-  await removeStored(old);
+  let result;
+  try {
+    result = await deleteGame(ctx, id);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Could not delete the game.' };
+  }
+  if (!result.ok) {
+    return {
+      error:
+        result.reason === 'has_copies'
+          ? `It still has ${result.copies} owned ${result.copies === 1 ? 'copy' : 'copies'}. Remove ${result.copies === 1 ? 'it' : 'them'} first.`
+          : 'That game no longer exists.',
+    };
+  }
   revalidatePath('/games');
   revalidatePath('/games/[id]', 'page');
   redirect('/games');

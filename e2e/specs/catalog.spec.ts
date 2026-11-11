@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
+import { confirmDelete } from '../support/trash';
 import { expect, test } from '../fixtures';
 import { addGameViaUi, attachCover, fillGameForm, gameCards } from '../support/actions';
 import { DATA_DIR } from '../support/env';
@@ -152,19 +153,48 @@ test('CAT-04 edit a game: values are prefilled, changes persist, tag casing is d
   await expect(page.getByText('medical', { exact: true })).toHaveCount(0);
 });
 
-test('CAT-05 delete a game: it disappears, its URL is gone, its copies go with it', async ({
+test('CAT-05 delete a game: it asks first, then goes to the trash and its URL is gone', async ({
   page,
   db,
 }) => {
-  const id = await db.seedGame({ title: 'Doomed', copies: [{}, {}] });
+  const id = await db.seedGame({ title: 'Doomed', copies: [] });
+  await db.seedPlay(id);
   await page.goto(`/games/${id}`);
   await page.getByRole('button', { name: 'Delete game', exact: true }).click();
+  // Cancelling leaves it alone.
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+  expect(await db.count('games', `id = '${id}' and deleted_at is null`)).toBe(1);
+
+  await page.getByRole('button', { name: 'Delete game', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('1 logged play');
+  await confirmDelete(page);
   await expect(page).toHaveURL(/\/games$/);
   await expect(page.getByText('Doomed')).toHaveCount(0);
 
   const res = await page.goto(`/games/${id}`);
   expect(res?.status()).toBe(404);
-  expect(await db.count('copies')).toBe(0);
+  // Soft delete: the game and its play are still stored.
+  expect(await db.count('games', `id = '${id}' and deleted_at is not null`)).toBe(1);
+  expect(await db.count('play_sessions')).toBe(1);
+});
+
+test('CAT-05b a game with owned copies cannot be deleted', async ({ page, db }) => {
+  const id = await db.seedGame({ title: 'Owned', copies: [{}, {}] });
+  await page.goto(`/games/${id}`);
+  await page.getByRole('button', { name: 'Delete game', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('still has 2 owned copies');
+  await expect(dialog.getByRole('button', { name: 'Move to trash' })).toBeDisabled();
+  expect(await db.count('games', `id = '${id}' and deleted_at is null`)).toBe(1);
+});
+
+test('CAT-05c deleting a base game warns that its expansions stay behind', async ({ page, db }) => {
+  const base = await db.seedGame({ title: 'Base Game', copies: [] });
+  const exp = await db.seedGame({ title: 'Big Expansion' });
+  await db.sql`update games set is_expansion = true, base_game_id = ${base} where id = ${exp}`;
+  await page.goto(`/games/${base}`);
+  await page.getByRole('button', { name: 'Delete game', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('1 expansion (Big Expansion)');
 });
 
 test('CAT-06 a PNG cover uploads and displays on the detail page and the grid @smoke', async ({

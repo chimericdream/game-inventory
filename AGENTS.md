@@ -50,6 +50,11 @@ self-hosters later. Not a SaaS.
    **Every mutation writes an `audit_log` row in the same transaction** (`recordAudit` in
    `src/server/data/audit.ts`) and stamps `created_by`/`updated_by`. Ratings are the one exception, so
    an activity feed cannot reveal who rated what.
+   **Deletes are soft.** Games, copies, plays, wishlist items, places and players get `deleted_at` /
+   `deleted_by_user_id` and are hidden from every read (`gameVisibilityCondition` already filters
+   trashed games; add `isNull(<table>.deletedAt)` to any new query on the others). Restore, permanent
+   delete and the automatic purge (`TRASH_RETENTION_DAYS`, default 30) live in `src/server/data/trash.ts`.
+   A game with live copies cannot be deleted. Every delete button goes through `ConfirmDelete`.
 3. **Visibility is enforced on the server**, never only in the UI. Two audiences need it:
    - _Household members_ (e.g. hide certain games or just their images when kids use the app).
    - _Guest share links_ (`/g/[token]`, read-only; allowlist by default; personal ratings, notes,

@@ -47,14 +47,16 @@ beforeEach(async () => {
 });
 
 describe('deleting a location', () => {
-  it('deletes an empty location and records it', async () => {
+  it('moves an empty location to the trash and records it', async () => {
     const hall = await createLocation(admin, 'Hall');
     expect(await deleteLocation(admin, hall.id)).toEqual({ ok: true });
-    expect(await db.select().from(locations).where(eq(locations.id, hall.id))).toHaveLength(0);
+    const [row] = await db.select().from(locations).where(eq(locations.id, hall.id));
+    expect(row?.deletedAt).not.toBeNull();
+    expect(row?.deletedByUserId).toBe(admin.viewer.userId);
     const entry = (await db.select().from(auditLog)).find(
-      (e) => e.entityType === 'location' && e.action === 'delete',
+      (e) => e.entityType === 'location' && e.action === 'update' && e.changes.deletedAt,
     );
-    expect(entry?.changes.name).toEqual(['Hall', null]);
+    expect(entry?.changes.name).toEqual(['Hall', 'Hall']);
   });
 
   it('refuses a location that holds copies, and leaves the copies where they are', async () => {

@@ -227,3 +227,16 @@
   border-radius: 12px;
   background: var(--app-tint);
 }
+
+.trashActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.trashMeta {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--app-text-muted, var(--mantine-color-dimmed));
+}

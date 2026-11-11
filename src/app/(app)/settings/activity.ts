@@ -37,18 +37,55 @@ const first = (entry: AuditEntry, key: string) => {
   return typeof value === 'string' ? value : null;
 };
 
+/** What was moved to the trash, restored or deleted for good, in words: "the game Catan", "a play". */
+function trashNoun(entry: AuditEntry, gameTitle: (id: string | null) => string | null) {
+  const game = gameTitle(first(entry, 'gameId'));
+  switch (entry.entityType) {
+    case 'game': {
+      const title = first(entry, 'title');
+      return title ? `the game ${title}` : 'a game';
+    }
+    case 'copy':
+      return game ? `a copy of ${game}` : 'a copy';
+    case 'play':
+      return game ? `a play of ${game}` : 'a play';
+    case 'wishlist_item':
+      return first(entry, 'title')
+        ? `${first(entry, 'title')} from the wishlist`
+        : 'a wishlist item';
+    case 'location':
+      return first(entry, 'name') ? `the place ${first(entry, 'name')}` : 'a place';
+    case 'player':
+      return first(entry, 'displayName') ?? 'a player';
+    default:
+      return null;
+  }
+}
+
+function describeTrash(entry: AuditEntry, gameTitle: (id: string | null) => string | null) {
+  const what = trashNoun(entry, gameTitle);
+  if (!what) return null;
+  // A wishlist item that became a game is not a deletion.
+  if (entry.changes.acquired) return null;
+  if (entry.action === 'delete') return `permanently deleted ${what}`;
+  const change = entry.changes.deletedAt;
+  if (entry.action !== 'update' || !change) return null;
+  return change[1] ? `moved ${what} to the trash` : `restored ${what} from the trash`;
+}
+
 /**
  * A sentence for an audit entry, such as "added the game Catan". `titles` maps game ids to their
  * current titles, for entries that only carry the id.
  */
 export function describeActivity(entry: AuditEntry, titles: Map<string, string>): string {
   const gameTitle = (id: string | null) => (id ? (titles.get(id) ?? null) : null);
+  const trashed = describeTrash(entry, gameTitle);
+  if (trashed) return trashed;
   switch (entry.entityType) {
     case 'game': {
       const title = titles.get(entry.entityId) ?? first(entry, 'title');
       const name = title ? ` ${title}` : '';
       if (entry.action === 'create') return `added the game${name}`;
-      if (entry.action === 'delete') return `removed the game${name}`;
       const changed = Object.keys(entry.changes);
       return `changed${name ? ` ${title}’s` : ' a game’s'} ${fieldList(changed)}`;
     }

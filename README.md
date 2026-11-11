@@ -59,13 +59,14 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## Configuration
 
-| Variable        | Purpose                                             |
-| --------------- | --------------------------------------------------- |
-| `DATABASE_URL`  | Postgres connection string (required)               |
-| `DATA_DIR`      | Where uploaded images are stored (default `./data`) |
-| `BGG_API_TOKEN` | BoardGameGeek API token, enables title lookup       |
-| `COOKIE_SECURE` | `true` when served over HTTPS                       |
-| `AUTO_MIGRATE`  | `false` to skip migrations on start                 |
+| Variable               | Purpose                                                                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`         | Postgres connection string (required)                                                                                         |
+| `DATA_DIR`             | Where uploaded images are stored (default `./data`)                                                                           |
+| `BGG_API_TOKEN`        | BoardGameGeek API token, enables title lookup                                                                                 |
+| `COOKIE_SECURE`        | `true` when served over HTTPS                                                                                                 |
+| `AUTO_MIGRATE`         | `false` to skip migrations on start                                                                                           |
+| `TRASH_RETENTION_DAYS` | Days deleted items stay in the trash before being removed for good (default `30`, `0` keeps them until an admin deletes them) |
 
 ## BoardGameGeek integration
 

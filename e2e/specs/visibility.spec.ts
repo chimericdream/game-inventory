@@ -3,6 +3,7 @@
 import { expect, test } from '../fixtures';
 import { captureAction, fillGameForm, gameCards, replayAction } from '../support/actions';
 import { choose } from '../support/mantine';
+import { confirmDelete } from '../support/trash';
 
 const NOTE = 'PRIVATE-NOTE-for-parents';
 const HIDDEN_TAG = 'secret-tag-xyz';
@@ -167,13 +168,15 @@ test('VIS-08 replaying an admin’s edit, delete, or add-copy request as a restr
   const [afterEdit] = await db.sql`select title from games where id = ${normal}`;
   expect(afterEdit!.title).toBe('Open Game');
 
-  // Delete
-  await page.goto(`/games/${normal}`);
-  const del = await captureAction(page, issues, () =>
-    page.getByRole('button', { name: 'Delete game', exact: true }).click(),
-  );
+  // Delete (a game with copies cannot be deleted, so use one without)
+  const bare = await db.seedGame({ title: 'No Copies', copies: [] });
+  await page.goto(`/games/${bare}`);
+  const del = await captureAction(page, issues, async () => {
+    await page.getByRole('button', { name: 'Delete game', exact: true }).click();
+    await confirmDelete(page);
+  });
   await replayAction(kidPage.request, del);
-  expect(await db.count('games', `id = '${normal}'`)).toBe(1);
+  expect(await db.count('games', `id = '${bare}' and deleted_at is null`)).toBe(1);
 
   // Add copy
   await page.goto(`/games/${normal}`);

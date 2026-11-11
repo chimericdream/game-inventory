@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test';
 import { expect, test, ADMIN, MEMBER } from '../fixtures';
 import { addGameViaUi } from '../support/actions';
 import { PASSWORD, formWith } from '../support/mantine';
+import { confirmDelete } from '../support/trash';
 
 const manage = (page: Page, name: string) => page.locator('details', { hasText: name }).first();
 
@@ -23,6 +24,7 @@ test('SET-08 locations show how many copies they hold, and one that holds copies
   const row = page.locator('[data-location]', { hasText: 'Garage' });
   await expect(row).toContainText('1 copy');
   await page.getByRole('button', { name: 'Remove Garage' }).click();
+  await confirmDelete(page, 'Remove');
   await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toContainText(
     'Garage: It holds 1 copy. Move it first.',
   );
@@ -30,8 +32,9 @@ test('SET-08 locations show how many copies they hold, and one that holds copies
   expect(await db.count('copies', 'location_id is not null')).toBe(1);
 
   await page.getByRole('button', { name: 'Remove Den' }).click();
+  await confirmDelete(page, 'Remove');
   await expect(page.locator('[data-location]', { hasText: 'Den' })).toHaveCount(0);
-  expect(await db.count('locations')).toBe(1);
+  expect(await db.count('locations', 'deleted_at is null')).toBe(1);
 });
 
 test('SET-08b a place with places inside it cannot be removed until they are', async ({
@@ -42,10 +45,11 @@ test('SET-08b a place with places inside it cannot be removed until they are', a
   await db.seedLocation('Shelf 2', garage);
   await page.goto('/settings?tab=locations');
   await page.getByRole('button', { name: 'Remove Garage' }).click();
+  await confirmDelete(page, 'Remove');
   await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toContainText(
     'It has places inside it',
   );
-  expect(await db.count('locations')).toBe(2);
+  expect(await db.count('locations', 'deleted_at is null')).toBe(2);
 });
 
 test('SET-09 two names for the same person can be merged, and their plays follow', async ({
@@ -88,12 +92,14 @@ test('SET-09b a person can be renamed, and removed only when they have no plays'
   await expect(manage(page, 'John')).toBeVisible();
 
   await manage(page, 'John').getByRole('button', { name: 'Remove John' }).click();
+  await confirmDelete(page, 'Remove');
   await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toContainText(
     'They have 1 plays. Merge them into someone instead.',
   );
 
   await manage(page, 'Idle Ida').locator('summary').click();
   await manage(page, 'Idle Ida').getByRole('button', { name: 'Remove Idle Ida' }).click();
+  await confirmDelete(page, 'Remove');
   await expect(manage(page, 'Idle Ida')).toHaveCount(0);
 });
 

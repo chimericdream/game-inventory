@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures';
 import { choose, formWith } from '../support/mantine';
+import { confirmDelete } from '../support/trash';
 
 const ADD = 'Add';
 const addForm = (page: import('@playwright/test').Page) => formWith(page, new RegExp(`^${ADD}$`));
@@ -73,9 +74,10 @@ test('WISH-04 remove an item', async ({ page, db }) => {
     .locator('[data-wish]', { hasText: 'Drop' })
     .getByRole('button', { name: 'Remove' })
     .click();
+  await confirmDelete(page, 'Remove');
   await expect(page.getByText('Drop', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Keep', { exact: true })).toBeVisible();
-  expect(await db.count('wishlist_items')).toBe(1);
+  expect(await db.count('wishlist_items', 'deleted_at is null')).toBe(1);
 });
 
 test('WISH-05 a blank title is rejected; the page is closed to restricted profiles', async ({
