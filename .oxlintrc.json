@@ -6,5 +6,5 @@
     "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": "off"
   },
-  "ignorePatterns": [".next", "node_modules", "drizzle", "docs/design"]
+  "ignorePatterns": [".next", "node_modules", "drizzle", "docs/design", "out"]
 }

@@ -1,0 +1,101 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--app-ground) 90%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--app-rule);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1160px;
+  height: 64px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--app-serif);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--app-ink);
+  text-decoration: none;
+}
+
+/* Three covers standing on a plank. */
+.mark {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 24px;
+  padding-bottom: 4px;
+
+  & i {
+    display: block;
+    width: 6px;
+    border-radius: 1px;
+  }
+
+  & i:nth-child(1) {
+    height: 17px;
+    background: #c8622a;
+  }
+
+  & i:nth-child(2) {
+    height: 20px;
+    background: #6b4c9a;
+  }
+
+  & i:nth-child(3) {
+    height: 15px;
+    background: #4f86a8;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    bottom: 0;
+    height: 4px;
+    background: var(--app-plank);
+  }
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  & > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    color: var(--app-ink);
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+
+    &:hover {
+      background: var(--app-sunk);
+    }
+  }
+}
+
+@media (max-width: 520px) {
+  .hideSmall,
+  .github span {
+    display: none !important;
+  }
+}
