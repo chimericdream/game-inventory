@@ -235,9 +235,12 @@ const server = createServer(async (req, res) => {
       return send(200, searchXml(hits));
     }
     if (url.pathname === '/bgg/thing') {
-      const game = BGG_GAMES.find((g) => String(g.id) === query.id);
-      if (!game) return send(200, xml('<items termsofuse=""></items>'));
-      return send(200, thingXml(game));
+      const ids = (query.id ?? '').split(',');
+      const games = BGG_GAMES.filter((g) => ids.includes(String(g.id)));
+      if (games.length === 0) return send(200, xml('<items termsofuse=""></items>'));
+      if (games.length === 1) return send(200, thingXml(games[0]!));
+      const inner = games.map((g) => thingXml(g).match(/<item[\s\S]*<\/item>/)![0]).join('');
+      return send(200, xml(`<items termsofuse="">${inner}</items>`));
     }
     return send(404, 'Not found', 'text/plain');
   }

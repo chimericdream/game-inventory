@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   ActionIcon,
   Alert,
+  Box,
   Button,
   Group,
   Modal,
@@ -11,6 +12,7 @@ import {
   Stack,
   Text,
   TextInput,
+  UnstyledButton,
 } from '@mantine/core';
 import { IconBarcode, IconSearch } from '@tabler/icons-react';
 
@@ -21,6 +23,8 @@ interface Hit {
   name: string;
   year: number | null;
   isExpansion?: boolean;
+  thumbnailUrl?: string | null;
+  publisher?: string | null;
 }
 
 interface ExpansionHit {
@@ -235,11 +239,41 @@ export function Lookup({ onPick, base = null, baseGames = [] }: Props) {
           </Alert>
         )}
         {hits.map((h) => (
-          <Button key={h.id} variant="subtle" justify="flex-start" onClick={() => void pick(h)}>
-            {h.name}
-            {h.year ? ` (${h.year})` : ''}
-            {h.isExpansion ? ' · expansion' : ''}
-          </Button>
+          <UnstyledButton
+            key={h.id}
+            onClick={() => void pick(h)}
+            disabled={busy}
+            p={6}
+            style={{ borderRadius: 8 }}
+          >
+            <Group gap="sm" wrap="nowrap" align="center">
+              <Box w={48} h={48} style={{ flexShrink: 0, borderRadius: 6, overflow: 'hidden' }}>
+                {h.thumbnailUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={h.thumbnailUrl}
+                    alt=""
+                    loading="lazy"
+                    width={48}
+                    height={48}
+                    style={{ width: 48, height: 48, objectFit: 'cover', display: 'block' }}
+                  />
+                )}
+              </Box>
+              <div style={{ minWidth: 0 }}>
+                <Text size="sm" fw={600}>
+                  {h.name}
+                  {h.year ? ` (${h.year})` : ''}
+                  {h.isExpansion ? ' · expansion' : ''}
+                </Text>
+                {h.publisher && (
+                  <Text size="xs" c="dimmed" fs="italic">
+                    {h.publisher}
+                  </Text>
+                )}
+              </div>
+            </Group>
+          </UnstyledButton>
         ))}
         {base && (
           <Stack gap={2} data-bgg-expansions>
