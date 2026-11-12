@@ -7,6 +7,7 @@ import {
   FileInput,
   Grid,
   Group,
+  Image,
   NumberInput,
   Paper,
   Select,
@@ -89,6 +90,18 @@ export function GameForm({
   const [type, setType] = useState(initial.type);
   const [isExpansion, setIsExpansion] = useState(initial.isExpansion);
   const isBoard = type === 'board' || type === 'card';
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+
+  // A chosen file wins over the BGG cover, mirroring what the server saves.
+  function chooseCover(file: File | null) {
+    setCoverFile(file);
+    setCoverPreview((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }
+  const previewSrc = coverPreview ?? initial.bggImageUrl ?? null;
 
   return (
     <form action={formAction}>
@@ -250,9 +263,21 @@ export function GameForm({
                   </Text>
                 </>
               )}
+              {previewSrc && (
+                <Image
+                  src={previewSrc}
+                  alt="Cover preview"
+                  data-cover-preview
+                  fit="contain"
+                  mah={280}
+                  radius="md"
+                />
+              )}
               <FileInput
                 name="cover"
                 label="Cover image"
+                value={coverFile}
+                onChange={chooseCover}
                 accept="image/jpeg,image/png,image/webp"
                 clearable
               />

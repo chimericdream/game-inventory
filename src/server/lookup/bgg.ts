@@ -9,6 +9,10 @@ export interface BggSearchHit {
   name: string;
   year: number | null;
   isExpansion: boolean;
+  /** Small cover on BGG's image host, or null. Filled in after the search. */
+  thumbnailUrl: string | null;
+  /** Primary publisher, or null. Filled in after the search. */
+  publisher: string | null;
 }
 
 export interface BggRef {
@@ -63,8 +67,30 @@ export function parseSearch(xml: string): BggSearchHit[] {
       name: String(primary?.['@_value'] ?? ''),
       year: attrNum(item.yearpublished),
       isExpansion: item['@_type'] === 'boardgameexpansion',
+      thumbnailUrl: null,
+      publisher: null,
     };
   });
+}
+
+const firstPublisher = (links: any[]): string | null =>
+  links
+    .find((l) => l['@_type'] === 'boardgamepublisher' && String(l['@_value'] ?? '').trim())
+    ?.['@_value'].trim()
+    .slice(0, 200) ?? null;
+
+/** Thumbnail and publisher per game id, from a (possibly multi-id) /thing response. */
+export function parseThumbnails(
+  xml: string,
+): Map<number, { thumbnailUrl: string | null; publisher: string | null }> {
+  const out = new Map<number, { thumbnailUrl: string | null; publisher: string | null }>();
+  for (const item of toArray(parser.parse(xml)?.items?.item) as any[]) {
+    out.set(Number(item['@_id']), {
+      thumbnailUrl: bggImageUrl(item.thumbnail) ?? bggImageUrl(item.image),
+      publisher: firstPublisher(toArray(item.link) as any[]),
+    });
+  }
+  return out;
 }
 
 const expansionLinks = (item: any, inbound: boolean): BggRef[] =>
@@ -103,11 +129,7 @@ export function parseThing(xml: string): BggGame | null {
       .filter((l) => l['@_type'] === 'boardgamecategory')
       .map((l) => String(l['@_value']))
       .slice(0, 6),
-    publisher:
-      links
-        .find((l) => l['@_type'] === 'boardgamepublisher' && String(l['@_value'] ?? '').trim())
-        ?.['@_value'].trim()
-        .slice(0, 200) ?? null,
+    publisher: firstPublisher(links),
     imageUrl: bggImageUrl(item.image) ?? bggImageUrl(item.thumbnail),
     isExpansion: item['@_type'] === 'boardgameexpansion',
     baseGames: expansionLinks(item, true),
@@ -170,7 +192,16 @@ export async function searchBgg(query: string): Promise<BggSearchHit[]> {
   const hits = parseSearch(
     await bggFetch(`/search?type=boardgame,boardgameexpansion&query=${encodeURIComponent(q)}`),
   );
-  return hits.slice(0, 10);
+  // BGG can list the same id twice; duplicates would also collide as React keys.
+  const top = hits.filter((h, i) => hits.findIndex((x) => x.id === h.id) === i).slice(0, 10);
+  if (top.length === 0) return top;
+  // Thumbnails and publishers are a nicety: if this second call fails, the plain list still works.
+  try {
+    const extra = parseThumbnails(await bggFetch(`/thing?id=${top.map((h) => h.id).join(',')}`));
+    return top.map((h) => ({ ...h, ...extra.get(h.id) }));
+  } catch {
+    return top;
+  }
 }
 
 export async function getBggGame(id: number): Promise<BggGame | null> {

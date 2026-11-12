@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bggImageUrl, parseExpansions, parseSearch, parseThing } from './bgg';
+import { bggImageUrl, parseExpansions, parseSearch, parseThing, parseThumbnails } from './bgg';
 
 const SEARCH = `<?xml version="1.0" encoding="utf-8"?>
 <items total="2" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
@@ -28,9 +28,33 @@ const THING = `<?xml version="1.0" encoding="utf-8"?>
 describe('BGG parsing', () => {
   it('parses search results, preferring the primary name', () => {
     expect(parseSearch(SEARCH)).toEqual([
-      { id: 13, name: 'CATAN', year: 1995, isExpansion: false },
-      { id: 27710, name: 'Catan Cities', year: null, isExpansion: true },
+      {
+        id: 13,
+        name: 'CATAN',
+        year: 1995,
+        isExpansion: false,
+        thumbnailUrl: null,
+        publisher: null,
+      },
+      {
+        id: 27710,
+        name: 'Catan Cities',
+        year: null,
+        isExpansion: true,
+        thumbnailUrl: null,
+        publisher: null,
+      },
     ]);
+  });
+
+  it('reads thumbnail and primary publisher per id from a thing response', () => {
+    const xml = `<items><item type="boardgame" id="13"><thumbnail>https://cf.geekdo-images.com/a_t.jpg</thumbnail><link type="boardgamepublisher" id="1" value="Kosmos"/></item><item id="14"><thumbnail>http://evil.example/x.jpg</thumbnail></item></items>`;
+    const m = parseThumbnails(xml);
+    expect(m.get(13)).toEqual({
+      thumbnailUrl: 'https://cf.geekdo-images.com/a_t.jpg',
+      publisher: 'Kosmos',
+    });
+    expect(m.get(14)).toEqual({ thumbnailUrl: null, publisher: null });
   });
 
   it('parses a thing into catalog fields', () => {

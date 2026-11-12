@@ -94,15 +94,16 @@ test('MOCK-01 the app reaches the mock BGG with its token, not the real service 
   const res = await request.get('/api/lookup/bgg?q=catan');
   expect(res.status()).toBe(200);
   const { hits } = await res.json();
-  expect(hits).toEqual([{ id: 13, name: 'Catan', year: 1995, isExpansion: false }]);
+  expect(hits).toHaveLength(1);
+  expect(hits[0]).toMatchObject({ id: 13, name: 'Catan', year: 1995, isExpansion: false });
+  expect(hits[0].publisher).toBe('Kosmos');
 
   const log = await requests('bgg');
-  expect(log).toHaveLength(1);
-  expect(log[0]!.path).toBe('/bgg/search');
+  expect(log.map((l) => l.path)).toEqual(['/bgg/search', '/bgg/thing']);
   expect(log[0]!.authorization).toBe(`Bearer ${BGG_TOKEN}`);
 });
 
-test('MOCK-02 a lookup is one request per search and one per pick, with nothing in the background @external', async ({
+test('MOCK-02 a lookup is two requests per search (results, then their covers) and one per pick, with nothing in the background @external', async ({
   request,
   page,
 }) => {
@@ -112,7 +113,7 @@ test('MOCK-02 a lookup is one request per search and one per pick, with nothing 
   await page.goto('/games/new');
   await page.waitForTimeout(500); // nothing should be polling the upstream service
   const log = await requests('bgg');
-  expect(log.map((l) => l.path)).toEqual(['/bgg/search', '/bgg/thing']);
+  expect(log.map((l) => l.path)).toEqual(['/bgg/search', '/bgg/thing', '/bgg/thing']);
 });
 
 test('MOCK-03 upstream failures reach the caller as a 502 with a message @external', async ({
