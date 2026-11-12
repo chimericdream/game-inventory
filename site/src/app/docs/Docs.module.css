@@ -1,0 +1,164 @@
+.layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 56px;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 48px 20px 0;
+
+  @media (max-width: 800px) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding-top: 24px;
+  }
+}
+
+.side {
+  align-self: start;
+  position: sticky;
+  top: 88px;
+
+  & ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  & a {
+    display: block;
+    padding: 8px 14px;
+    border-radius: 999px;
+    color: var(--app-ink);
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover {
+      background: var(--app-sunk);
+    }
+  }
+
+  @media (max-width: 800px) {
+    position: static;
+
+    & ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    & a {
+      background: var(--app-sunk);
+    }
+  }
+}
+
+.sideTitle {
+  margin: 0 0 8px 14px;
+  color: var(--app-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  @media (max-width: 800px) {
+    display: none;
+  }
+}
+
+.prose {
+  max-width: 74ch;
+
+  & h1 {
+    font-size: clamp(34px, 4vw, 48px);
+    margin-bottom: 16px;
+  }
+
+  & h2 {
+    margin: 48px 0 12px;
+    font-size: 28px;
+  }
+
+  & h3 {
+    margin: 32px 0 8px;
+    font-size: 20px;
+  }
+
+  & p,
+  & li {
+    font-size: 17px;
+  }
+
+  & ul,
+  & ol {
+    padding-left: 22px;
+  }
+
+  & li + li {
+    margin-top: 6px;
+  }
+
+  & code {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--app-sunk);
+    font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+    font-size: 0.9em;
+  }
+
+  & pre {
+    margin: 16px 0;
+    padding: 16px 20px;
+    overflow-x: auto;
+    border-radius: var(--app-radius-card);
+    background: var(--app-sunk);
+    line-height: 1.7;
+
+    & code {
+      padding: 0;
+      background: none;
+      font-size: 14.5px;
+    }
+  }
+
+  & table {
+    width: 100%;
+    margin: 16px 0;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+
+  & th,
+  & td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--app-rule);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  & th {
+    color: var(--app-muted);
+    font-weight: 600;
+  }
+
+  /* Wide tables scroll inside their wrapper instead of the page. */
+  & .scroll {
+    overflow-x: auto;
+  }
+}
+
+.lede {
+  color: var(--app-muted);
+  font-size: 20px;
+}
+
+.note {
+  margin: 20px 0;
+  padding: 14px 18px;
+  border-left: 4px solid var(--app-accent);
+  border-radius: 4px 12px 12px 4px;
+  background: var(--app-surface);
+
+  & p {
+    margin: 0;
+  }
+}

@@ -14,3 +14,5 @@ next-env.d.ts
 /.taste-skill/
 /screenshots-redesign/
 /screenshots-before-redesign/
+site/.next
+site/out

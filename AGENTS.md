@@ -27,6 +27,14 @@ self-hosters later. Not a SaaS.
 - Linting and formatting use the **oxc stack** (oxlint + oxfmt). Do not add ESLint or Prettier.
 - Vitest for tests
 
+## Marketing site
+
+`site/` is the static marketing and docs site for `game-shelf.app` (a separate Next.js export, a pnpm
+workspace package). It reuses `src/theme.ts`, `src/fonts.ts` and the shelf cover components, so keep
+those free of app-only imports (`@/...`, server code). Netlify builds it from the repo root using
+`netlify.toml`. Commands: `pnpm --filter game-shelf-site dev` (port 3200) and `... build` (output in
+`site/out`). The hero shelf uses invented game titles; do not put real publishers' art on it.
+
 ## Commands
 
 - `pnpm dev` / `pnpm build` / `pnpm start`

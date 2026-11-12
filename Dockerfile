@@ -4,6 +4,8 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# The marketing site is a workspace package, so pnpm needs its manifest to honour the lockfile.
+COPY site/package.json ./site/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
