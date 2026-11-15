@@ -85,6 +85,24 @@ describe('BGG parsing', () => {
     expect(parseThing(amp)?.publisher).toBe('Z-Man & Co');
   });
 
+  it('decodes HTML entities, including the double escaping in BGG descriptions', () => {
+    const xml = `<items><item type="boardgame" id="1">
+      <name type="primary" value="Mice &amp; Mystics: Tom&#039;s Tale"/>
+      <description>Heroes may be &amp;ldquo;squished&amp;rdquo; &amp;mdash; the monster&amp;rsquo;s cup.&amp;#10;Caf&amp;eacute;</description>
+      <link type="boardgamecategory" id="1" value="Children&#039;s Game"/>
+      <link type="boardgamepublisher" id="2" value="Dr. Finn&#039;s Games"/>
+      <link type="boardgameexpansion" id="3" value="Tom&#039;s Tale" inbound="true"/>
+    </item></items>`;
+    expect(parseThing(xml)).toMatchObject({
+      name: "Mice & Mystics: Tom's Tale",
+      description: 'Heroes may be “squished” — the monster’s cup.\nCafé',
+      tags: ["Children's Game"],
+      publisher: "Dr. Finn's Games",
+      baseGames: [{ id: 3, name: "Tom's Tale" }],
+    });
+    expect(parseSearch(xml)[0]?.name).toBe("Mice & Mystics: Tom's Tale");
+  });
+
   it('lists the expansions of a base game by name', () => {
     expect(parseExpansions(THING)).toEqual([
       { id: 325, name: 'Cities & Knights' },

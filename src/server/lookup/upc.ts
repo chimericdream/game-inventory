@@ -1,3 +1,5 @@
+import { decodeHTML } from 'entities';
+
 // UPC_BASE_URL exists so end-to-end tests can point at a mock server.
 const BASE = process.env.UPC_BASE_URL ?? 'https://api.upcitemdb.com/prod/trial';
 
@@ -11,6 +13,7 @@ export async function lookupUpc(code: string): Promise<string | null> {
   });
   if (!res.ok) return null;
   const data = (await res.json()) as { items?: { title?: string }[] };
-  const title = data.items?.[0]?.title?.trim();
+  // UPCitemdb titles can carry HTML entities (`Children&#39;s`).
+  const title = decodeHTML(data.items?.[0]?.title ?? '').trim();
   return title || null;
 }
