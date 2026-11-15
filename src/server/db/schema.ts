@@ -241,6 +241,50 @@ export const copies = pgTable(
   (t) => [index('copies_game_idx').on(t.gameId), index('copies_household_idx').on(t.householdId)],
 );
 
+export const accessoryKind = pgEnum('accessory_kind', [
+  'playmat',
+  'organizer',
+  'upgraded_components',
+  'miniatures',
+  'sleeves',
+  'other',
+]);
+
+/**
+ * Physical add-ons that belong to one copy but are often stored apart from its box: a playmat,
+ * deluxe resource trays, painted miniatures. Not an expansion (those are games with their own
+ * copies). A trashed copy hides its accessories without trashing each one, and permanently
+ * deleting the copy removes them.
+ */
+export const copyAccessories = pgTable(
+  'copy_accessories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    copyId: uuid('copy_id')
+      .notNull()
+      .references(() => copies.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    kind: accessoryKind('kind').notNull().default('other'),
+    quantity: integer('quantity').notNull().default(1),
+    /** Null means it is kept with the copy, wherever the copy is. */
+    locationId: uuid('location_id').references(() => locations.id, { onDelete: 'set null' }),
+    acquiredOn: date('acquired_on'),
+    priceCents: integer('price_cents'),
+    notes: text('notes'),
+    ...trashable(),
+    ...authorship(),
+    ...stamps(),
+  },
+  (t) => [
+    index('copy_accessories_copy_idx').on(t.copyId),
+    index('copy_accessories_household_idx').on(t.householdId),
+    index('copy_accessories_location_idx').on(t.locationId),
+  ],
+);
+
 export const tags = pgTable(
   'tags',
   {

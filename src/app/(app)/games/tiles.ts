@@ -21,6 +21,7 @@ export function toTile(row: CatalogRow): TileGame {
       ? { borrower: row.loan.borrower, dueOn: row.loan.dueOn, daysOut: row.loan.daysOut }
       : null,
     out: row.onLoan,
+    storedHere: row.storedHere,
   };
 }
 

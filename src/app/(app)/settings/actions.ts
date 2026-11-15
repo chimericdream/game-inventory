@@ -78,6 +78,12 @@ export async function deleteLocationAction(
           error: `It holds ${result.copies} ${result.copies === 1 ? 'copy' : 'copies'}. Move ${result.copies === 1 ? 'it' : 'them'} first.`,
         };
       }
+      if (result.reason === 'has_accessories') {
+        const n = result.accessories;
+        return {
+          error: `It holds ${n} ${n === 1 ? 'accessory' : 'accessories'}. Move ${n === 1 ? 'it' : 'them'} first.`,
+        };
+      }
       if (result.reason === 'has_children') {
         return { error: 'It has places inside it. Remove those first.' };
       }

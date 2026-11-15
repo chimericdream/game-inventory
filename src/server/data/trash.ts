@@ -1,9 +1,10 @@
-import { and, eq, isNotNull, lt, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 
 import type { Db } from '../db/client';
 import {
   auditLog,
   copies,
+  copyAccessories,
   games,
   locations,
   playSessions,
@@ -24,7 +25,15 @@ import { isUuid } from './ids';
  * Who can do what: the person who deleted something can restore it; admins can restore anything
  * and are the only ones who can delete permanently.
  */
-export const TRASH_KINDS = ['game', 'copy', 'play', 'wishlist_item', 'location', 'player'] as const;
+export const TRASH_KINDS = [
+  'game',
+  'copy',
+  'accessory',
+  'play',
+  'wishlist_item',
+  'location',
+  'player',
+] as const;
 export type TrashKind = (typeof TRASH_KINDS)[number];
 
 export const isTrashKind = (v: unknown): v is TrashKind =>
@@ -34,6 +43,7 @@ export const isTrashKind = (v: unknown): v is TrashKind =>
 const TABLES = {
   game: games,
   copy: copies,
+  accessory: copyAccessories,
   play: playSessions,
   wishlist_item: wishlistItems,
   location: locations,
@@ -99,71 +109,85 @@ export async function listTrash(ctx: DataContext): Promise<TrashItem[]> {
     );
   const empty = { plays: 0, ratings: 0, expansions: 0 };
 
-  const [gameRows, copyRows, playRows, wishRows, locationRows, playerRows] = await Promise.all([
-    ctx.db
-      .select({
-        id: games.id,
-        title: games.title,
-        type: games.type,
-        ...who(games),
-        plays: sql<number>`(select count(*)::int from ${playSessions} p where p.game_id = ${games.id})`,
-        ratings: sql<number>`(select count(*)::int from ${ratings} r where r.game_id = ${games.id})`,
-        expansions: sql<number>`(select count(*)::int from ${games} e where e.base_game_id = ${games.id})`,
-      })
-      .from(games)
-      .leftJoin(users, eq(users.id, games.deletedByUserId))
-      .where(mine(games)),
-    ctx.db
-      .select({
-        id: copies.id,
-        title: games.title,
-        platform: copies.platform,
-        gameDeleted: games.deletedAt,
-        ...who(copies as unknown as typeof games),
-      })
-      .from(copies)
-      .innerJoin(games, eq(games.id, copies.gameId))
-      .leftJoin(users, eq(users.id, copies.deletedByUserId))
-      .where(mine(copies as unknown as typeof games)),
-    ctx.db
-      .select({
-        id: playSessions.id,
-        title: games.title,
-        playedOn: playSessions.playedOn,
-        ...who(playSessions as unknown as typeof games),
-      })
-      .from(playSessions)
-      .innerJoin(games, eq(games.id, playSessions.gameId))
-      .leftJoin(users, eq(users.id, playSessions.deletedByUserId))
-      .where(mine(playSessions as unknown as typeof games)),
-    ctx.db
-      .select({
-        id: wishlistItems.id,
-        title: wishlistItems.title,
-        ...who(wishlistItems as unknown as typeof games),
-      })
-      .from(wishlistItems)
-      .leftJoin(users, eq(users.id, wishlistItems.deletedByUserId))
-      .where(mine(wishlistItems as unknown as typeof games)),
-    ctx.db
-      .select({
-        id: locations.id,
-        title: locations.name,
-        ...who(locations as unknown as typeof games),
-      })
-      .from(locations)
-      .leftJoin(users, eq(users.id, locations.deletedByUserId))
-      .where(mine(locations as unknown as typeof games)),
-    ctx.db
-      .select({
-        id: players.id,
-        title: players.displayName,
-        ...who(players as unknown as typeof games),
-      })
-      .from(players)
-      .leftJoin(users, eq(users.id, players.deletedByUserId))
-      .where(mine(players as unknown as typeof games)),
-  ]);
+  const [gameRows, copyRows, accessoryRows, playRows, wishRows, locationRows, playerRows] =
+    await Promise.all([
+      ctx.db
+        .select({
+          id: games.id,
+          title: games.title,
+          type: games.type,
+          ...who(games),
+          plays: sql<number>`(select count(*)::int from ${playSessions} p where p.game_id = ${games.id})`,
+          ratings: sql<number>`(select count(*)::int from ${ratings} r where r.game_id = ${games.id})`,
+          expansions: sql<number>`(select count(*)::int from ${games} e where e.base_game_id = ${games.id})`,
+        })
+        .from(games)
+        .leftJoin(users, eq(users.id, games.deletedByUserId))
+        .where(mine(games)),
+      ctx.db
+        .select({
+          id: copies.id,
+          title: games.title,
+          platform: copies.platform,
+          gameDeleted: games.deletedAt,
+          ...who(copies as unknown as typeof games),
+        })
+        .from(copies)
+        .innerJoin(games, eq(games.id, copies.gameId))
+        .leftJoin(users, eq(users.id, copies.deletedByUserId))
+        .where(mine(copies as unknown as typeof games)),
+      ctx.db
+        .select({
+          id: copyAccessories.id,
+          name: copyAccessories.name,
+          title: games.title,
+          copyDeleted: copies.deletedAt,
+          ...who(copyAccessories as unknown as typeof games),
+        })
+        .from(copyAccessories)
+        .innerJoin(copies, eq(copies.id, copyAccessories.copyId))
+        .innerJoin(games, eq(games.id, copies.gameId))
+        .leftJoin(users, eq(users.id, copyAccessories.deletedByUserId))
+        .where(mine(copyAccessories as unknown as typeof games)),
+      ctx.db
+        .select({
+          id: playSessions.id,
+          title: games.title,
+          playedOn: playSessions.playedOn,
+          ...who(playSessions as unknown as typeof games),
+        })
+        .from(playSessions)
+        .innerJoin(games, eq(games.id, playSessions.gameId))
+        .leftJoin(users, eq(users.id, playSessions.deletedByUserId))
+        .where(mine(playSessions as unknown as typeof games)),
+      ctx.db
+        .select({
+          id: wishlistItems.id,
+          title: wishlistItems.title,
+          ...who(wishlistItems as unknown as typeof games),
+        })
+        .from(wishlistItems)
+        .leftJoin(users, eq(users.id, wishlistItems.deletedByUserId))
+        .where(mine(wishlistItems as unknown as typeof games)),
+      ctx.db
+        .select({
+          id: locations.id,
+          title: locations.name,
+          ...who(locations as unknown as typeof games),
+        })
+        .from(locations)
+        .leftJoin(users, eq(users.id, locations.deletedByUserId))
+        .where(mine(locations as unknown as typeof games)),
+      ctx.db
+        .select({
+          id: players.id,
+          title: players.displayName,
+          ...who(players as unknown as typeof games),
+        })
+        .from(players)
+        .leftJoin(users, eq(users.id, players.deletedByUserId))
+        .where(mine(players as unknown as typeof games)),
+    ]);
 
   const item = (
     kind: TrashKind,
@@ -202,6 +226,16 @@ export async function listTrash(ctx: DataContext): Promise<TrashItem[]> {
           .join(' · '),
       ),
     ),
+    ...accessoryRows.map((r) =>
+      item(
+        'accessory',
+        r,
+        r.name,
+        ['Accessory', r.title, r.copyDeleted ? 'copy is in the trash' : null]
+          .filter(Boolean)
+          .join(' · '),
+      ),
+    ),
     ...playRows.map((r) => item('play', r, r.title, `Play on ${r.playedOn}`)),
     ...wishRows.map((r) => item('wishlist_item', r, r.title, 'Wishlist')),
     ...locationRows.map((r) => item('location', r, r.title, 'Place')),
@@ -216,6 +250,8 @@ function labelFields(kind: TrashKind, row: Record<string, unknown>): Record<stri
       return { title: row.title, type: row.type };
     case 'copy':
       return { gameId: row.gameId, platform: row.platform };
+    case 'accessory':
+      return { copyId: row.copyId, name: row.name };
     case 'play':
       return { gameId: row.gameId, playedOn: row.playedOn };
     case 'wishlist_item':
@@ -230,9 +266,9 @@ function labelFields(kind: TrashKind, row: Record<string, unknown>): Record<stri
 export type RestoreResult = { ok: true } | { ok: false; error: string };
 
 /**
- * Brings something back from the trash. A copy or a play needs its game back first, a copy needs
- * its place, and a place needs the place it sits in; otherwise it would reappear hanging off
- * something that is still deleted.
+ * Brings something back from the trash. A copy or a play needs its game back first, an accessory
+ * needs its copy, a copy or an accessory needs its place, and a place needs the place it sits in;
+ * otherwise it would reappear hanging off something that is still deleted.
  */
 export async function restoreTrashed(
   ctx: DataContext,
@@ -261,12 +297,36 @@ export async function restoreTrashed(
         .where(eq(games.id, r.gameId as string));
       if (game?.deletedAt) return { ok: false, error: 'Restore the game first.' };
     }
-    if (kind === 'copy' && r.locationId) {
+    if (kind === 'accessory') {
+      const [copy] = await tx
+        .select({ deletedAt: copies.deletedAt })
+        .from(copies)
+        .where(eq(copies.id, r.copyId as string));
+      if (copy?.deletedAt) return { ok: false, error: 'Restore the copy it belongs to first.' };
+    }
+    if ((kind === 'copy' || kind === 'accessory') && r.locationId) {
       const [place] = await tx
         .select({ deletedAt: locations.deletedAt })
         .from(locations)
         .where(eq(locations.id, r.locationId as string));
       if (place?.deletedAt) return { ok: false, error: 'Restore the place it was kept in first.' };
+    }
+    if (kind === 'copy') {
+      const [stranded] = await tx
+        .select({ name: copyAccessories.name })
+        .from(copyAccessories)
+        .innerJoin(locations, eq(locations.id, copyAccessories.locationId))
+        .where(
+          and(
+            eq(copyAccessories.copyId, id),
+            isNull(copyAccessories.deletedAt),
+            isNotNull(locations.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (stranded) {
+        return { ok: false, error: `Restore the place its ${stranded.name} was kept in first.` };
+      }
     }
     if (kind === 'location' && r.parentId) {
       const [parent] = await tx
@@ -340,7 +400,15 @@ export async function purgeExpiredTrash(
     let purged = 0;
     const covers: string[] = [];
     // Children before parents, so a game's own trashed rows are counted on their own.
-    const order: TrashKind[] = ['play', 'copy', 'wishlist_item', 'player', 'game', 'location'];
+    const order: TrashKind[] = [
+      'play',
+      'accessory',
+      'copy',
+      'wishlist_item',
+      'player',
+      'game',
+      'location',
+    ];
     for (const kind of order) {
       const t = table(kind);
       const rows = await tx

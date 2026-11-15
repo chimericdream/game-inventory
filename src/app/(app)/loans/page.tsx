@@ -109,6 +109,7 @@ export default async function LoansPage() {
   const lendCopies = copies.map((c) => ({
     value: c.id,
     label: c.platform ? `${c.title} (${c.platform})` : c.title,
+    keptElsewhere: c.keptElsewhere.join(', '),
   }));
   const lateCount = byStatus('late').length;
   const soonCount = byStatus('dueSoon').length;

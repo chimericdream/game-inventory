@@ -31,3 +31,16 @@ export const CONDITION_OPTIONS = Object.entries(CONDITION_LABELS).map(([value, l
   value,
   label,
 }));
+
+export const ACCESSORY_KIND_LABELS: Record<string, string> = {
+  playmat: 'Playmat',
+  organizer: 'Organizer or insert',
+  upgraded_components: 'Upgraded components',
+  miniatures: 'Miniatures',
+  sleeves: 'Sleeves',
+  other: 'Other',
+};
+
+export const ACCESSORY_KIND_OPTIONS = Object.entries(ACCESSORY_KIND_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);

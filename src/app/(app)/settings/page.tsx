@@ -201,7 +201,10 @@ async function LocationsTab({ canEdit }: { canEdit: boolean }) {
               style={{ marginLeft: depth(l.id) * 24 }}
             >
               <span className={classes.placeName}>{l.parentId ? path(l.id) : l.name}</span>
-              <span className={classes.placeCount}>{plural(l.total, 'copy', 'copies')}</span>
+              <span className={classes.placeCount}>
+                {plural(l.total, 'copy', 'copies')}
+                {l.accessories > 0 && ` · ${plural(l.accessories, 'accessory', 'accessories')}`}
+              </span>
               {canEdit && <DeleteLocationButton id={l.id} name={l.name} />}
             </li>
           ))}
@@ -278,6 +281,7 @@ async function ActivityTab() {
 const KIND_LABELS: Record<string, string> = {
   game: 'Game',
   copy: 'Copy',
+  accessory: 'Accessory',
   play: 'Play',
   wishlist_item: 'Wishlist',
   location: 'Place',

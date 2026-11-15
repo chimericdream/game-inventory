@@ -2,8 +2,15 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { z } from 'zod';
 
 import { requireContext } from '@/server/auth/current';
+import {
+  addAccessory,
+  deleteAccessory,
+  updateAccessory,
+  type AccessoryInput,
+} from '@/server/data/accessories';
 import { listCatalogPage, parseCatalogFilters } from '@/server/data/catalog';
 import { addCopy, deleteCopy, updateCopy, type CopyInput } from '@/server/data/copies';
 import {
@@ -190,6 +197,64 @@ export async function updateCopyAction(
 export async function deleteCopyAction(gameId: string, copyId: string) {
   const { ctx } = await requireContext();
   await deleteCopy(ctx, copyId);
+  revalidatePath(`/games/${gameId}`);
+}
+
+function parseAccessoryForm(fd: FormData): AccessoryInput {
+  const price = text(fd, 'price');
+  return {
+    name: text(fd, 'name') ?? '',
+    kind: (text(fd, 'kind') ?? 'other') as AccessoryInput['kind'],
+    quantity: int(fd, 'quantity') ?? 1,
+    locationId: text(fd, 'locationId'),
+    acquiredOn: text(fd, 'acquiredOn'),
+    priceCents: price ? Math.round(Number(price) * 100) : null,
+    notes: text(fd, 'notes'),
+  };
+}
+
+const formError = (e: unknown, fallback: string) => {
+  if (e instanceof z.ZodError) return e.issues[0]?.message ?? fallback;
+  return e instanceof Error ? e.message : fallback;
+};
+
+export async function addAccessoryAction(
+  gameId: string,
+  copyId: string,
+  _prev: ActionState,
+  fd: FormData,
+): Promise<ActionState> {
+  const { ctx } = await requireContext();
+  try {
+    await addAccessory(ctx, copyId, parseAccessoryForm(fd));
+  } catch (e) {
+    return { error: formError(e, 'Could not add the accessory.') };
+  }
+  revalidatePath(`/games/${gameId}`);
+  return { saved: true };
+}
+
+export async function updateAccessoryAction(
+  gameId: string,
+  accessoryId: string,
+  _prev: ActionState,
+  fd: FormData,
+): Promise<ActionState> {
+  const { ctx } = await requireContext();
+  try {
+    if (!(await updateAccessory(ctx, accessoryId, parseAccessoryForm(fd)))) {
+      return { error: 'Accessory not found.' };
+    }
+  } catch (e) {
+    return { error: formError(e, 'Could not save the accessory.') };
+  }
+  revalidatePath(`/games/${gameId}`);
+  return { saved: true };
+}
+
+export async function deleteAccessoryAction(gameId: string, accessoryId: string) {
+  const { ctx } = await requireContext();
+  await deleteAccessory(ctx, accessoryId);
   revalidatePath(`/games/${gameId}`);
 }
 
