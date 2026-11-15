@@ -295,6 +295,17 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 priceCents: c.priceCents,
                 acquiredOn: c.acquiredOn,
                 loan: c.loan,
+                accessories: c.accessories.map((a) => ({
+                  id: a.id,
+                  name: a.name,
+                  kind: a.kind,
+                  quantity: a.quantity,
+                  locationId: a.locationId,
+                  locationName: a.locationName,
+                  acquiredOn: a.acquiredOn,
+                  priceCents: a.priceCents,
+                  notes: a.notes,
+                })),
               }))}
             />
           </section>

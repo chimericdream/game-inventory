@@ -29,7 +29,7 @@ const FEATURES = [
   {
     icon: IconDice5,
     title: 'Copies, not just titles',
-    text: 'Two copies of the same game? Each has its own owner, location, condition and price. Digital and console copies track their platform.',
+    text: 'Two copies of the same game? Each has its own owner, location, condition and price. Digital and console copies track their platform, and a playmat or deluxe trays kept on another shelf stay listed with their copy.',
   },
   {
     icon: IconArrowsExchange,

@@ -16,7 +16,8 @@ export interface Borrower {
 }
 
 interface Props {
-  copies: { value: string; label: string }[];
+  /** `keptElsewhere` lists accessories stored apart from the box, or is empty. */
+  copies: { value: string; label: string; keptElsewhere: string }[];
   borrowers: Borrower[];
 }
 
@@ -45,12 +46,15 @@ function historyLine(b: Borrower | undefined) {
 function LendForm({ copies, borrowers, onDone }: Props & { onDone?: () => void }) {
   const [borrower, setBorrower] = useState('');
   const [due, setDue] = useState('');
+  const [copyId, setCopyId] = useState<string | null>(null);
+  const elsewhere = copies.find((c) => c.value === copyId)?.keptElsewhere;
   const [state, action, pending] = useActionState(
     async (prev: Awaited<ReturnType<typeof lendAction>>, fd: FormData) => {
       const result = await lendAction(prev, fd);
       if (result.ok) {
         setBorrower('');
         setDue('');
+        setCopyId(null);
         onDone?.();
       }
       return result;
@@ -69,7 +73,22 @@ function LendForm({ copies, borrowers, onDone }: Props & { onDone?: () => void }
             {state.error}
           </Alert>
         )}
-        <Select name="copyId" label="Game" data={copies} searchable required />
+        <div>
+          <Select
+            name="copyId"
+            label="Game"
+            data={copies.map(({ value, label }) => ({ value, label }))}
+            value={copyId}
+            onChange={setCopyId}
+            searchable
+            required
+          />
+          {elsewhere && (
+            <p className={classes.history} data-lend-reminder>
+              Kept apart from the box: {elsewhere}. Grab it too if it goes with the game.
+            </p>
+          )}
+        </div>
         <div>
           <TextInput
             name="borrower"

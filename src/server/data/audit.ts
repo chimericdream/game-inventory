@@ -7,6 +7,7 @@ import type { DataContext } from './context';
 export type AuditEntity =
   | 'game'
   | 'copy'
+  | 'accessory'
   | 'loan'
   | 'play'
   | 'player'

@@ -29,6 +29,13 @@
       "when": 1794357516008,
       "tag": "0003_clever_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794758987623,
+      "tag": "0004_kind_dark_beast",
+      "breakpoints": true
     }
   ]
 }

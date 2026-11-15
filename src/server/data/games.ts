@@ -20,6 +20,7 @@ import {
   stampUpdate,
   trashedFields,
 } from './audit';
+import { accessoriesForCopies } from './accessories';
 import type { DataContext } from './context';
 import { isUuid } from './ids';
 import { listLocationOptions } from './lookups';
@@ -176,6 +177,10 @@ export async function getGameDetail(ctx: DataContext, id: string) {
     ],
   );
   const locationLabel = new Map(locationOptions.map((o) => [o.value, o.label]));
+  const accessoryRows = await accessoriesForCopies(
+    ctx,
+    copyRows.map((c) => c.copy.id),
+  );
   const loanByCopy = new Map(
     openLoans.map((l) => [
       l.copyId,
@@ -211,6 +216,13 @@ export async function getGameDetail(ctx: DataContext, id: string) {
       /** Full path such as "Office › Small Kallax". */
       locationName: c.copy.locationId ? (locationLabel.get(c.copy.locationId) ?? null) : null,
       loan: loanByCopy.get(c.copy.id) ?? null,
+      accessories: accessoryRows
+        .filter((a) => a.copyId === c.copy.id)
+        .map((a) => ({
+          ...a,
+          /** Null when it is kept with the copy. */
+          locationName: a.locationId ? (locationLabel.get(a.locationId) ?? null) : null,
+        })),
     })),
     tags: tagRows.map((t) => t.name),
   };

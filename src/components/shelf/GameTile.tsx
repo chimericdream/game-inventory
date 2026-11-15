@@ -22,6 +22,11 @@ export interface TileGame {
   loan: { borrower: string; dueOn: string | null; daysOut: number } | null;
   /** Restricted profiles only learn that the game is out, nothing about who has it. */
   out?: boolean;
+  /**
+   * Under a location filter, accessories kept here when the game's box is elsewhere, so the tile
+   * says why the game is listed ("Playmat stored here").
+   */
+  storedHere?: string[];
 }
 
 interface Props {
@@ -46,6 +51,7 @@ function loanLine(loan: NonNullable<TileGame['loan']>) {
 
 export function GameTile({ game, href, coverUrl }: Props) {
   const meta = [
+    game.storedHere?.length ? `${game.storedHere.join(', ')} stored here` : null,
     game.expansion ? (game.expansion.of ? `Expansion of ${game.expansion.of}` : 'Expansion') : null,
     game.platforms.join(' / ') || null,
     players(game.minPlayers, game.maxPlayers),

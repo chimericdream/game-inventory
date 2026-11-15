@@ -1,9 +1,10 @@
-import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { copies, games, loans } from '../db/schema';
+import { copies, copyAccessories, games, loans } from '../db/schema';
 import { createdFields, recordAudit, stampCreate, stampUpdate } from './audit';
 import type { DataContext } from './context';
+import { listLocationOptions } from './lookups';
 import { gameVisibilityCondition } from './visibility';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -228,5 +229,38 @@ export async function listLendableCopies(ctx: DataContext) {
       ),
     )
     .orderBy(asc(games.title));
-  return rows.filter((r) => !r.onLoan).map(({ id, title, platform }) => ({ id, title, platform }));
+  const lendable = rows.filter((r) => !r.onLoan);
+  // Accessories kept apart from the box, so the lend form can remind you to send them along.
+  const ids = lendable.map((r) => r.id);
+  const [apart, places] = ids.length
+    ? await Promise.all([
+        ctx.db
+          .select({
+            copyId: copyAccessories.copyId,
+            name: copyAccessories.name,
+            locationId: copyAccessories.locationId,
+          })
+          .from(copyAccessories)
+          .where(
+            and(
+              eq(copyAccessories.householdId, ctx.householdId),
+              isNull(copyAccessories.deletedAt),
+              isNotNull(copyAccessories.locationId),
+              inArray(copyAccessories.copyId, ids),
+            ),
+          )
+          .orderBy(asc(copyAccessories.name)),
+        listLocationOptions(ctx),
+      ])
+    : [[], []];
+  const placeName = new Map(places.map((p) => [p.value, p.label]));
+  return lendable.map(({ id, title, platform }) => ({
+    id,
+    title,
+    platform,
+    /** "Playmat (Hall closet)" for each accessory stored apart from this copy. */
+    keptElsewhere: apart
+      .filter((a) => a.copyId === id)
+      .map((a) => `${a.name} (${placeName.get(a.locationId!) ?? 'elsewhere'})`),
+  }));
 }

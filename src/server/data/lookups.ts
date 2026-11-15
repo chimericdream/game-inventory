@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { copies, games, locations, tags, users } from '../db/schema';
+import { copies, copyAccessories, games, locations, tags, users } from '../db/schema';
 import {
   createdFields,
   recordAudit,
@@ -57,14 +57,17 @@ export interface LocationWithCounts {
   copies: number;
   /** Copies here and anywhere underneath. */
   total: number;
+  /** Accessories kept apart from their copy, here and anywhere underneath. */
+  accessories: number;
 }
 
 /**
- * Every location with how many copies it holds, in tree order. Counts only include copies of
- * games this viewer may see, so a restricted profile never learns that hidden games exist.
+ * Every location with how many copies (and separately stored accessories) it holds, in tree
+ * order. Counts only include games this viewer may see, so a restricted profile never learns that
+ * hidden games exist.
  */
 export async function listLocationsWithCounts(ctx: DataContext): Promise<LocationWithCounts[]> {
-  const [locs, counts] = await Promise.all([
+  const [locs, counts, accessoryCounts] = await Promise.all([
     listLocations(ctx),
     ctx.db
       .select({ locationId: copies.locationId, n: sql<number>`count(*)::int` })
@@ -78,13 +81,28 @@ export async function listLocationsWithCounts(ctx: DataContext): Promise<Locatio
         ),
       )
       .groupBy(copies.locationId),
+    ctx.db
+      .select({ locationId: copyAccessories.locationId, n: sql<number>`count(*)::int` })
+      .from(copyAccessories)
+      .innerJoin(copies, eq(copies.id, copyAccessories.copyId))
+      .innerJoin(games, eq(games.id, copies.gameId))
+      .where(
+        and(
+          eq(copyAccessories.householdId, ctx.householdId),
+          isNull(copyAccessories.deletedAt),
+          isNull(copies.deletedAt),
+          gameVisibilityCondition(ctx),
+        ),
+      )
+      .groupBy(copyAccessories.locationId),
   ]);
   const direct = new Map(counts.map((c) => [c.locationId, c.n]));
+  const directAccessories = new Map(accessoryCounts.map((c) => [c.locationId, c.n]));
   const children = new Map<string | null, typeof locs>();
   for (const l of locs) children.set(l.parentId, [...(children.get(l.parentId) ?? []), l]);
   const out: LocationWithCounts[] = [];
-  const walk = (parent: string | null): number => {
-    let sum = 0;
+  const walk = (parent: string | null): { copies: number; accessories: number } => {
+    const sum = { copies: 0, accessories: 0 };
     for (const l of children.get(parent) ?? []) {
       const index = out.length;
       out.push({
@@ -93,10 +111,13 @@ export async function listLocationsWithCounts(ctx: DataContext): Promise<Locatio
         parentId: l.parentId,
         copies: direct.get(l.id) ?? 0,
         total: 0,
+        accessories: 0,
       });
       const below = walk(l.id);
-      out[index]!.total = (direct.get(l.id) ?? 0) + below;
-      sum += out[index]!.total;
+      out[index]!.total = (direct.get(l.id) ?? 0) + below.copies;
+      out[index]!.accessories = (directAccessories.get(l.id) ?? 0) + below.accessories;
+      sum.copies += out[index]!.total;
+      sum.accessories += out[index]!.accessories;
     }
     return sum;
   };
@@ -167,11 +188,12 @@ export type DeleteLocationResult =
   | { ok: true }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'has_copies'; copies: number }
+  | { ok: false; reason: 'has_accessories'; accessories: number }
   | { ok: false; reason: 'has_children'; children: number };
 
 /**
- * Deletes an empty location. A location that holds copies (directly or anywhere underneath it) or
- * has sub-locations is never deleted, so copies cannot silently lose their place.
+ * Deletes an empty location. A location that holds copies or accessories (directly or anywhere
+ * underneath it) or has sub-locations is never deleted, so nothing silently loses its place.
  */
 export async function deleteLocation(ctx: DataContext, id: string): Promise<DeleteLocationResult> {
   if (ctx.viewer.role === 'restricted')
@@ -201,6 +223,16 @@ export async function deleteLocation(ctx: DataContext, id: string): Promise<Dele
           select count(*)::int from ${copies} c
           where c.location_id in (select id from tree) and c.deleted_at is null
             and c.household_id = ${ctx.householdId})`,
+        accessories: sql<number>`(
+          with recursive tree(id) as (
+            select ${id}::uuid
+            union all
+            select l.id from ${locations} l join tree t on l.parent_id = t.id
+          )
+          select count(*)::int from ${copyAccessories} a
+          join ${copies} c on c.id = a.copy_id
+          where a.location_id in (select id from tree) and a.deleted_at is null
+            and c.deleted_at is null and a.household_id = ${ctx.householdId})`,
         children: sql<number>`(
           select count(*)::int from ${locations} ch
           where ch.parent_id = ${id}::uuid and ch.deleted_at is null
@@ -210,6 +242,9 @@ export async function deleteLocation(ctx: DataContext, id: string): Promise<Dele
       .where(eq(locations.id, id));
     if (counts && counts.copies > 0)
       return { ok: false, reason: 'has_copies', copies: counts.copies };
+    if (counts && counts.accessories > 0) {
+      return { ok: false, reason: 'has_accessories', accessories: counts.accessories };
+    }
     if (counts && counts.children > 0) {
       return { ok: false, reason: 'has_children', children: counts.children };
     }

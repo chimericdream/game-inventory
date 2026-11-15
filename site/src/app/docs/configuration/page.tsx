@@ -52,8 +52,9 @@ export default function Configuration() {
 
       <h2>Trash</h2>
       <p>
-        Deleting a game, copy, play, wishlist item, place or player moves it to the trash. An admin
-        can restore it or delete it for good, and anything older than{' '}
+        Deleting a game, copy, accessory, play, wishlist item, place or player moves it to the
+        trash. A copy in the trash takes its accessories with it, and they come back together. An
+        admin can restore it or delete it for good, and anything older than{' '}
         <code>TRASH_RETENTION_DAYS</code> is purged automatically. A game that still has copies
         cannot be deleted.
       </p>

@@ -23,6 +23,7 @@ import { lendAction, returnLoanAction, type TrackState } from '../../tracking-ac
 import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { addCopyAction, deleteCopyAction, updateCopyAction, type ActionState } from '../actions';
 import { CONDITION_LABELS, CONDITION_OPTIONS } from '../labels';
+import { Accessories, keptElsewhere, type AccessoryRow } from './Accessories';
 import classes from './CopiesPanel.module.css';
 
 interface CopyRow {
@@ -39,6 +40,7 @@ interface CopyRow {
   priceCents: number | null;
   acquiredOn: string | null;
   loan: { id: string; borrower: string; lentOn: string; dueOn: string | null } | null;
+  accessories: AccessoryRow[];
 }
 
 interface Props {
@@ -220,6 +222,14 @@ function CopyCard({
             </div>
           )}
 
+          <Accessories
+            gameId={gameId}
+            copyId={c.id}
+            accessories={c.accessories}
+            locations={locations}
+            canEdit={canEdit}
+          />
+
           {canEdit && (
             <footer className={classes.cardActions}>
               {c.loan ? (
@@ -229,7 +239,7 @@ function CopyCard({
                   </Button>
                 </form>
               ) : (
-                <LendForm copyId={c.id} />
+                <LendForm copyId={c.id} elsewhere={keptElsewhere(c.accessories)} />
               )}
               <Group gap={4} className={classes.remove}>
                 <ActionIcon
@@ -247,8 +257,8 @@ function CopyCard({
                   action={deleteCopyAction.bind(null, gameId, c.id)}
                 >
                   <Text size="sm">
-                    This copy moves to the trash, along with its loan history. You can restore it
-                    from Settings → Trash.
+                    This copy moves to the trash, along with its loan history and accessories. You
+                    can restore it from Settings → Trash.
                   </Text>
                 </ConfirmDelete>
               </Group>
@@ -260,7 +270,7 @@ function CopyCard({
   );
 }
 
-function LendForm({ copyId }: { copyId: string }) {
+function LendForm({ copyId, elsewhere }: { copyId: string; elsewhere: string }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState<TrackState, FormData>(lendAction, {});
   if (!open) {
@@ -281,6 +291,11 @@ function LendForm({ copyId }: { copyId: string }) {
         <Alert color="red" variant="light">
           {state.error}
         </Alert>
+      )}
+      {elsewhere && (
+        <Text size="sm" className={classes.reminder} data-lend-reminder>
+          Kept apart from the box: {elsewhere}. Grab it too if it goes with the game.
+        </Text>
       )}
       <Group align="flex-end" gap="sm">
         <TextInput
