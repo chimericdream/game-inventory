@@ -1,3 +1,4 @@
+import { decodeHTML } from 'entities';
 import { XMLParser } from 'fast-xml-parser';
 
 // BGG_BASE_URL exists so end-to-end tests can point at a mock server.
@@ -47,15 +48,12 @@ const attrNum = (node: { '@_value'?: string } | undefined) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
-function decodeEntities(s: string) {
-  return s
-    .replace(/&#10;/g, '\n')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#39;|&apos;/g, "'");
-}
+/**
+ * The XML parser decodes only XML's own entities, so numeric references (`&#039;`) and HTML named
+ * ones (`&rsquo;`) survive it. BGG also escapes its descriptions twice. Every string read from BGG
+ * goes through this so none of that reaches the database.
+ */
+const text = (v: unknown) => decodeHTML(String(v ?? ''));
 
 export function parseSearch(xml: string): BggSearchHit[] {
   const doc = parser.parse(xml);
@@ -64,7 +62,7 @@ export function parseSearch(xml: string): BggSearchHit[] {
     const primary = names.find((n: any) => n['@_type'] === 'primary') ?? names[0];
     return {
       id: Number(item['@_id']),
-      name: String(primary?.['@_value'] ?? ''),
+      name: text(primary?.['@_value']),
       year: attrNum(item.yearpublished),
       isExpansion: item['@_type'] === 'boardgameexpansion',
       thumbnailUrl: null,
@@ -75,9 +73,9 @@ export function parseSearch(xml: string): BggSearchHit[] {
 
 const firstPublisher = (links: any[]): string | null =>
   links
-    .find((l) => l['@_type'] === 'boardgamepublisher' && String(l['@_value'] ?? '').trim())
-    ?.['@_value'].trim()
-    .slice(0, 200) ?? null;
+    .map((l) => (l['@_type'] === 'boardgamepublisher' ? text(l['@_value']).trim() : ''))
+    .find(Boolean)
+    ?.slice(0, 200) ?? null;
 
 /** Thumbnail and publisher per game id, from a (possibly multi-id) /thing response. */
 export function parseThumbnails(
@@ -96,7 +94,7 @@ export function parseThumbnails(
 const expansionLinks = (item: any, inbound: boolean): BggRef[] =>
   (toArray(item?.link) as any[])
     .filter((l) => l['@_type'] === 'boardgameexpansion' && (l['@_inbound'] === 'true') === inbound)
-    .map((l) => ({ id: Number(l['@_id']), name: String(l['@_value'] ?? '') }))
+    .map((l) => ({ id: Number(l['@_id']), name: text(l['@_value']) }))
     .filter((r) => Number.isInteger(r.id) && r.id > 0 && r.name);
 
 /** The expansions BGG lists for a base game, by name. */
@@ -115,10 +113,8 @@ export function parseThing(xml: string): BggGame | null {
   const links = toArray(item.link) as any[];
   return {
     id: Number(item['@_id']),
-    name: String(primary?.['@_value'] ?? ''),
-    description: decodeEntities(String(item.description ?? ''))
-      .trim()
-      .slice(0, 2000),
+    name: text(primary?.['@_value']),
+    description: text(item.description).trim().slice(0, 2000),
     minPlayers: attrNum(item.minplayers),
     maxPlayers: attrNum(item.maxplayers),
     playTimeMinutes: attrNum(item.playingtime),
@@ -127,7 +123,7 @@ export function parseThing(xml: string): BggGame | null {
       Number.isFinite(weight) && weight > 0 ? Math.min(5, Math.max(1, Math.round(weight))) : null,
     tags: links
       .filter((l) => l['@_type'] === 'boardgamecategory')
-      .map((l) => String(l['@_value']))
+      .map((l) => text(l['@_value']))
       .slice(0, 6),
     publisher: firstPublisher(links),
     imageUrl: bggImageUrl(item.image) ?? bggImageUrl(item.thumbnail),
