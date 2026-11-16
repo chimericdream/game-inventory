@@ -237,21 +237,17 @@ describe('accessories and places', () => {
     expect(await deleteLocation(admin, shelf.id)).toEqual({ ok: true });
   });
 
-  it('the library location filter finds games by an accessory kept there', async () => {
+  it('the library location filter and counts ignore where accessories are kept', async () => {
     const { closet, office } = await seed();
     await createGame(admin, { title: 'Elsewhere', type: 'board' });
 
-    const inCloset = await listCatalog(admin, { locationId: closet.id });
-    expect(inCloset.map((g) => [g.title, g.storedHere])).toEqual([
-      ['Wingspan', ['Neoprene playmat']],
-    ]);
-    // Where the box is, the tile has nothing extra to say.
+    expect(await listCatalog(admin, { locationId: closet.id })).toEqual([]);
     const inOffice = await listCatalog(admin, { locationId: office.id });
-    expect(inOffice.map((g) => [g.title, g.storedHere])).toEqual([['Wingspan', []]]);
+    expect(inOffice.map((g) => g.title)).toEqual(['Wingspan']);
 
     const facets = await catalogFacets(admin, {});
     const count = (name: string) => facets.locations.find((l) => l.name === name)?.count;
-    expect([count('Office'), count('Hall closet'), count('Top shelf')]).toEqual([1, 1, 1]);
+    expect([count('Office'), count('Hall closet'), count('Top shelf')]).toEqual([1, 0, 0]);
   });
 
   it('the lend list reminds you about accessories kept apart from the box', async () => {

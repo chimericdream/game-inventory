@@ -3,7 +3,6 @@ import { and, asc, count, desc, eq, inArray, isNotNull, isNull, sql, type SQL } 
 import {
   boardGameDetails,
   copies,
-  copyAccessories,
   gameTags,
   games,
   loans,
@@ -36,8 +35,8 @@ export interface CatalogFilters {
   maxMinutes?: number;
   tag?: string;
   /**
-   * A location and everything nested under it. Matches games with a copy there, or with an
-   * accessory stored there apart from its copy.
+   * A location and everything nested under it. Matches games with a copy there; accessories kept
+   * elsewhere do not count.
    */
   locationId?: string;
   ownerUserId?: string;
@@ -102,13 +101,6 @@ function copyInTreeSql(ctx: DataContext, locationId: string): SQL {
     and c.location_id in ${locationTreeSql(ctx, locationId)})`;
 }
 
-function accessoryInTreeSql(ctx: DataContext, locationId: string): SQL {
-  return sql`exists (select 1 from ${copyAccessories} a join ${copies} c on c.id = a.copy_id
-    where c.game_id = ${games.id} and a.household_id = ${ctx.householdId}
-      and a.deleted_at is null and c.deleted_at is null
-      and a.location_id in ${locationTreeSql(ctx, locationId)})`;
-}
-
 /** Whether a filter value can possibly match (malformed ids can never match anything). */
 function hasImpossibleFilter(f: CatalogFilters) {
   return (
@@ -141,9 +133,7 @@ function conditions(ctx: DataContext, f: CatalogFilters, omit?: FilterKey): SQL[
     );
   }
   if (f.locationId && omit !== 'locationId') {
-    out.push(
-      sql`(${copyInTreeSql(ctx, f.locationId)} or ${accessoryInTreeSql(ctx, f.locationId)})`,
-    );
+    out.push(copyInTreeSql(ctx, f.locationId));
   }
   if (f.ownerUserId && omit !== 'ownerUserId') {
     out.push(
@@ -172,22 +162,17 @@ async function hydrate(
     game: typeof games.$inferSelect;
     board: typeof boardGameDetails.$inferSelect | null;
   }[],
-  /** The location filter, if any: games here only through an accessory say which one. */
-  locationId?: string,
 ) {
   const ids = visible.map((r) => r.game.id);
   if (ids.length === 0) return [];
   const baseIds = [
     ...new Set(visible.flatMap((r) => (r.game.baseGameId ? [r.game.baseGameId] : []))),
   ];
-  const [copyRows, tagRows, loanRows, baseRows, hereRows] = await Promise.all([
+  const [copyRows, tagRows, loanRows, baseRows] = await Promise.all([
     ctx.db
       .select({
         gameId: copies.gameId,
         platform: copies.platform,
-        here: locationId
-          ? sql<boolean>`${copies.locationId} in ${locationTreeSql(ctx, locationId)}`
-          : sql<boolean>`false`,
       })
       .from(copies)
       .where(
@@ -228,22 +213,6 @@ async function hydrate(
           .from(games)
           .where(and(inArray(games.id, baseIds), gameVisibilityCondition(ctx)))
       : Promise.resolve([] as { id: string; title: string }[]),
-    locationId
-      ? ctx.db
-          .select({ gameId: copies.gameId, name: copyAccessories.name })
-          .from(copyAccessories)
-          .innerJoin(copies, eq(copies.id, copyAccessories.copyId))
-          .where(
-            and(
-              eq(copyAccessories.householdId, ctx.householdId),
-              isNull(copyAccessories.deletedAt),
-              isNull(copies.deletedAt),
-              inArray(copies.gameId, ids),
-              sql`${copyAccessories.locationId} in ${locationTreeSql(ctx, locationId)}`,
-            ),
-          )
-          .orderBy(asc(copyAccessories.name))
-      : Promise.resolve([] as { gameId: string; name: string }[]),
   ]);
   const baseTitle = new Map(baseRows.map((b) => [b.id, b.title]));
 
@@ -276,13 +245,6 @@ async function hydrate(
         ),
       ],
       tags: tagRows.filter((t) => t.gameId === game.id).map((t) => t.name),
-      /**
-       * Under a location filter, the accessories that put this game there when none of its copies
-       * are there. Empty otherwise.
-       */
-      storedHere: copyRows.some((c) => c.gameId === game.id && c.here)
-        ? []
-        : [...new Set(hereRows.filter((a) => a.gameId === game.id).map((a) => a.name))],
     };
   });
 }
@@ -341,7 +303,7 @@ export async function listCatalogPage(
     return game ? [{ game, board: r.board }] : [];
   });
   return {
-    rows: await hydrate(ctx, visible, filters.locationId),
+    rows: await hydrate(ctx, visible),
     total,
     page,
     pageSize,
@@ -365,7 +327,7 @@ export async function listCatalog(ctx: DataContext, filters: CatalogFilters = {}
     const game = redactGame(r.game, ctx.viewer);
     return game ? [{ game, board: r.board }] : [];
   });
-  return hydrate(ctx, visible, filters.locationId);
+  return hydrate(ctx, visible);
 }
 
 // ---------------------------------------------------------------------------
@@ -427,22 +389,6 @@ export async function catalogFacets(
             isNotNull(copies.locationId),
             isNull(copies.deletedAt),
           ),
-        )
-        .union(
-          ctx.db
-            .selectDistinct({ locationId: copyAccessories.locationId, gameId: games.id })
-            .from(games)
-            .leftJoin(boardGameDetails, eq(boardGameDetails.gameId, games.id))
-            .innerJoin(copies, eq(copies.gameId, games.id))
-            .innerJoin(copyAccessories, eq(copyAccessories.copyId, copies.id))
-            .where(
-              and(
-                ...conditions(ctx, filters, 'locationId'),
-                isNotNull(copyAccessories.locationId),
-                isNull(copyAccessories.deletedAt),
-                isNull(copies.deletedAt),
-              ),
-            ),
         ),
       ctx.db
         .select({ id: locations.id, name: locations.name, parentId: locations.parentId })
