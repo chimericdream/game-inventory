@@ -343,10 +343,28 @@ UPDATE "tags" t SET "name" = k."decoded"
 FROM "tag_keep" k
 WHERE t."id" = k."keep_id" AND t."name" <> k."decoded";
 --> statement-breakpoint
--- Guest links hide games by tag name; keep those rules pointing at the renamed tags.
-UPDATE "share_links" SET "hide_tags" = ARRAY(
-  SELECT pg_temp.decode_html_entities(t) FROM unnest("hide_tags") WITH ORDINALITY AS u(t, i) ORDER BY i
+-- Guest links hide games by tag name (case-insensitively); keep those rules pointing at the tags
+-- that survived. A rule maps through every original tag it matched in its household, so a rule that
+-- matched several tags (merged ones included) ends up naming each retained tag. A rule matching no
+-- tag is decoded on its own. Duplicates collapse, keeping the first position.
+UPDATE "share_links" s SET "hide_tags" = ARRAY(
+  SELECT n."name"
+  FROM unnest(s."hide_tags") WITH ORDINALITY AS u(t, i)
+  CROSS JOIN LATERAL (
+    SELECT k."decoded" AS "name"
+    FROM "tag_decode" d
+    JOIN "tag_keep" k ON k."household_id" = d."household_id" AND k."key" = lower(d."decoded")
+    WHERE d."household_id" = s."household_id" AND lower(d."name") = lower(u.t)
+    UNION
+    SELECT pg_temp.decode_html_entities(u.t)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM "tag_decode" d
+      WHERE d."household_id" = s."household_id" AND lower(d."name") = lower(u.t)
+    )
+  ) n
+  GROUP BY n."name"
+  ORDER BY min(u.i), n."name"
 )
-WHERE array_to_string("hide_tags", ' ') LIKE '%&%;%';
+WHERE array_to_string(s."hide_tags", ' ') LIKE '%&%;%';
 --> statement-breakpoint
 DROP FUNCTION pg_temp.decode_html_entities(text);
