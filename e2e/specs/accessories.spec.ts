@@ -37,10 +37,11 @@ test('ACC-01 add an accessory kept apart from the box, edit it, and delete it @s
   );
   await card.getByRole('button', { name: 'Cancel' }).click();
 
-  // The library's location filter finds the game by its playmat.
+  // The library's location filter ignores where accessories are kept: only the box counts.
   await page.goto(`/games?location=${closet}`);
+  await expect(gameCards(page)).toHaveCount(0);
+  await page.goto(`/games?location=${office}`);
   await expect(gameCards(page)).toHaveCount(1);
-  await expect(gameCards(page)).toContainText('Neoprene playmat stored here');
 
   await page.goto(`/games/${id}`);
   await item.getByRole('button', { name: 'Edit Neoprene playmat' }).click();
