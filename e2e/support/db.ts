@@ -42,6 +42,8 @@ export interface SeedGame {
   /** Seed copies in the same call. */
   copies?: SeedCopy[];
   householdId?: string;
+  /** Makes this game an expansion of the given base game. */
+  baseGameId?: string;
 }
 
 const roleEmails = ACCOUNTS.map((a) => a.email);
@@ -92,9 +94,10 @@ export async function seedGame(g: SeedGame): Promise<string> {
   const hh = g.householdId ?? (await householdId());
   const type = g.type ?? 'board';
   const [row] = await sql`
-    insert into games (household_id, title, type, description, notes, visibility, shareable)
+    insert into games (household_id, title, type, description, notes, visibility, shareable, is_expansion, base_game_id)
     values (${hh}, ${g.title}, ${type}, ${g.description ?? null}, ${g.notes ?? null},
-            ${g.visibility ?? 'normal'}, ${g.shareable ?? false})
+            ${g.visibility ?? 'normal'}, ${g.shareable ?? false}, ${g.baseGameId != null},
+            ${g.baseGameId ?? null})
     returning id`;
   const id = row!.id as string;
 

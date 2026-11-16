@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { setupHousehold, createUser } from '../auth/accounts';
 import type { Db } from '../db/client';
 import { createTestDb } from '../db/test-db';
-import { addCopy, updateCopy } from './copies';
+import { addCopy, deleteCopy, updateCopy } from './copies';
 import { createContext, type DataContext } from './context';
 import { listCatalog } from './catalog';
 import { createGame, deleteGame, getGameDetail, updateGame } from './games';
@@ -259,6 +259,31 @@ describe('expansions', () => {
     await purgeTrashed(admin, 'game', base.id);
     const detail = await getGameDetail(admin, exp.id);
     expect(detail?.game).toMatchObject({ isExpansion: true, baseGameId: null });
+  });
+
+  it('summarises the copies owned of each expansion, ignoring trashed copies', async () => {
+    const office = await createLocation(admin, 'Office');
+    const closet = await createLocation(admin, 'Closet', office.id);
+    const base = await make('Bear Stare Down');
+    const parks = await make('Parks', { isExpansion: true, baseGameId: base.id });
+    const scout = await make('Scout', { isExpansion: true, baseGameId: base.id });
+    await make('Unowned', { isExpansion: true, baseGameId: base.id });
+    await addCopy(admin, parks.id, {});
+    await addCopy(admin, scout.id, { locationId: closet.id });
+    await addCopy(admin, scout.id, { locationId: closet.id });
+    await addCopy(admin, scout.id, {});
+    const gone = await addCopy(admin, scout.id, { locationId: office.id });
+    await deleteCopy(admin, gone.id);
+
+    const byTitle = Object.fromEntries(
+      (await getGameDetail(admin, base.id))!.expansions.map((e) => [e.title, e]),
+    );
+    expect(byTitle.Parks).toMatchObject({ copyCount: 1, copyLocations: [null] });
+    expect(byTitle.Scout).toMatchObject({
+      copyCount: 3,
+      copyLocations: ['Office › Closet', null],
+    });
+    expect(byTitle.Unowned).toMatchObject({ copyCount: 0, copyLocations: [] });
   });
 
   it('never shows restricted profiles a hidden expansion', async () => {

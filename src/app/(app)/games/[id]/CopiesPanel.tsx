@@ -49,6 +49,8 @@ interface Props {
   members: { value: string; label: string }[];
   locations: { value: string; label: string }[];
   canEdit: boolean;
+  /** Expansions without a location are kept in the base game's box. */
+  isExpansion?: boolean;
 }
 
 interface Option {
@@ -150,12 +152,14 @@ function CopyCard({
   members,
   locations,
   canEdit,
+  isExpansion,
 }: {
   gameId: string;
   c: CopyRow;
   members: Option[];
   locations: Option[];
   canEdit: boolean;
+  isExpansion: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const title = c.ownerName ? `${c.ownerName}’s copy` : 'Our copy';
@@ -187,7 +191,10 @@ function CopyCard({
             <dt>Format</dt>
             <dd>{c.format === 'digital' ? 'Digital' : 'Physical'}</dd>
             <dt>Location</dt>
-            <dd>{c.locationName ?? <span className={classes.none}>Not set</span>}</dd>
+            <dd>
+              {c.locationName ??
+                (isExpansion ? 'In game box' : <span className={classes.none}>Not set</span>)}
+            </dd>
             <dt>Condition</dt>
             <dd>
               {CONDITION_LABELS[c.condition] ?? c.condition}
@@ -319,7 +326,14 @@ function LendForm({ copyId, elsewhere }: { copyId: string; elsewhere: string }) 
   );
 }
 
-export function CopiesPanel({ gameId, copies, members, locations, canEdit }: Props) {
+export function CopiesPanel({
+  gameId,
+  copies,
+  members,
+  locations,
+  canEdit,
+  isExpansion = false,
+}: Props) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     addCopyAction.bind(null, gameId),
     {},
@@ -338,6 +352,7 @@ export function CopiesPanel({ gameId, copies, members, locations, canEdit }: Pro
               members={members}
               locations={locations}
               canEdit={canEdit}
+              isExpansion={isExpansion}
             />
           ))}
         </div>

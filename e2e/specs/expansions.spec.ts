@@ -64,6 +64,41 @@ test('EXP-02 mark an expansion as standalone', async ({ page }) => {
   await expect(page.getByRole('switch', { name: 'Standalone' })).toBeChecked();
 });
 
+test('EXP-04 owned expansion copies show on the base game, "In game box" when no location', async ({
+  page,
+  db,
+}) => {
+  const office = await db.seedLocation('Office');
+  const closet = await db.seedLocation('Closet', office);
+  const base = await db.seedGame({ title: 'Bear Stare Down' });
+  const parks = await db.seedGame({ title: 'Parks Expansion', baseGameId: base });
+  await db.seedGame({ title: 'Scout Expansion', baseGameId: base, copies: [] });
+  await db.seedGame({
+    title: 'Mixed Expansion',
+    baseGameId: base,
+    copies: [{ locationId: closet }, {}],
+  });
+
+  await page.goto(`/games/${base}`);
+  const rows = page.locator('[data-expansions] li');
+  await expect(
+    rows.filter({ hasText: 'Parks Expansion' }).locator('[data-expansion-owned]'),
+  ).toHaveText('1 copy ownedIn game box');
+  await expect(
+    rows.filter({ hasText: 'Mixed Expansion' }).locator('[data-expansion-owned]'),
+  ).toHaveText('2 copies ownedOffice › ClosetIn game box');
+  await expect(
+    rows.filter({ hasText: 'Scout Expansion' }).locator('[data-expansion-owned]'),
+  ).toHaveCount(0);
+
+  // The expansion's own copy card says the same, but a base game's copy still says "Not set".
+  await page.goto(`/games/${parks}`);
+  await expect(page.locator('[data-copy]')).toContainText('In game box');
+  await expect(page.locator('[data-copy]')).not.toContainText('Not set');
+  await page.goto(`/games/${await db.seedGame({ title: 'Plain' })}`);
+  await expect(page.locator('[data-copy]')).toContainText('Not set');
+});
+
 test('EXP-03 a play can be logged for an expansion from its page', async ({ page }) => {
   await addGameViaUi(page, { title: 'Carcassonne', type: 'Board game' });
   await page.locator('[data-expansions]').getByRole('link', { name: 'Add expansion' }).click();

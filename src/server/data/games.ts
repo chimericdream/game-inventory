@@ -181,6 +181,20 @@ export async function getGameDetail(ctx: DataContext, id: string) {
     ctx,
     copyRows.map((c) => c.copy.id),
   );
+  const expansionIds = expansionRows.map((r) => r.game.id);
+  const expansionCopyRows =
+    expansionIds.length > 0
+      ? await ctx.db
+          .select({ gameId: copies.gameId, locationId: copies.locationId })
+          .from(copies)
+          .where(
+            and(
+              inArray(copies.gameId, expansionIds),
+              eq(copies.householdId, ctx.householdId),
+              isNull(copies.deletedAt),
+            ),
+          )
+      : [];
   const loanByCopy = new Map(
     openLoans.map((l) => [
       l.copyId,
@@ -196,9 +210,19 @@ export async function getGameDetail(ctx: DataContext, id: string) {
     baseGame: baseRow,
     expansions: expansionRows.flatMap((r) => {
       const e = redactGame(r.game, ctx.viewer);
+      const owned = expansionCopyRows.filter((c) => c.gameId === r.game.id);
       return e
         ? [
             {
+              copyCount: owned.length,
+              /** Distinct location paths; null means no location, shown as "In game box". */
+              copyLocations: [
+                ...new Set(
+                  owned.map((c) =>
+                    c.locationId ? (locationLabel.get(c.locationId) ?? null) : null,
+                  ),
+                ),
+              ],
               id: e.id,
               title: e.title,
               type: e.type,
