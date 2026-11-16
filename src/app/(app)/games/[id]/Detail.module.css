@@ -358,6 +358,25 @@ li:first-child > .expansion {
   width: 52px;
 }
 
+.expansionOwned {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: auto;
+  text-align: right;
+  flex: none;
+
+  & b {
+    font-weight: 500;
+  }
+
+  & small {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--app-muted);
+  }
+}
+
 .expansionText {
   display: flex;
   flex-direction: column;

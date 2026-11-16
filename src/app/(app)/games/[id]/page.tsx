@@ -255,6 +255,16 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                             <b>{e.title}</b>
                             {meta.length > 0 && <small>{meta.join(' · ')}</small>}
                           </span>
+                          {e.copyCount > 0 && (
+                            <span className={classes.expansionOwned} data-expansion-owned>
+                              <b>
+                                {e.copyCount} {e.copyCount === 1 ? 'copy' : 'copies'} owned
+                              </b>
+                              {e.copyLocations.map((loc) => (
+                                <small key={loc ?? ''}>{loc ?? 'In game box'}</small>
+                              ))}
+                            </span>
+                          )}
                         </Link>
                       </li>
                     );
@@ -279,6 +289,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             <CopiesPanel
               gameId={id}
               canEdit={member}
+              isExpansion={game.isExpansion}
               members={members.map((m) => ({ value: m.id, label: m.name }))}
               locations={locations}
               copies={detail.copies.map((c) => ({
