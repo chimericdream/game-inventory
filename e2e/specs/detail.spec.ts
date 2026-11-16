@@ -101,3 +101,17 @@ test('DET-06 "Log a play" opens the plays page with this game chosen', async ({ 
   await expect(page).toHaveURL(`/plays?game=${id}`);
   await expect(page.getByRole('combobox', { name: /^Game/ })).toHaveValue('Quick Log');
 });
+
+test('DET-07 line breaks in a description are kept on the page', async ({ page, db }) => {
+  const id = await db.seedGame({
+    title: 'Tea Party',
+    description: 'First paragraph.\n\nSecond paragraph.',
+  });
+  await page.goto(`/games/${id}`);
+  const text = page.getByText('First paragraph.');
+  await expect(text).toHaveCSS('white-space', 'pre-line');
+  const box = await text.boundingBox();
+  const lineHeight = 17 * 1.6;
+  // Two paragraphs separated by a blank line occupy three lines, not one.
+  expect(box!.height).toBeGreaterThan(lineHeight * 2.5);
+});
