@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { access, constants } from 'node:fs/promises';
+import { access, constants, stat } from 'node:fs/promises';
 
 import { sql } from 'drizzle-orm';
 
@@ -24,6 +24,7 @@ export async function GET() {
   }
 
   try {
+    if (!(await stat(dataDir())).isDirectory()) throw new Error('not a directory');
     await access(dataDir(), constants.W_OK);
   } catch {
     return Response.json(
