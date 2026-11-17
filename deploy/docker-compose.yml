@@ -16,6 +16,10 @@ services:
     volumes:
       - ts-state:/var/lib/tailscale
       - ./serve.json:/config/serve.json:ro
+    # The app shares this container's network namespace, so its port is published here. This lets the
+    # home dashboard poll http://<host>:3000/healthz over the LAN.
+    ports:
+      - '3000:3000'
     restart: unless-stopped
 
   db:
