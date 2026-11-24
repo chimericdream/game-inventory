@@ -14,7 +14,7 @@ test('COPY-01 add a copy with every detail and see it on the game @smoke', async
   await expect(page.getByText('No copies yet.')).toBeVisible();
 
   const form = formWith(page, ADD);
-  await choose(page, form, 'Format', 'physical');
+  await choose(page, form, 'Format', 'Physical');
   await form.getByLabel('Platform').fill('Tabletop');
   await choose(page, form, 'Condition', 'Worn');
   await choose(page, form, 'Owner', MEMBER.name);
@@ -114,7 +114,7 @@ test('COPY-06 a video game copy shows its platform in the grid and on the game',
   await page.goto(`/games/${id}`);
   const form = formWith(page, ADD);
   await form.getByLabel('Platform').fill('Switch');
-  await choose(page, form, 'Format', 'digital');
+  await choose(page, form, 'Format', 'Digital');
   await form.getByRole('button', { name: ADD }).click();
   await expect(copyCards(page)).toContainText('Switch');
   await expect(copyCards(page)).toContainText('Digital');

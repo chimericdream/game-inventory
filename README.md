@@ -62,7 +62,8 @@ docker compose -f docker-compose.prod.yml up -d --build
 | Variable               | Purpose                                                                                                                       |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`         | Postgres connection string (required)                                                                                         |
-| `DATA_DIR`             | Where uploaded images are stored (default `./data`)                                                                           |
+| `DATA_DIR`             | Where uploaded images and print & play files are stored (default `./data`)                                                    |
+| `MAX_FILE_MB`          | Largest file you can attach to a print & play copy, in MB (default `250`)                                                     |
 | `BGG_API_TOKEN`        | BoardGameGeek API token, enables title lookup                                                                                 |
 | `COOKIE_SECURE`        | `true` when served over HTTPS                                                                                                 |
 | `AUTO_MIGRATE`         | `false` to skip migrations on start                                                                                           |

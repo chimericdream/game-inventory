@@ -266,7 +266,11 @@ describe('automatic purge', () => {
       .set({ deletedAt: new Date(Date.now() - 31 * day) })
       .where(eq(wishlistItems.id, wish.id));
 
-    expect(await purgeExpiredTrash(db, new Date(), 0)).toEqual({ purged: 0, covers: [] });
+    expect(await purgeExpiredTrash(db, new Date(), 0)).toEqual({
+      purged: 0,
+      covers: [],
+      files: [],
+    });
     const result = await purgeExpiredTrash(db, new Date(), 30);
     expect(result.purged).toBe(2);
     expect((await listTrash(admin)).map((t) => t.title)).toEqual(['Recent']);

@@ -48,8 +48,9 @@ export default function SharingAndPrivacy() {
 
       <h2>What is never exposed to guests</h2>
       <p>
-        Ratings, prices, owners, condition and accessories are never sent to a guest link. Personal
-        ratings also stay out of the activity trail, so nobody can see who rated what.
+        Ratings, prices, owners, condition, accessories and print &amp; play files are never sent to
+        a guest link. Personal ratings also stay out of the activity trail, so nobody can see who
+        rated what.
       </p>
 
       <h2>Activity trail</h2>

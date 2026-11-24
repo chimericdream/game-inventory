@@ -11,6 +11,7 @@ import {
   updateAccessory,
   type AccessoryInput,
 } from '@/server/data/accessories';
+import { deleteCopyFile } from '@/server/data/copy-files';
 import { listCatalogPage, parseCatalogFilters } from '@/server/data/catalog';
 import { addCopy, deleteCopy, updateCopy, type CopyInput } from '@/server/data/copies';
 import {
@@ -47,7 +48,7 @@ function parseCopyForm(fd: FormData, prefix = ''): CopyInput {
   const t = (key: string) => text(fd, prefix + key);
   const price = t('price');
   return {
-    format: (t('format') ?? 'physical') as 'physical' | 'digital',
+    format: (t('format') ?? 'physical') as CopyInput['format'],
     platform: t('platform'),
     condition: (t('condition') ?? 'good') as 'good',
     conditionNotes: t('conditionNotes'),
@@ -255,6 +256,12 @@ export async function updateAccessoryAction(
 export async function deleteAccessoryAction(gameId: string, accessoryId: string) {
   const { ctx } = await requireContext();
   await deleteAccessory(ctx, accessoryId);
+  revalidatePath(`/games/${gameId}`);
+}
+
+export async function deleteCopyFileAction(gameId: string, fileId: string) {
+  const { ctx } = await requireContext();
+  await deleteCopyFile(ctx, fileId);
   revalidatePath(`/games/${gameId}`);
 }
 

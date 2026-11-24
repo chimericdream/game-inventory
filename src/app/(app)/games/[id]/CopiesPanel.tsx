@@ -22,8 +22,9 @@ import { longDate, shortDate } from '@/lib/dates';
 import { lendAction, returnLoanAction, type TrackState } from '../../tracking-actions';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { addCopyAction, deleteCopyAction, updateCopyAction, type ActionState } from '../actions';
-import { CONDITION_LABELS, CONDITION_OPTIONS } from '../labels';
+import { CONDITION_LABELS, CONDITION_OPTIONS, FORMAT_LABELS, FORMAT_OPTIONS } from '../labels';
 import { Accessories, keptElsewhere, type AccessoryRow } from './Accessories';
+import { CopyFiles, type CopyFileItem } from './CopyFiles';
 import classes from './CopiesPanel.module.css';
 
 interface CopyRow {
@@ -41,6 +42,7 @@ interface CopyRow {
   acquiredOn: string | null;
   loan: { id: string; borrower: string; lentOn: string; dueOn: string | null } | null;
   accessories: AccessoryRow[];
+  files: CopyFileItem[];
 }
 
 interface Props {
@@ -51,6 +53,8 @@ interface Props {
   canEdit: boolean;
   /** Expansions without a location are kept in the base game's box. */
   isExpansion?: boolean;
+  /** Largest file the server accepts for a print & play copy. */
+  maxFileMb: number;
 }
 
 interface Option {
@@ -87,7 +91,7 @@ function EditCopyForm({
         <Select
           name="format"
           label="Format"
-          data={['physical', 'digital']}
+          data={FORMAT_OPTIONS}
           defaultValue={copy.format}
           allowDeselect={false}
         />
@@ -153,6 +157,7 @@ function CopyCard({
   locations,
   canEdit,
   isExpansion,
+  maxFileMb,
 }: {
   gameId: string;
   c: CopyRow;
@@ -160,6 +165,7 @@ function CopyCard({
   locations: Option[];
   canEdit: boolean;
   isExpansion: boolean;
+  maxFileMb: number;
 }) {
   const [editing, setEditing] = useState(false);
   const title = c.ownerName ? `${c.ownerName}’s copy` : 'Our copy';
@@ -189,7 +195,7 @@ function CopyCard({
               </>
             )}
             <dt>Format</dt>
-            <dd>{c.format === 'digital' ? 'Digital' : 'Physical'}</dd>
+            <dd>{FORMAT_LABELS[c.format] ?? c.format}</dd>
             <dt>Location</dt>
             <dd>
               {c.locationName ??
@@ -228,6 +234,15 @@ function CopyCard({
               </span>
             </div>
           )}
+
+          <CopyFiles
+            gameId={gameId}
+            copyId={c.id}
+            files={c.files}
+            canUpload={canEdit && c.format === 'print_and_play'}
+            canEdit={canEdit}
+            maxFileMb={maxFileMb}
+          />
 
           <Accessories
             gameId={gameId}
@@ -333,6 +348,7 @@ export function CopiesPanel({
   locations,
   canEdit,
   isExpansion = false,
+  maxFileMb,
 }: Props) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     addCopyAction.bind(null, gameId),
@@ -353,6 +369,7 @@ export function CopiesPanel({
               locations={locations}
               canEdit={canEdit}
               isExpansion={isExpansion}
+              maxFileMb={maxFileMb}
             />
           ))}
         </div>
@@ -374,7 +391,7 @@ export function CopiesPanel({
                 <Select
                   name="format"
                   label="Format"
-                  data={['physical', 'digital']}
+                  data={FORMAT_OPTIONS}
                   defaultValue="physical"
                   allowDeselect={false}
                 />

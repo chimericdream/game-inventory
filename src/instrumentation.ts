@@ -6,6 +6,7 @@ export async function register() {
     const { runMigrations } = await import('./server/db/migrate');
     await runMigrations(url, process.env.MIGRATIONS_DIR ?? './drizzle');
   }
-  const { startTrashPurge } = await import('./server/trash-schedule');
+  const { startFileSweep, startTrashPurge } = await import('./server/trash-schedule');
   startTrashPurge();
+  startFileSweep();
 }

@@ -1,5 +1,6 @@
 #!/bin/sh
-# Nightly backup of the database and uploaded images from the production compose stack.
+# Nightly backup of the database and uploaded images and files from the production compose stack.
+# Print & play PDFs can be large, so expect the images archive to grow with them.
 # Usage: scripts/backup.sh [backup-dir]   (default ./backups; keeps the newest 14 of each)
 # On the Watchtower stack: COMPOSE="docker compose -f deploy/docker-compose.yml" scripts/backup.sh
 set -eu

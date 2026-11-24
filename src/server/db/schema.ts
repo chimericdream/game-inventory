@@ -108,7 +108,7 @@ export const copyCondition = pgEnum('copy_condition', [
   'incomplete',
 ]);
 
-export const copyFormat = pgEnum('copy_format', ['physical', 'digital']);
+export const copyFormat = pgEnum('copy_format', ['physical', 'digital', 'print_and_play']);
 
 /** A title. What we physically/digitally own lives in `copies`. */
 export const games = pgTable(
@@ -239,6 +239,37 @@ export const copies = pgTable(
     ...stamps(),
   },
   (t) => [index('copies_game_idx').on(t.gameId), index('copies_household_idx').on(t.householdId)],
+);
+
+/**
+ * A digital file attached to a copy, such as the PDFs of a print-and-play game. The bytes live
+ * under DATA_DIR (`storagePath`); only the household can open them, never guest links. Trashing a
+ * file hides it; the stored bytes are removed when it is deleted for good.
+ */
+export const copyFiles = pgTable(
+  'copy_files',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    copyId: uuid('copy_id')
+      .notNull()
+      .references(() => copies.id, { onDelete: 'cascade' }),
+    /** The file name as uploaded, used for display and downloads. */
+    name: text('name').notNull(),
+    mime: text('mime').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    /** Relative to DATA_DIR. */
+    storagePath: text('storage_path').notNull(),
+    ...trashable(),
+    ...authorship(),
+    ...stamps(),
+  },
+  (t) => [
+    index('copy_files_copy_idx').on(t.copyId),
+    index('copy_files_household_idx').on(t.householdId),
+  ],
 );
 
 export const accessoryKind = pgEnum('accessory_kind', [

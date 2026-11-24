@@ -5,8 +5,9 @@ import { access, constants, stat } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 
 import pkg from '../../../package.json';
+import { diskLevel } from '@/lib/bytes';
 import { getDb } from '@/server/db/client';
-import { dataDir } from '@/server/storage';
+import { dataDir, diskSpace } from '@/server/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,12 @@ export async function GET() {
       { status: 'degraded', message: 'data directory not writable', version },
       noStore,
     );
+  }
+
+  // 90% used or more: still serving, but someone needs to free space before uploads and backups fail.
+  const disk = await diskSpace();
+  if (disk && diskLevel(disk.totalBytes - disk.freeBytes, disk.totalBytes) === 'critical') {
+    return Response.json({ status: 'degraded', message: 'disk almost full', version }, noStore);
   }
 
   return Response.json({ status: 'ok', version }, noStore);

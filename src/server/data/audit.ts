@@ -8,6 +8,7 @@ export type AuditEntity =
   | 'game'
   | 'copy'
   | 'accessory'
+  | 'copy_file'
   | 'loan'
   | 'play'
   | 'player'

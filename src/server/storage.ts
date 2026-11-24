@@ -1,8 +1,15 @@
 import 'server-only';
 
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { mkdir, readdir, readFile, rm, stat, statfs, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+
+import { z } from 'zod';
+
+import { formatBytes } from '../lib/bytes';
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const TYPES: Record<string, string> = {
@@ -10,7 +17,63 @@ const TYPES: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
 };
-const MIME_BY_EXT = Object.fromEntries(Object.entries(TYPES).map(([m, e]) => [e, m]));
+const MIME_BY_EXT: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(TYPES).map(([m, e]) => [e, m])),
+  pdf: 'application/pdf',
+  zip: 'application/zip',
+};
+
+export const ATTACHABLE_EXTENSIONS = ['pdf', 'zip', 'png', 'jpg', 'jpeg'] as const;
+type Extension = (typeof ATTACHABLE_EXTENSIONS)[number];
+const extension = z.enum(ATTACHABLE_EXTENSIONS);
+
+/** Attachable file types (print-and-play files): extension → MIME type and the bytes it starts with. */
+const FILE_TYPES: Record<Extension, { mime: string; magic: number[][] }> = {
+  pdf: { mime: 'application/pdf', magic: [[0x25, 0x50, 0x44, 0x46, 0x2d]] },
+  zip: {
+    mime: 'application/zip',
+    magic: [
+      [0x50, 0x4b, 0x03, 0x04],
+      [0x50, 0x4b, 0x05, 0x06],
+    ],
+  },
+  png: { mime: 'image/png', magic: [[0x89, 0x50, 0x4e, 0x47]] },
+  jpg: { mime: 'image/jpeg', magic: [[0xff, 0xd8, 0xff]] },
+  jpeg: { mime: 'image/jpeg', magic: [[0xff, 0xd8, 0xff]] },
+};
+
+/**
+ * The type for an extension, or null if it is not one we accept. The extension is checked against
+ * the list first, so inherited keys such as `constructor` never reach the table.
+ */
+function typeFor(ext: string) {
+  const parsed = extension.safeParse(ext);
+  return parsed.success ? { ext: parsed.data, ...FILE_TYPES[parsed.data] } : null;
+}
+
+/** The type of an attachable file from its name, or null if it is not one we accept. */
+export function attachableType(fileName: string): { ext: string; mime: string } | null {
+  const type = typeFor(path.extname(fileName).slice(1).toLowerCase());
+  return type ? { ext: type.ext, mime: type.mime } : null;
+}
+
+const DEFAULT_MAX_FILE_MB = 250;
+
+/** Largest attachment accepted, in bytes (MAX_FILE_MB, default 250). */
+export function maxFileBytes(env: Record<string, string | undefined> = process.env): number {
+  const n = Number(env.MAX_FILE_MB?.trim());
+  return (Number.isFinite(n) && n > 0 ? n : DEFAULT_MAX_FILE_MB) * 1024 * 1024;
+}
+
+/** A rejected upload; `status` is the HTTP status to answer with. */
+export class UploadError extends Error {
+  constructor(
+    message: string,
+    readonly status: 400 | 413,
+  ) {
+    super(message);
+  }
+}
 
 export const dataDir = () =>
   path.resolve(/* turbopackIgnore: true */ process.env.DATA_DIR ?? './data');
@@ -27,6 +90,89 @@ export async function saveCover(householdId: string, gameId: string, file: File)
   await mkdir(path.dirname(abs), { recursive: true });
   await writeFile(abs, bytes);
   return rel;
+}
+
+/**
+ * Streams an uploaded file to DATA_DIR/files without holding it in memory. Rejects (and removes
+ * the partial file) if it is larger than `maxBytes` or does not start like a real `ext` file.
+ * Returns the relative path and the byte count.
+ */
+export async function saveAttachment(
+  householdId: string,
+  fileId: string,
+  ext: string,
+  body: ReadableStream<Uint8Array>,
+  maxBytes = maxFileBytes(),
+): Promise<{ rel: string; size: number }> {
+  const type = typeFor(ext);
+  if (!type) throw new UploadError('That file type is not supported.', 400);
+  const rel = path.posix.join('files', householdId, `${fileId}.${ext}`);
+  const abs = path.join(/* turbopackIgnore: true */ dataDir(), rel);
+  await mkdir(path.dirname(abs), { recursive: true });
+
+  let size = 0;
+  let head = Buffer.alloc(0);
+  let sniffed = false;
+  const sniff = () => {
+    sniffed = true;
+    const ok = type.magic.some((m) => m.every((byte, i) => head[i] === byte));
+    if (!ok) throw new UploadError(`That does not look like a real .${ext} file.`, 400);
+  };
+  const guard = new Transform({
+    transform(chunk: Buffer, _enc, done) {
+      try {
+        size += chunk.length;
+        if (size > maxBytes) {
+          throw new UploadError(`Files must be ${formatBytes(maxBytes)} or smaller.`, 413);
+        }
+        if (!sniffed) {
+          head = Buffer.concat([head, chunk.subarray(0, 8)]).subarray(0, 8);
+          if (head.length >= 8) sniff();
+        }
+        done(null, chunk);
+      } catch (e) {
+        done(e as Error);
+      }
+    },
+    flush(done) {
+      try {
+        if (!sniffed) sniff();
+        if (size === 0) throw new UploadError('That file is empty.', 400);
+        done();
+      } catch (e) {
+        done(e as Error);
+      }
+    },
+  });
+
+  try {
+    await pipeline(Readable.fromWeb(body as never), guard, createWriteStream(abs));
+  } catch (e) {
+    await rm(abs, { force: true });
+    throw e;
+  }
+  return { rel, size };
+}
+
+/** Size in bytes of a stored file, or null if it is missing or outside the data directory. */
+export async function storedSize(rel: string): Promise<number | null> {
+  const abs = path.resolve(/* turbopackIgnore: true */ dataDir(), rel);
+  if (!abs.startsWith(dataDir() + path.sep)) return null;
+  try {
+    return (await stat(abs)).size;
+  } catch {
+    return null;
+  }
+}
+
+/** A stored file (or an inclusive byte range of it) as a web stream, for large downloads. */
+export function streamStored(
+  rel: string,
+  range?: { start: number; end: number },
+): ReadableStream<Uint8Array> {
+  const abs = path.resolve(/* turbopackIgnore: true */ dataDir(), rel);
+  if (!abs.startsWith(dataDir() + path.sep)) throw new Error('Outside the data directory');
+  return Readable.toWeb(createReadStream(abs, range)) as ReadableStream<Uint8Array>;
 }
 
 export async function readStored(rel: string): Promise<{ bytes: Buffer; mime: string } | null> {
@@ -46,4 +192,83 @@ export async function removeStored(rel: string | null | undefined) {
   if (!rel) return;
   const abs = path.resolve(/* turbopackIgnore: true */ dataDir(), rel);
   if (abs.startsWith(dataDir() + path.sep)) await rm(abs, { force: true });
+}
+
+/**
+ * Removes each stored file, attempting every one even if an earlier one fails. Returns the paths
+ * that could not be removed (a missing file is not a failure).
+ */
+export async function removeAllStored(rels: (string | null | undefined)[]): Promise<string[]> {
+  const failed: string[] = [];
+  for (const rel of rels) {
+    try {
+      await removeStored(rel);
+    } catch {
+      if (rel) failed.push(rel);
+    }
+  }
+  return failed;
+}
+
+/**
+ * Size of the disk that holds DATA_DIR, and how much of it a normal user can still use. In a
+ * container this is the volume's host disk. Null if the directory cannot be read.
+ */
+export async function diskSpace(): Promise<{ totalBytes: number; freeBytes: number } | null> {
+  try {
+    const s = await statfs(dataDir());
+    return { totalBytes: s.blocks * s.bsize, freeBytes: s.bavail * s.bsize };
+  } catch {
+    return null;
+  }
+}
+
+/** Every file under a folder of DATA_DIR, with its path relative to DATA_DIR (always `/`-separated). */
+export async function listStoredFiles(
+  rel: string,
+): Promise<{ rel: string; size: number; modifiedMs: number }[]> {
+  const root = path.resolve(/* turbopackIgnore: true */ dataDir(), rel);
+  if (!root.startsWith(dataDir() + path.sep)) return [];
+  const found: { rel: string; size: number; modifiedMs: number }[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    await Promise.all(
+      entries.map(async (e) => {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) return walk(full);
+        if (!e.isFile()) return;
+        const s = await stat(full).catch(() => null);
+        if (s) {
+          const relative = path.relative(dataDir(), full).split(path.sep).join('/');
+          found.push({ rel: relative, size: s.size, modifiedMs: s.mtimeMs });
+        }
+      }),
+    );
+  };
+  await walk(root);
+  return found;
+}
+
+/** Bytes and file count under a folder of DATA_DIR (0 if it does not exist). */
+export async function directoryUsage(rel: string): Promise<{ bytes: number; files: number }> {
+  const root = path.resolve(/* turbopackIgnore: true */ dataDir(), rel);
+  const total = { bytes: 0, files: 0 };
+  if (!root.startsWith(dataDir() + path.sep)) return total;
+  const walk = async (dir: string): Promise<void> => {
+    const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    await Promise.all(
+      entries.map(async (e) => {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) return walk(full);
+        if (!e.isFile()) return;
+        const s = await stat(full).catch(() => null);
+        if (s) {
+          total.bytes += s.size;
+          total.files += 1;
+        }
+      }),
+    );
+  };
+  await walk(root);
+  return total;
 }
