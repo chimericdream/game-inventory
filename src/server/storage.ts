@@ -223,6 +223,32 @@ export async function diskSpace(): Promise<{ totalBytes: number; freeBytes: numb
   }
 }
 
+/** Every file under a folder of DATA_DIR, with its path relative to DATA_DIR (always `/`-separated). */
+export async function listStoredFiles(
+  rel: string,
+): Promise<{ rel: string; size: number; modifiedMs: number }[]> {
+  const root = path.resolve(/* turbopackIgnore: true */ dataDir(), rel);
+  if (!root.startsWith(dataDir() + path.sep)) return [];
+  const found: { rel: string; size: number; modifiedMs: number }[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    await Promise.all(
+      entries.map(async (e) => {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) return walk(full);
+        if (!e.isFile()) return;
+        const s = await stat(full).catch(() => null);
+        if (s) {
+          const relative = path.relative(dataDir(), full).split(path.sep).join('/');
+          found.push({ rel: relative, size: s.size, modifiedMs: s.mtimeMs });
+        }
+      }),
+    );
+  };
+  await walk(root);
+  return found;
+}
+
 /** Bytes and file count under a folder of DATA_DIR (0 if it does not exist). */
 export async function directoryUsage(rel: string): Promise<{ bytes: number; files: number }> {
   const root = path.resolve(/* turbopackIgnore: true */ dataDir(), rel);

@@ -26,6 +26,15 @@ export async function StorageTab() {
     directoryUsage(`files/${ctx.householdId}`),
   ]);
   const days = retentionDays();
+  // Files on disk that no row in the database accounts for (a removal failed, or an upload was cut off).
+  const untrackedFiles = Math.max(
+    0,
+    files.files - stats.files.liveCount - stats.files.trashedCount,
+  );
+  const untrackedBytes = Math.max(
+    0,
+    files.bytes - stats.files.liveBytes - stats.files.trashedBytes,
+  );
   const used = disk ? disk.totalBytes - disk.freeBytes : 0;
   const level = disk ? diskLevel(used, disk.totalBytes) : 'ok';
   const percent = disk && disk.totalBytes > 0 ? Math.round((used / disk.totalBytes) * 100) : 0;
@@ -73,6 +82,18 @@ export async function StorageTab() {
           {formatBytes(files.bytes)}
           <small>{plural(files.files, 'file')}</small>
         </dd>
+        {untrackedFiles > 0 && (
+          <>
+            <dt>Untracked files</dt>
+            <dd data-untracked>
+              {formatBytes(untrackedBytes)}
+              <small>
+                {plural(untrackedFiles, 'file')} on disk that belong to nothing in the app. They are
+                deleted automatically once a week old.
+              </small>
+            </dd>
+          </>
+        )}
         <dt>Database</dt>
         <dd>
           {formatBytes(stats.databaseBytes)}
