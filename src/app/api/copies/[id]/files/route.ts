@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { formatBytes } from '@/lib/bytes';
 import { getApiContext } from '@/server/auth/current';
 import { addCopyFile, cleanFileName, prepareCopyFileUpload } from '@/server/data/copy-files';
 import {
@@ -38,7 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const max = maxFileBytes();
   const declared = Number(req.headers.get('content-length'));
   if (Number.isFinite(declared) && declared > max) {
-    return text(`Files must be ${Math.round(max / 1024 / 1024)} MB or smaller.`, 413);
+    return text(`Files must be ${formatBytes(max)} or smaller.`, 413);
   }
   if (!req.body) return text('That file is empty.', 400);
 

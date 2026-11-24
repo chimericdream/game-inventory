@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -11,6 +11,7 @@ import {
   directoryUsage,
   diskSpace,
   maxFileBytes,
+  removeAllStored,
   saveAttachment,
   storedSize,
   streamStored,
@@ -55,6 +56,18 @@ describe('attachableType', () => {
 
   it('rejects everything else', () => {
     for (const name of ['run.exe', 'page.html', 'noext', 'a.pdf.exe', 'x.svg']) {
+      expect(attachableType(name)).toBeNull();
+    }
+  });
+
+  it('rejects names whose extension is an inherited object key', () => {
+    for (const name of [
+      'rules.constructor',
+      'rules.__proto__',
+      'rules.toString',
+      'rules.hasOwnProperty',
+      'rules.valueOf',
+    ]) {
       expect(attachableType(name)).toBeNull();
     }
   });
@@ -118,6 +131,31 @@ describe('saveAttachment', () => {
 
   it('rejects an unsupported extension', async () => {
     await expect(saveAttachment('h', 'x', 'exe', body(PDF))).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('rejects an inherited object key as an extension instead of crashing', async () => {
+    for (const ext of ['constructor', '__proto__', 'toString']) {
+      await expect(saveAttachment('h', 'x', ext, body(PDF))).rejects.toBeInstanceOf(UploadError);
+    }
+    expect(await filesIn('files/h')).toEqual([]);
+  });
+});
+
+describe('removeAllStored', () => {
+  it('removes every file, and a missing one is not a failure', async () => {
+    const a = await saveAttachment('h', 'a', 'pdf', body(PDF));
+    const b = await saveAttachment('h', 'b', 'pdf', body(PDF));
+    expect(await removeAllStored([a.rel, null, undefined, 'files/h/gone.pdf', b.rel])).toEqual([]);
+    expect(await filesIn('files/h')).toEqual([]);
+  });
+
+  it('keeps going after one removal fails, and reports which failed', async () => {
+    // A directory cannot be removed as a file, so removing it fails.
+    await mkdir(path.join(dir, 'files/h/stuck'), { recursive: true });
+    const a = await saveAttachment('h', 'a', 'pdf', body(PDF));
+    const b = await saveAttachment('h', 'b', 'pdf', body(PDF));
+    expect(await removeAllStored([a.rel, 'files/h/stuck', b.rel])).toEqual(['files/h/stuck']);
+    expect(await filesIn('files/h')).toEqual(['stuck']);
   });
 });
 

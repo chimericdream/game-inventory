@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, lt, type SQL, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lt, type SQL, sql } from 'drizzle-orm';
 
 import type { Db } from '../db/client';
 import {
@@ -479,10 +479,19 @@ export async function purgeExpiredTrash(
     ];
     for (const kind of order) {
       const t = table(kind);
-      const expired = and(isNotNull(t.deletedAt), lt(t.deletedAt, cutoff));
-      // Deleting a copy or game cascades to its files, so note where they are stored first.
-      if (kind === 'copy' || kind === 'game')
-        files.push(...(await attachedFilePaths(tx, kind, expired)));
+      let expired = and(isNotNull(t.deletedAt), lt(t.deletedAt, cutoff));
+      if (kind === 'copy' || kind === 'game') {
+        // Deleting a copy or game cascades to its files, so note where they are stored first. Lock
+        // the expired rows before looking, so a restore that lands now waits for this transaction
+        // and then finds the row gone, instead of being skipped by the delete after its files'
+        // paths were already collected (and their bytes removed).
+        const ids = (await tx.select({ id: t.id }).from(t).where(expired).for('update')).map(
+          (r) => r.id,
+        );
+        if (ids.length === 0) continue;
+        files.push(...(await attachedFilePaths(tx, kind, inArray(t.id, ids))));
+        expired = inArray(t.id, ids);
+      }
       const rows = await tx.delete(t).where(expired).returning();
       for (const row of rows) {
         const r = row as unknown as Record<string, unknown>;

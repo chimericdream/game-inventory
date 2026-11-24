@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createUser, setupHousehold } from '../auth/accounts';
 import type { Db } from '../db/client';
-import { auditLog, households, users } from '../db/schema';
+import { auditLog, copies, households, users } from '../db/schema';
 import { createTestDb } from '../db/test-db';
 import { createContext, type DataContext } from './context';
 import { addCopy, deleteCopy } from './copies';
@@ -260,5 +260,32 @@ describe('copy files and the trash', () => {
     expect(result.files.toSorted()).toEqual(
       [lone, withCopy].map((f) => `files/${admin.householdId}/${f.id}.pdf`).toSorted(),
     );
+  });
+
+  it('are only reported for copies that have actually expired', async () => {
+    const { game, copy: old } = await seed();
+    const recent = await addCopy(admin, game.id, { format: 'print_and_play' });
+    const oldFile = await attach(admin, old.id, 'old.pdf');
+    const recentFile = await attach(admin, recent.id, 'recent.pdf');
+    await deleteCopy(admin, old.id);
+    await deleteCopy(admin, recent.id);
+    await db
+      .update(copies)
+      .set({ deletedAt: new Date(Date.now() - 40 * 86_400_000) })
+      .where(eq(copies.id, old.id));
+
+    const result = await purgeExpiredTrash(db, new Date(), 30);
+    expect(result.files).toEqual([`files/${admin.householdId}/${oldFile.id}.pdf`]);
+
+    // The recent copy and its file are untouched and can still be restored.
+    expect(await restoreTrashed(admin, 'copy', recent.id)).toEqual({ ok: true });
+    expect(await getCopyFileForDownload(admin, recentFile.id)).not.toBeNull();
+  });
+
+  it('are only reported when something has expired at all', async () => {
+    const { copy } = await seed();
+    await attach(admin, copy.id);
+    await deleteCopy(admin, copy.id);
+    expect(await purgeExpiredTrash(db, new Date(), 30)).toMatchObject({ purged: 0, files: [] });
   });
 });

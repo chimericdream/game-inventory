@@ -23,7 +23,12 @@ function parseRange(header: string, size: number): { start: number; end: number 
 /** `inline` or `attachment` with a name that survives non-ASCII characters. */
 function disposition(kind: 'inline' | 'attachment', name: string) {
   const ascii = name.replace(/[^\x20-\x7e]|["\\]/g, '_');
-  return `${kind}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+  // encodeURIComponent leaves ' ( ) * alone, but RFC 8187 does not allow them in filename*.
+  const encoded = encodeURIComponent(name).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  return `${kind}; filename="${ascii}"; filename*=UTF-8''${encoded}`;
 }
 
 /**

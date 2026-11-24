@@ -8,7 +8,7 @@ import { requireContext } from '@/server/auth/current';
 import { createLocation, deleteLocation } from '@/server/data/lookups';
 import { isUuid } from '@/server/data/ids';
 import { isTrashKind, purgeTrashed, restoreTrashed } from '@/server/data/trash';
-import { removeStored } from '@/server/storage';
+import { removeAllStored } from '@/server/storage';
 import { deletePlayer, linkPlayerToUser, mergePlayers, renamePlayer } from '@/server/data/players';
 
 export interface SettingsState {
@@ -238,13 +238,20 @@ export async function purgeTrashedAction(
 ): Promise<SettingsState> {
   const { ctx } = await requireContext();
   if (!isTrashKind(kind)) return { error: 'Unknown item.' };
+  let leftOnDisk: string[] = [];
   try {
     const result = await purgeTrashed(ctx, kind, id);
     if (!result.ok) return { error: result.error };
-    for (const stored of [result.coverImage, ...result.files]) await removeStored(stored);
+    leftOnDisk = await removeAllStored([result.coverImage, ...result.files]);
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Could not delete it.' };
   }
   refreshAll();
+  // The rows are gone for good, so say which files still need removing by hand.
+  if (leftOnDisk.length > 0) {
+    return {
+      error: `Deleted, but ${leftOnDisk.length === 1 ? 'a file' : `${leftOnDisk.length} files`} could not be removed from the data folder: ${leftOnDisk.join(', ')}`,
+    };
+  }
   return { ok: true };
 }

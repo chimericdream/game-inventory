@@ -149,7 +149,7 @@ describe('POST /api/copies/[id]/files', () => {
     const big = Buffer.concat([PDF, Buffer.alloc(1024 * 1024)]);
     const res = await upload(copy.id, big);
     expect(res.status).toBe(413);
-    expect(await res.text()).toMatch(/1 MB/);
+    expect(await res.text()).toMatch(/1\.0 MB/);
     expect(await stored()).toEqual([]);
   });
 });
@@ -204,6 +204,16 @@ describe('GET /api/files/[id]', () => {
     expect(got.headers.get('content-disposition')).toContain(
       `filename*=UTF-8''${encodeURIComponent('Règles du jeu.pdf')}`,
     );
+  });
+
+  it('percent-encodes the characters RFC 8187 does not allow in filename*', async () => {
+    const { copy } = await seed();
+    const res = await upload(copy.id, PDF, { name: "L'île (1)*.pdf" });
+    const id = ((await res.json()) as { id: string }).id;
+    const header = (await download(id)).headers.get('content-disposition')!;
+    const encoded = header.split("filename*=UTF-8''")[1]!;
+    expect(encoded).toBe('L%27%C3%AEle%20%281%29%2A.pdf');
+    expect(encoded).not.toMatch(/['()*]/);
   });
 
   it('needs a signed-in user, and answers 404 for anything it should not reveal', async () => {

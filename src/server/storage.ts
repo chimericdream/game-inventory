@@ -7,6 +7,10 @@ import path from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
+import { z } from 'zod';
+
+import { formatBytes } from '../lib/bytes';
+
 const MAX_BYTES = 8 * 1024 * 1024;
 const TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -19,8 +23,12 @@ const MIME_BY_EXT: Record<string, string> = {
   zip: 'application/zip',
 };
 
+export const ATTACHABLE_EXTENSIONS = ['pdf', 'zip', 'png', 'jpg', 'jpeg'] as const;
+type Extension = (typeof ATTACHABLE_EXTENSIONS)[number];
+const extension = z.enum(ATTACHABLE_EXTENSIONS);
+
 /** Attachable file types (print-and-play files): extension → MIME type and the bytes it starts with. */
-const FILE_TYPES: Record<string, { mime: string; magic: number[][] }> = {
+const FILE_TYPES: Record<Extension, { mime: string; magic: number[][] }> = {
   pdf: { mime: 'application/pdf', magic: [[0x25, 0x50, 0x44, 0x46, 0x2d]] },
   zip: {
     mime: 'application/zip',
@@ -34,13 +42,19 @@ const FILE_TYPES: Record<string, { mime: string; magic: number[][] }> = {
   jpeg: { mime: 'image/jpeg', magic: [[0xff, 0xd8, 0xff]] },
 };
 
-export const ATTACHABLE_EXTENSIONS = ['pdf', 'zip', 'png', 'jpg', 'jpeg'] as const;
+/**
+ * The type for an extension, or null if it is not one we accept. The extension is checked against
+ * the list first, so inherited keys such as `constructor` never reach the table.
+ */
+function typeFor(ext: string) {
+  const parsed = extension.safeParse(ext);
+  return parsed.success ? { ext: parsed.data, ...FILE_TYPES[parsed.data] } : null;
+}
 
 /** The type of an attachable file from its name, or null if it is not one we accept. */
 export function attachableType(fileName: string): { ext: string; mime: string } | null {
-  const ext = path.extname(fileName).slice(1).toLowerCase();
-  const type = FILE_TYPES[ext];
-  return type ? { ext, mime: type.mime } : null;
+  const type = typeFor(path.extname(fileName).slice(1).toLowerCase());
+  return type ? { ext: type.ext, mime: type.mime } : null;
 }
 
 const DEFAULT_MAX_FILE_MB = 250;
@@ -90,7 +104,7 @@ export async function saveAttachment(
   body: ReadableStream<Uint8Array>,
   maxBytes = maxFileBytes(),
 ): Promise<{ rel: string; size: number }> {
-  const type = FILE_TYPES[ext];
+  const type = typeFor(ext);
   if (!type) throw new UploadError('That file type is not supported.', 400);
   const rel = path.posix.join('files', householdId, `${fileId}.${ext}`);
   const abs = path.join(/* turbopackIgnore: true */ dataDir(), rel);
@@ -109,10 +123,7 @@ export async function saveAttachment(
       try {
         size += chunk.length;
         if (size > maxBytes) {
-          throw new UploadError(
-            `Files must be ${Math.round(maxBytes / 1024 / 1024)} MB or smaller.`,
-            413,
-          );
+          throw new UploadError(`Files must be ${formatBytes(maxBytes)} or smaller.`, 413);
         }
         if (!sniffed) {
           head = Buffer.concat([head, chunk.subarray(0, 8)]).subarray(0, 8);
@@ -181,6 +192,22 @@ export async function removeStored(rel: string | null | undefined) {
   if (!rel) return;
   const abs = path.resolve(/* turbopackIgnore: true */ dataDir(), rel);
   if (abs.startsWith(dataDir() + path.sep)) await rm(abs, { force: true });
+}
+
+/**
+ * Removes each stored file, attempting every one even if an earlier one fails. Returns the paths
+ * that could not be removed (a missing file is not a failure).
+ */
+export async function removeAllStored(rels: (string | null | undefined)[]): Promise<string[]> {
+  const failed: string[] = [];
+  for (const rel of rels) {
+    try {
+      await removeStored(rel);
+    } catch {
+      if (rel) failed.push(rel);
+    }
+  }
+  return failed;
 }
 
 /**

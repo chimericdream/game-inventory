@@ -291,7 +291,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               gameId={id}
               canEdit={member}
               isExpansion={game.isExpansion}
-              maxFileMb={Math.round(maxFileBytes() / 1024 / 1024)}
+              maxFileMb={maxFileBytes() / 1024 / 1024}
               members={members.map((m) => ({ value: m.id, label: m.name }))}
               locations={locations}
               copies={detail.copies.map((c) => ({
