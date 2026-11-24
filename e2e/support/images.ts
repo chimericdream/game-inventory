@@ -63,10 +63,11 @@ function hsl(h: number, s: number, l: number): [number, number, number] {
   return [f(0), f(8), f(4)];
 }
 
-/** A 300x400 box-art stand-in: a gradient whose hue comes from the title, with a frame and a banner. */
-export function coverPng(title: string): Buffer {
-  const w = 300;
-  const h = 400;
+/**
+ * A box-art stand-in (300x400 unless told otherwise): a gradient whose hue comes from the title,
+ * with a frame and a banner.
+ */
+export function coverPng(title: string, w = 300, h = 400): Buffer {
   let seed = 0;
   for (const ch of title) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
   const hue = seed % 360;
@@ -77,7 +78,7 @@ export function coverPng(title: string): Buffer {
     for (let x = 0; x < w; x++) {
       let rgb = hsl((hue + (x + y) / 12) % 360, 0.55, 0.3 + 0.35 * (1 - y / h));
       const inFrame = x > 14 && x < w - 14 && y > 14 && y < h - 14;
-      const banner = y > 150 && y < 250 && x > 30 && x < w - 30;
+      const banner = y > h * 0.375 && y < h * 0.625 && x > 30 && x < w - 30;
       if (!inFrame) rgb = hsl(hue, 0.4, 0.15);
       else if (banner) rgb = hsl((hue + 40) % 360, 0.6, 0.85);
       else if ((x + y) % 40 < 3) rgb = hsl(hue, 0.5, 0.75);
