@@ -10,7 +10,14 @@ export const metadata: Metadata = {
 
 const VARS: [string, string][] = [
   ['DATABASE_URL', 'PostgreSQL connection string. Required.'],
-  ['DATA_DIR', 'Where uploaded images are stored. Default ./data (/data in the container).'],
+  [
+    'DATA_DIR',
+    'Where uploaded images and print & play files are stored. Default ./data (/data in the container).',
+  ],
+  [
+    'MAX_FILE_MB',
+    'Largest file you can attach to a print & play copy, in megabytes. Default 250. A reverse proxy in front of the app needs a matching upload limit.',
+  ],
   ['BGG_API_TOKEN', 'BoardGameGeek API token. Enables the title lookup on the add-game form.'],
   ['COOKIE_SECURE', 'Set to true when the app is served over HTTPS.'],
   ['AUTO_MIGRATE', 'Set to false to skip database migrations on start.'],

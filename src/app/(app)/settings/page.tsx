@@ -14,11 +14,12 @@ import { actorLabel, describeActivity } from './activity';
 import classes from './Settings.module.css';
 import { AddLocationForm, AddMemberForm, DeleteLocationButton, PlayerAdmin } from './SettingsForms';
 import { ShareLinks } from './ShareLinks';
+import { StorageTab } from './StorageTab';
 import { TrashActions } from './TrashList';
 
 export const dynamic = 'force-dynamic';
 
-type Tab = 'people' | 'locations' | 'links' | 'activity' | 'trash';
+type Tab = 'people' | 'locations' | 'links' | 'activity' | 'trash' | 'storage';
 type SearchParams = Record<string, string | string[] | undefined>;
 
 const TAB_LABELS: Record<Tab, string> = {
@@ -27,6 +28,7 @@ const TAB_LABELS: Record<Tab, string> = {
   links: 'Guest links',
   activity: 'Activity',
   trash: 'Trash',
+  storage: 'Storage',
 };
 
 const choice = (p: { id: string; displayName: string }) => ({
@@ -45,7 +47,7 @@ export default async function SettingsPage({
   const isAdmin = ctx.viewer.role === 'admin';
   const canEdit = ctx.viewer.role !== 'restricted';
   const tabs: Tab[] = isAdmin
-    ? ['people', 'locations', 'links', 'activity', 'trash']
+    ? ['people', 'locations', 'links', 'activity', 'trash', 'storage']
     : canEdit
       ? ['people', 'locations', 'trash']
       : ['people', 'locations'];
@@ -78,6 +80,7 @@ export default async function SettingsPage({
       {tab === 'links' && isAdmin && <LinksTab />}
       {tab === 'activity' && isAdmin && <ActivityTab />}
       {tab === 'trash' && canEdit && <TrashTab isAdmin={isAdmin} />}
+      {tab === 'storage' && isAdmin && <StorageTab />}
     </>
   );
 }
@@ -282,6 +285,7 @@ const KIND_LABELS: Record<string, string> = {
   game: 'Game',
   copy: 'Copy',
   accessory: 'Accessory',
+  copy_file: 'File',
   play: 'Play',
   wishlist_item: 'Wishlist',
   location: 'Place',

@@ -55,6 +55,11 @@ function trashNoun(entry: AuditEntry, gameTitle: (id: string | null) => string |
       const what = name ? `the accessory ${name}` : 'an accessory';
       return game ? `${what} from ${game}` : what;
     }
+    case 'copy_file': {
+      const name = first(entry, 'name');
+      const what = name ? `the file ${name}` : 'a file';
+      return game ? `${what} from ${game}` : what;
+    }
     case 'play':
       return game ? `a play of ${game}` : 'a play';
     case 'wishlist_item':
@@ -113,6 +118,11 @@ export function describeActivity(entry: AuditEntry, titles: Map<string, string>)
       const name = first(entry, 'name') ?? 'an accessory';
       if (entry.action === 'create') return `added ${name}${title ? ` to ${title}` : ''}`;
       return `changed an accessory’s ${fieldList(Object.keys(entry.changes))}`;
+    }
+    case 'copy_file': {
+      const title = gameTitle(first(entry, 'gameId'));
+      const name = first(entry, 'name') ?? 'a file';
+      return `attached ${name}${title ? ` to ${title}` : ''}`;
     }
     case 'loan': {
       if (entry.action === 'create') {

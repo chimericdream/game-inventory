@@ -2,7 +2,7 @@
 
 import { NumberInput, Select, Stack, TextInput } from '@mantine/core';
 
-import { CONDITION_OPTIONS } from './labels';
+import { CONDITION_OPTIONS, FORMAT_OPTIONS } from './labels';
 
 export interface Option {
   value: string;
@@ -21,7 +21,7 @@ export function CopyFields({ members, locations }: { members: Option[]; location
       <Select
         name={n('format')}
         label="Format"
-        data={['physical', 'digital']}
+        data={FORMAT_OPTIONS}
         defaultValue="physical"
         allowDeselect={false}
       />

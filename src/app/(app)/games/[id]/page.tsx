@@ -12,6 +12,7 @@ import { getGameDetail } from '@/server/data/games';
 import { listLocationOptions, listMembers } from '@/server/data/lookups';
 import { playerStats, playsForGame } from '@/server/data/plays';
 import { ratingSummary } from '@/server/data/ratings';
+import { maxFileBytes } from '@/server/storage';
 
 import { rateGameAction } from '../actions';
 import { coverUrl } from '../tiles';
@@ -290,6 +291,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               gameId={id}
               canEdit={member}
               isExpansion={game.isExpansion}
+              maxFileMb={Math.round(maxFileBytes() / 1024 / 1024)}
               members={members.map((m) => ({ value: m.id, label: m.name }))}
               locations={locations}
               copies={detail.copies.map((c) => ({
@@ -306,6 +308,12 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 priceCents: c.priceCents,
                 acquiredOn: c.acquiredOn,
                 loan: c.loan,
+                files: c.files.map((f) => ({
+                  id: f.id,
+                  name: f.name,
+                  mime: f.mime,
+                  sizeBytes: f.sizeBytes,
+                })),
                 accessories: c.accessories.map((a) => ({
                   id: a.id,
                   name: a.name,

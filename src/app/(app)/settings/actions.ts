@@ -241,7 +241,7 @@ export async function purgeTrashedAction(
   try {
     const result = await purgeTrashed(ctx, kind, id);
     if (!result.ok) return { error: result.error };
-    await removeStored(result.coverImage);
+    for (const stored of [result.coverImage, ...result.files]) await removeStored(stored);
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Could not delete it.' };
   }

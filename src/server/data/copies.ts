@@ -14,7 +14,7 @@ import {
 import type { DataContext } from './context';
 
 export const copyInput = z.object({
-  format: z.enum(['physical', 'digital']).default('physical'),
+  format: z.enum(['physical', 'digital', 'print_and_play']).default('physical'),
   platform: z.string().trim().max(100).nullable().optional(),
   condition: z
     .enum(['unopened', 'like_new', 'good', 'worn', 'damaged', 'incomplete'])

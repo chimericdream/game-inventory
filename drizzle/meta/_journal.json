@@ -43,6 +43,13 @@
       "when": 1794762466778,
       "tag": "0005_decode_html_entities",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795541859758,
+      "tag": "0006_dry_lifeguard",
+      "breakpoints": true
     }
   ]
 }

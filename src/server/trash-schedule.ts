@@ -6,8 +6,8 @@ const SIX_HOURS = 6 * 60 * 60 * 1000;
 
 async function purgeOnce() {
   try {
-    const { purged, covers } = await purgeExpiredTrash(getDb());
-    for (const cover of covers) await removeStored(cover);
+    const { purged, covers, files } = await purgeExpiredTrash(getDb());
+    for (const stored of [...covers, ...files]) await removeStored(stored);
     if (purged > 0) console.info(`Trash: permanently deleted ${purged} expired item(s)`);
   } catch (e) {
     console.error('Trash purge failed', e);

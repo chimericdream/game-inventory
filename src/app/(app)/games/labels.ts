@@ -32,6 +32,17 @@ export const CONDITION_OPTIONS = Object.entries(CONDITION_LABELS).map(([value, l
   label,
 }));
 
+export const FORMAT_LABELS: Record<string, string> = {
+  physical: 'Physical',
+  digital: 'Digital',
+  print_and_play: 'Print & play',
+};
+
+export const FORMAT_OPTIONS = Object.entries(FORMAT_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}));
+
 export const ACCESSORY_KIND_LABELS: Record<string, string> = {
   playmat: 'Playmat',
   organizer: 'Organizer or insert',

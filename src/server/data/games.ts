@@ -21,6 +21,7 @@ import {
   trashedFields,
 } from './audit';
 import { accessoriesForCopies } from './accessories';
+import { canSeeFiles, filesForCopies } from './copy-files';
 import type { DataContext } from './context';
 import { isUuid } from './ids';
 import { listLocationOptions } from './lookups';
@@ -181,6 +182,12 @@ export async function getGameDetail(ctx: DataContext, id: string) {
     ctx,
     copyRows.map((c) => c.copy.id),
   );
+  const fileRows = canSeeFiles(ctx, game.visibility)
+    ? await filesForCopies(
+        ctx,
+        copyRows.map((c) => c.copy.id),
+      )
+    : [];
   const expansionIds = expansionRows.map((r) => r.game.id);
   const expansionCopyRows =
     expansionIds.length > 0
@@ -240,6 +247,7 @@ export async function getGameDetail(ctx: DataContext, id: string) {
       /** Full path such as "Office › Small Kallax". */
       locationName: c.copy.locationId ? (locationLabel.get(c.copy.locationId) ?? null) : null,
       loan: loanByCopy.get(c.copy.id) ?? null,
+      files: fileRows.filter((f) => f.copyId === c.copy.id),
       accessories: accessoryRows
         .filter((a) => a.copyId === c.copy.id)
         .map((a) => ({
