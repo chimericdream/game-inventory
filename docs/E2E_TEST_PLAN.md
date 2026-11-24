@@ -329,7 +329,7 @@ UPC is not BGG, so it is in scope. It uses the mock server.
 | X-05 | Accessibility: axe scan with no serious/critical violations on login, games list, game detail, game form, settings, guest list                                                    |
 | X-06 | Keyboard: tab order through the game form; Enter submits; Escape closes Mantine popovers                                                                                          |
 | X-07 | `GET /api/health` returns 200 and a body that does not leak config `@smoke`                                                                                                       |
-| X-08 | `GET /healthz` returns 200 with `{ status: "ok" }` (home dashboard convention) `@smoke`                                                                                           |
+| X-08 | `GET /healthz` returns 200 with `{ status: "ok" }` (home dashboard convention); `degraded` at 90% disk used (unit-tested) `@smoke`                                                |
 | X-08 | Startup: against an empty DB the app migrates itself; with `AUTO_MIGRATE=false` it does not _(separate CI invocation)_                                                            |
 | X-09 | Security headers/cookies: no secrets in HTML, `__NEXT_DATA__`-style payloads, or RSC payloads for restricted/guest pages                                                          |
 | X-10 | Unknown routes show a 404 page; server action errors show a message, not a stack trace                                                                                            |
