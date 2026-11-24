@@ -68,6 +68,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 | `COOKIE_SECURE`        | `true` when served over HTTPS                                                                                                 |
 | `AUTO_MIGRATE`         | `false` to skip migrations on start                                                                                           |
 | `TRASH_RETENTION_DAYS` | Days deleted items stay in the trash before being removed for good (default `30`, `0` keeps them until an admin deletes them) |
+| `ALLOWED_ORIGINS`      | Comma-separated hostnames allowed to submit server actions, e.g. behind a reverse proxy (default none)                        |
 
 ## BoardGameGeek integration
 

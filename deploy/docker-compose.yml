@@ -54,6 +54,7 @@ services:
       BGG_API_TOKEN: ${BGG_API_TOKEN:-}
       TRASH_RETENTION_DAYS: ${TRASH_RETENTION_DAYS:-30}
       MAX_FILE_MB: ${MAX_FILE_MB:-250}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       COOKIE_SECURE: 'true'
     volumes:
       - app-data:/data
