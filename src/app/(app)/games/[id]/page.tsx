@@ -117,6 +117,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               title={game.title}
               type={game.type}
               src={game.coverImage ? coverUrl(game.id) : null}
+              landscape="flat"
             />
           </div>
 

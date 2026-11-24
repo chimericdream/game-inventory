@@ -5,7 +5,7 @@ import { confirmDelete } from '../support/trash';
 import { expect, test } from '../fixtures';
 import { addGameViaUi, attachCover, fillGameForm, gameCards } from '../support/actions';
 import { DATA_DIR } from '../support/env';
-import { fakePng, oversizePng, png, TINY_PNG, textFile } from '../support/images';
+import { coverPng, fakePng, oversizePng, png, TINY_PNG, textFile } from '../support/images';
 import { choose, label } from '../support/mantine';
 
 const SAVE = { name: 'Save', exact: true } as const;
@@ -209,6 +209,28 @@ test('CAT-06 a PNG cover uploads and displays on the detail page and the grid @s
 
   await page.goto('/games');
   await expect(page.locator(`img[src="/api/games/${id}/cover"]`)).toBeVisible();
+});
+
+test('CAT-06c a landscape cover lies flat on its page and is shown whole in the grid', async ({
+  page,
+}) => {
+  const cover = { name: 'wide.png', mimeType: 'image/png', buffer: coverPng('Wide Box', 480, 270) };
+  const id = await addGameViaUi(page, { title: 'Wide Box', cover });
+  const src = `/api/games/${id}/cover`;
+
+  // The game's own page takes the picture's shape instead of cropping it to 4:5.
+  const flat = page.locator('[data-landscape="flat"]');
+  await expect(flat).toBeVisible();
+  const box = await flat.boundingBox();
+  expect(box!.width / box!.height).toBeCloseTo(480 / 270, 1);
+
+  // The grid keeps the 4:5 tile: the whole picture over a blurred copy of itself.
+  await page.goto('/games');
+  const fill = page.locator('[data-landscape="fill"]');
+  await expect(fill).toBeVisible();
+  await expect(fill.locator(`img[src="${src}"]`)).toHaveCount(2);
+  const tile = await fill.boundingBox();
+  expect(tile!.width / tile!.height).toBeCloseTo(4 / 5, 1);
 });
 
 test('CAT-06b a cover of a few megabytes uploads (the limit is 8 MB)', async ({ page }) => {
