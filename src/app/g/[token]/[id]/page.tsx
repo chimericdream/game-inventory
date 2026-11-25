@@ -49,7 +49,7 @@ export default async function GuestGamePage({
             title={game.title}
             type={game.type}
             src={game.coverImage ? `/g/${token}/cover/${game.id}` : null}
-            landscape="flat"
+            fit="flat"
           />
         </div>
         <div>

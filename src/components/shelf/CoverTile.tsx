@@ -8,11 +8,8 @@ import { TYPE_HUES, TYPE_LABELS } from './types';
 /** The first character as a whole code point, so an emoji is never cut in half. */
 const firstLetter = (title: string) => (Array.from(title.trim())[0] ?? '').toUpperCase();
 
-/**
- * How much wider than tall a picture must be to count as landscape, so a square box photographed a
- * few pixels off square still crops like any other cover.
- */
-const LANDSCAPE = 1.05;
+/** The cover tile's own shape, width over height. Pictures of any other shape are never cropped. */
+const TILE_RATIO = 4 / 5;
 
 /** Width over height of a loaded picture, or null if it has not loaded (or failed to). */
 const ratioOf = (el: HTMLImageElement) =>
@@ -24,23 +21,24 @@ interface Props {
   /** Where to load the picture from, or null for a game with none. */
   src: string | null;
   /**
-   * What a landscape picture does. `fill` (for grids and lists) keeps the 4:5 tile and shows the
-   * whole picture over a blurred copy of itself; `flat` (for a game's own page) lets the cover take
-   * the picture's shape, like a box lying flat on the shelf.
+   * What a picture that is not exactly 4:5 does. `fill` (for grids and lists) keeps the 4:5 tile
+   * and shows the whole picture over a blurred copy of itself, which shows at the sides of a tall
+   * picture and above and below a wide one; `flat` (for a game's own page) lets the cover take the
+   * picture's own shape.
    */
-  landscape?: 'fill' | 'flat';
+  fit?: 'fill' | 'flat';
   /** Anything to lay along the bottom edge of the cover, such as a loan tag. */
   children?: React.ReactNode;
 }
 
 /**
- * A game's cover, 4:5 unless the picture is landscape (see `landscape`). Without a picture it shows
+ * A game's cover, 4:5 with the whole picture always visible (see `fit`). Without a picture it shows
  * a tinted tile with the game's first letter and kind (the title sits right below the cover, so it
  * is not repeated on the tile), so a missing cover still reads as a game rather than a hole. The
  * tile is legible in both colour schemes because it only mixes the type's hue into the page's own
  * surface colours.
  */
-export function CoverTile({ title, type, src, landscape = 'fill', children }: Props) {
+export function CoverTile({ title, type, src, fit = 'fill', children }: Props) {
   const img = useRef<HTMLImageElement>(null);
   // Width over height, known once the picture has loaded. Until then the cover is a plain 4:5 tile.
   const [ratio, setRatio] = useState<number | null>(null);
@@ -50,17 +48,17 @@ export function CoverTile({ title, type, src, landscape = 'fill', children }: Pr
     if (img.current?.complete) setRatio(ratioOf(img.current));
   }, []);
 
-  const wide = src !== null && ratio !== null && ratio > LANDSCAPE;
+  const offShape = src !== null && ratio !== null && ratio !== TILE_RATIO;
   const style = {
     '--hue': TYPE_HUES[type] ?? TYPE_HUES.other,
-    ...(wide && { '--ratio': ratio }),
+    ...(offShape && { '--ratio': ratio }),
   } as CSSProperties;
   return (
-    <div className={classes.cover} style={style} data-landscape={wide ? landscape : undefined}>
+    <div className={classes.cover} style={style} data-fit={offShape ? fit : undefined}>
       {src ? (
         <>
           {/* Covers are served by our own route, so the image optimiser has nothing to add. */}
-          {wide && landscape === 'fill' && (
+          {offShape && fit === 'fill' && (
             // eslint-disable-next-line @next/next/no-img-element
             <img className={classes.backdrop} src={src} alt="" aria-hidden />
           )}

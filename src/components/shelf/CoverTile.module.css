@@ -17,13 +17,13 @@
   object-fit: cover;
 }
 
-/* A landscape box lying flat: the cover takes the picture's own shape. */
-.cover[data-landscape='flat'] {
+/* A picture that is not 4:5, on a game's own page: the cover takes the picture's own shape. */
+.cover[data-fit='flat'] {
   aspect-ratio: var(--ratio);
 }
 
-/* A landscape picture in a 4:5 tile: shown whole, over a blurred copy that fills the rest. */
-.cover[data-landscape='fill'] .picture {
+/* A picture that is not 4:5, in a 4:5 tile: shown whole, over a blurred copy that fills the rest. */
+.cover[data-fit='fill'] .picture {
   object-fit: contain;
 }
 
