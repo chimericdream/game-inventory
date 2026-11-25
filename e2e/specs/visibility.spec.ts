@@ -98,7 +98,8 @@ test('VIS-05 hide-images keeps the title but withholds the picture everywhere @s
   const card = gameCards(kidPage).filter({ hasText: 'No Pictures Game' });
   await expect(card).toBeVisible();
   await expect(card.locator('img')).toHaveCount(0);
-  await expect(gameCards(kidPage).filter({ hasText: 'Open Game' }).locator('img')).toHaveCount(1);
+  // The seeded cover is square, so it shows whole over a blurred copy: two images, both allowed.
+  await expect(gameCards(kidPage).filter({ hasText: 'Open Game' }).locator('img')).toHaveCount(2);
 
   await kidPage.goto(`/games/${noImages}`);
   await expect(kidPage.getByRole('heading', { name: 'No Pictures Game' })).toBeVisible();

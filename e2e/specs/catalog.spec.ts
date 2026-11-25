@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
@@ -207,30 +208,61 @@ test('CAT-06 a PNG cover uploads and displays on the detail page and the grid @s
     .poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth))
     .toBeGreaterThan(0);
 
+  // The 1x1 test picture is not 4:5, so the grid shows it whole over a blurred copy of itself.
   await page.goto('/games');
-  await expect(page.locator(`img[src="/api/games/${id}/cover"]`)).toBeVisible();
+  const pictures = page.locator(`img[src="/api/games/${id}/cover"]`);
+  await expect(pictures).toHaveCount(2);
+  await expect(pictures.last()).toBeVisible();
 });
+
+/** Adds a game with a generated cover of the given size and returns its cover URL. */
+async function addSizedCover(page: Page, title: string, w: number, h: number) {
+  const cover = { name: 'cover.png', mimeType: 'image/png', buffer: coverPng(title, w, h) };
+  const id = await addGameViaUi(page, { title, cover });
+  return `/api/games/${id}/cover`;
+}
 
 test('CAT-06c a landscape cover lies flat on its page and is shown whole in the grid', async ({
   page,
 }) => {
-  const cover = { name: 'wide.png', mimeType: 'image/png', buffer: coverPng('Wide Box', 480, 270) };
-  const id = await addGameViaUi(page, { title: 'Wide Box', cover });
-  const src = `/api/games/${id}/cover`;
+  const src = await addSizedCover(page, 'Wide Box', 480, 270);
 
   // The game's own page takes the picture's shape instead of cropping it to 4:5.
-  const flat = page.locator('[data-landscape="flat"]');
+  const flat = page.locator('[data-fit="flat"]');
   await expect(flat).toBeVisible();
   const box = await flat.boundingBox();
   expect(box!.width / box!.height).toBeCloseTo(480 / 270, 1);
 
   // The grid keeps the 4:5 tile: the whole picture over a blurred copy of itself.
   await page.goto('/games');
-  const fill = page.locator('[data-landscape="fill"]');
+  const fill = page.locator('[data-fit="fill"]', { has: page.locator(`img[src="${src}"]`) });
   await expect(fill).toBeVisible();
   await expect(fill.locator(`img[src="${src}"]`)).toHaveCount(2);
   const tile = await fill.boundingBox();
   expect(tile!.width / tile!.height).toBeCloseTo(4 / 5, 1);
+});
+
+test('CAT-06d a tall cover is shown whole in the grid; an exact 4:5 cover is left alone', async ({
+  page,
+}) => {
+  const tall = await addSizedCover(page, 'Tall Box', 200, 400);
+  await expect(page.locator('[data-fit="flat"]')).toBeVisible();
+
+  const exact = await addSizedCover(page, 'Exact Box', 400, 500);
+  await expect
+    .poll(() =>
+      page.locator(`img[src="${exact}"]`).evaluate((el: HTMLImageElement) => el.naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await expect(page.locator('[data-fit]')).toHaveCount(0);
+
+  await page.goto('/games');
+  await expect(
+    page.locator('[data-fit="fill"]', { has: page.locator(`img[src="${tall}"]`) }),
+  ).toBeVisible();
+  await expect(page.locator(`img[src="${tall}"]`)).toHaveCount(2);
+  await expect(page.locator(`img[src="${exact}"]`)).toHaveCount(1);
+  await expect(page.locator(`img[src="${exact}"]`)).toBeVisible();
 });
 
 test('CAT-06b a cover of a few megabytes uploads (the limit is 8 MB)', async ({ page }) => {
