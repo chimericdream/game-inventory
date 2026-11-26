@@ -61,6 +61,24 @@ const stone: MantineColorsTuple = [
   '#121816',
 ];
 
+/**
+ * Mantine paints inputs, selects and menus in dark mode from its `dark` scale (6 is the input fill,
+ * 4 its border, 7 the body). Without this they fall back to Mantine's neutral greys. Shades 5-8 match
+ * the dark default hover, surface, ground and sunk; 4 is a 3:1 control edge.
+ */
+const dark: MantineColorsTuple = [
+  '#e9e8e1',
+  '#cfcdc4',
+  '#b5b3a7',
+  '#9c9a8f',
+  '#85837a',
+  '#30302b',
+  '#262622',
+  '#1e1e1b',
+  '#171715',
+  '#111110',
+];
+
 const SANS = 'var(--font-figtree), system-ui, -apple-system, "Segoe UI", sans-serif';
 const SERIF = 'var(--font-fraunces), Georgia, "Times New Roman", serif';
 
@@ -69,7 +87,7 @@ export const theme = createTheme({
   primaryShade: { light: 6, dark: 3 },
   autoContrast: true,
   // Mantine's red is the error colour in alerts, inputs and destructive buttons; make it berry too.
-  colors: { forest, berry, stone, red: berry },
+  colors: { forest, berry, stone, red: berry, dark },
   fontFamily: SANS,
   fontFamilyMonospace: 'ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace',
   headings: {
@@ -144,25 +162,31 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     '--app-rule': '#dcdcd3',
   },
   dark: {
-    '--mantine-color-body': '#1b2420',
-    '--mantine-color-text': '#e9eee8',
-    '--mantine-color-dimmed': '#9aa89f',
-    '--mantine-color-placeholder': '#8c9b92',
-    '--mantine-color-default': '#1b2420',
-    '--mantine-color-default-hover': '#243c33',
-    '--mantine-color-default-border': '#33443c',
-    '--app-ground': '#121816',
-    '--app-surface': '#1b2420',
-    '--app-sunk': '#0d1210',
-    '--app-ink': '#e9eee8',
-    '--app-muted': '#9aa89f',
-    '--app-tint': '#243c33',
+    // The stone room with the lights down: warm near-neutral greys a step off black, cream ink, a
+    // wood plank you can see. Forest green stays an accent, as in light, so the covers carry the colour.
+    '--mantine-color-body': '#262622',
+    '--mantine-color-text': '#efede4',
+    '--mantine-color-dimmed': '#b5b3a7',
+    '--mantine-color-placeholder': '#a4a296',
+    '--mantine-color-default': '#262622',
+    '--mantine-color-default-hover': '#30302b',
+    '--mantine-color-default-border': '#48483f',
+    // Error alerts use the loan tint instead of Mantine's near-black berry wash.
+    '--mantine-color-red-light': '#482430',
+    '--mantine-color-red-light-hover': '#542e38',
+    '--mantine-color-red-light-color': '#f0909f',
+    '--app-ground': '#1e1e1b',
+    '--app-surface': '#262622',
+    '--app-sunk': '#171715',
+    '--app-ink': '#efede4',
+    '--app-muted': '#b5b3a7',
+    '--app-tint': '#283c32',
     '--app-accent': '#62c4a0',
-    '--app-on-accent': '#0d1a15',
-    '--app-plank': '#6e5033',
+    '--app-on-accent': '#0f1f19',
+    '--app-plank': '#b08657',
     '--app-loan': '#f0909f',
-    '--app-loan-tint': '#41222b',
-    '--app-border': '#2c3a34',
-    '--app-rule': '#26322d',
+    '--app-loan-tint': '#482430',
+    '--app-border': '#36362f',
+    '--app-rule': '#2f2f2a',
   },
 });
